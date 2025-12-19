@@ -1,6 +1,6 @@
 "use client";
 
-import { HomeIcon, SunMoonIcon } from "lucide-react";
+import { HomeIcon, SunMoonIcon, MessageCircleIcon, BookIcon } from "lucide-react";
 import {
   Dock,
   DockIcon,
@@ -23,6 +23,28 @@ export function DockMenu() {
           <DockLabel>Home</DockLabel>
           <DockIcon>
             <HomeIcon className="h-full w-full text-neutral-600 dark:text-neutral-300" />
+          </DockIcon>
+        </DockItem>
+        <DockItem
+          className="aspect-square rounded-full bg-gray-200 dark:bg-neutral-800"
+          onClick={() => {
+            window.location.href = "/library";
+          }}
+        >
+          <DockLabel>Library</DockLabel>
+          <DockIcon>
+            <BookIcon className="h-full w-full text-neutral-600 dark:text-neutral-300" />
+          </DockIcon>
+        </DockItem>
+        <DockItem
+          className="aspect-square rounded-full bg-gray-200 dark:bg-neutral-800"
+          onClick={() => {
+            window.location.href = "/chat";
+          }}
+        >
+          <DockLabel>Chat</DockLabel>
+          <DockIcon>
+            <MessageCircleIcon className="h-full w-full text-neutral-600 dark:text-neutral-300" />
           </DockIcon>
         </DockItem>
         <DockItem
