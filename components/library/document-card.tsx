@@ -2,16 +2,17 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { BookOpenIcon, DownloadIcon, UsersIcon, CalendarIcon } from "lucide-react";
+import { BookOpenIcon, DownloadIcon, UsersIcon, CalendarIcon, StarIcon } from "lucide-react";
 import { LibraryDocument } from "@/lib/library";
 
 interface DocumentCardProps {
   document: LibraryDocument;
   onClick?: (document: LibraryDocument) => void;
   onDownload?: (document: LibraryDocument) => void;
+  onFavoriteToggle?: (document: LibraryDocument) => void;
 }
 
-export function DocumentCard({ document, onClick, onDownload }: DocumentCardProps) {
+export function DocumentCard({ document, onClick, onDownload, onFavoriteToggle }: DocumentCardProps) {
   const { metadata } = document;
 
   const handleCardClick = () => {
@@ -21,6 +22,22 @@ export function DocumentCard({ document, onClick, onDownload }: DocumentCardProp
   const handleDownloadClick = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent card click
     onDownload?.(document);
+  };
+
+  const handleFavoriteClick = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click
+    const newFavoriteStatus = !metadata.favorite;
+    try {
+      const response = await fetch(`/api/library/favorite?filename=${encodeURIComponent(document.filename)}&favorite=${newFavoriteStatus}`, {
+        method: 'PATCH',
+      });
+
+      if (response.ok) {
+        onFavoriteToggle?.(document);
+      }
+    } catch (error) {
+      console.error('Error updating favorite status:', error);
+    }
   };
 
   return (
@@ -33,9 +50,19 @@ export function DocumentCard({ document, onClick, onDownload }: DocumentCardProp
           <CardTitle className="text-lg leading-tight line-clamp-2">
             {metadata.title}
           </CardTitle>
-          <Badge variant={metadata.doctype === 'Book' ? 'default' : 'secondary'}>
-            {metadata.doctype}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleFavoriteClick}
+              className={`h-6 w-6 p-0 ${metadata.favorite ? 'text-yellow-500 hover:text-yellow-600' : 'text-gray-400 hover:text-yellow-500'}`}
+            >
+              <StarIcon className={`h-4 w-4 ${metadata.favorite ? 'fill-current' : ''}`} />
+            </Button>
+            <Badge variant={metadata.doctype === 'Book' ? 'default' : 'secondary'}>
+              {metadata.doctype}
+            </Badge>
+          </div>
         </div>
         {metadata.authors && metadata.authors.length > 0 && (
           <div className="flex items-center gap-1 text-sm text-muted-foreground">

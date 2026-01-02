@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { DownloadIcon, UsersIcon, CalendarIcon, BookOpenIcon, FileTextIcon, GlobeIcon, TagIcon } from "lucide-react";
+import { DownloadIcon, UsersIcon, CalendarIcon, BookOpenIcon, FileTextIcon, GlobeIcon, TagIcon, TrashIcon } from "lucide-react";
 import { LibraryDocument } from "@/lib/library";
 
 interface DocumentDetailDialogProps {
@@ -11,13 +11,15 @@ interface DocumentDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onDownload?: (document: LibraryDocument) => void;
+  onDelete?: (document: LibraryDocument) => void;
 }
 
 export function DocumentDetailDialog({
   document,
   open,
   onOpenChange,
-  onDownload
+  onDownload,
+  onDelete
 }: DocumentDetailDialogProps) {
   if (!document) return null;
 
@@ -26,6 +28,26 @@ export function DocumentDetailDialog({
   const handleDownload = () => {
     onDownload?.(document);
     onOpenChange(false);
+  };
+
+  const handleDelete = async () => {
+    if (window.confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
+      try {
+        const response = await fetch(`/api/library/delete?filename=${encodeURIComponent(document.filename)}`, {
+          method: 'DELETE',
+        });
+
+        if (response.ok) {
+          onDelete?.(document);
+          onOpenChange(false);
+        } else {
+          alert('Failed to delete document');
+        }
+      } catch (error) {
+        console.error('Error deleting document:', error);
+        alert('Error deleting document');
+      }
+    }
   };
 
   return (
@@ -165,7 +187,14 @@ export function DocumentDetailDialog({
           </div>
         </ScrollArea>
 
-        <div className="flex justify-end pt-4 border-t">
+        <div className="flex justify-between items-center pt-4 border-t">
+          <Button
+            variant="destructive"
+            onClick={handleDelete}
+          >
+            <TrashIcon className="h-4 w-4 mr-2" />
+            Delete Document
+          </Button>
           <Button onClick={handleDownload}>
             <DownloadIcon className="h-4 w-4 mr-2" />
             Download Document

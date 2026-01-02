@@ -82,7 +82,7 @@ export function TagFilter({ documents, selectedTags, onTagsChange }: TagFilterPr
       )}
 
       {/* Available Tags */}
-      <ScrollArea className="h-48">
+      <ScrollArea className="h-96">
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground">Click to filter:</p>
           <div className="flex flex-wrap gap-1">

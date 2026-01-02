@@ -1,32 +1,37 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { LayoutGridIcon, ListIcon, SearchIcon, UploadIcon } from 'lucide-react';
-import { DocumentCard } from '@/components/library/document-card';
-import { DocumentList } from '@/components/library/document-list';
-import { CategoryTree } from '@/components/library/category-tree';
-import { TagFilter } from '@/components/library/tag-filter';
-import { DocumentDetailDialog } from '@/components/library/document-detail-dialog';
-import { LibraryDocument, LibraryCategory } from '@/lib/library';
+import { useState, useEffect, useRef } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
+import { LayoutGridIcon, ListIcon, SearchIcon, UploadIcon, FolderIcon } from "lucide-react";
+import { toast } from "sonner";
+import { DocumentCard } from "@/components/library/document-card";
+import { DocumentList } from "@/components/library/document-list";
+import { CategoryTree } from "@/components/library/category-tree";
+import { TagFilter } from "@/components/library/tag-filter";
+import { DocumentDetailDialog } from "@/components/library/document-detail-dialog";
+import { LibraryDocument, LibraryCategory } from "@/lib/library";
 
-type ViewMode = 'card' | 'list';
+type ViewMode = "card" | "list";
 
 export default function LibraryPage() {
-  const [viewMode, setViewMode] = useState<ViewMode>('card');
+  const [viewMode, setViewMode] = useState<ViewMode>("card");
   const [documents, setDocuments] = useState<LibraryDocument[]>([]);
   const [categories, setCategories] = useState<LibraryCategory[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
-  const [selectedDocument, setSelectedDocument] = useState<LibraryDocument | null>(null);
+  const [selectedDocument, setSelectedDocument] =
+    useState<LibraryDocument | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string>("");
+  const [uploadProgressPercent, setUploadProgressPercent] = useState<number>(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchLibraryData();
@@ -34,43 +39,47 @@ export default function LibraryPage() {
 
   const fetchLibraryData = async () => {
     try {
-      const response = await fetch('/api/library');
+      const response = await fetch("/api/library");
       const data = await response.json();
       setDocuments(data.documents || []);
       setCategories(data.categories || []);
     } catch (error) {
-      console.error('Error fetching library data:', error);
+      console.error("Error fetching library data:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredDocuments = documents.filter(doc => {
+  const filteredDocuments = documents.filter((doc) => {
     let matchesCategory = !selectedCategory;
     if (selectedCategory) {
       // Handle the new category structure: selectedCategory includes doctype prefix
-      const selectedParts = selectedCategory.split(' > ');
+      const selectedParts = selectedCategory.split(" > ");
       if (selectedParts.length >= 2) {
         const selectedDoctype = selectedParts[0];
-        const selectedCategoryPath = selectedParts.slice(1).join(' > ');
+        const selectedCategoryPath = selectedParts.slice(1).join(" > ");
 
         // Check if doctype matches and category path matches
         const doctypeMatches = doc.metadata.doctype === selectedDoctype;
-        const categoryMatches = !selectedCategoryPath ||
-          (doc.metadata.category && doc.metadata.category.startsWith(selectedCategoryPath));
+        const categoryMatches =
+          !selectedCategoryPath ||
+          (doc.metadata.category &&
+            doc.metadata.category.startsWith(selectedCategoryPath));
 
         matchesCategory = doctypeMatches && Boolean(categoryMatches);
       }
     }
 
-    const matchesTags = selectedTags.length === 0 ||
-      selectedTags.some(tag => doc.metadata.keywords?.includes(tag));
-    const matchesSearch = !searchQuery ||
+    const matchesTags =
+      selectedTags.length === 0 ||
+      selectedTags.some((tag) => doc.metadata.keywords?.includes(tag));
+    const matchesSearch =
+      !searchQuery ||
       doc.metadata.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      doc.metadata.authors?.some(author =>
+      doc.metadata.authors?.some((author) =>
         author.toLowerCase().includes(searchQuery.toLowerCase())
       ) ||
-      doc.metadata.keywords?.some(keyword =>
+      doc.metadata.keywords?.some((keyword) =>
         keyword.toLowerCase().includes(searchQuery.toLowerCase())
       );
     return matchesCategory && matchesTags && matchesSearch;
@@ -78,7 +87,7 @@ export default function LibraryPage() {
 
   const handleDownload = (doc: LibraryDocument) => {
     // Create a temporary link to download the file
-    const link = window.document.createElement('a');
+    const link = window.document.createElement("a");
     link.href = doc.url;
     link.download = doc.filename;
     window.document.body.appendChild(link);
@@ -91,7 +100,86 @@ export default function LibraryPage() {
     setDialogOpen(true);
   };
 
+  const handleDocumentDelete = async (document: LibraryDocument) => {
+    // Refresh the library data after deletion
+    await fetchLibraryData();
+  };
 
+  const handleFavoriteToggle = async (document: LibraryDocument) => {
+    // Refresh the library data after favorite toggle
+    await fetchLibraryData();
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    setUploadProgressPercent(0);
+    setUploadProgress(`Uploading ${files.length} file${files.length > 1 ? 's' : ''}...`);
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    // Process files sequentially to avoid overwhelming the server
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      setUploadProgress(`Uploading ${file.name} (${i + 1}/${files.length})...`);
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const response = await fetch('/api/library/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (response.ok) {
+          successCount++;
+        } else {
+          errorCount++;
+          console.error(`Upload failed for ${file.name}`);
+        }
+      } catch (error) {
+        errorCount++;
+        console.error(`Error uploading ${file.name}:`, error);
+      }
+
+      // Update progress percentage
+      const progress = Math.round(((i + 1) / files.length) * 100);
+      setUploadProgressPercent(progress);
+    }
+
+    // Refresh the library data
+    await fetchLibraryData();
+
+    // Reset the file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    if (folderInputRef.current) {
+      folderInputRef.current.value = '';
+    }
+
+    setUploading(false);
+    setUploadProgressPercent(0);
+
+    // Show toast notifications
+    if (errorCount === 0) {
+      toast.success(`Successfully uploaded ${successCount} file${successCount > 1 ? 's' : ''}!`);
+      setUploadProgress(`${successCount} file${successCount > 1 ? 's' : ''} uploaded successfully!`);
+    } else if (successCount === 0) {
+      toast.error(`Failed to upload ${errorCount} file${errorCount > 1 ? 's' : ''}`);
+      setUploadProgress(`Failed to upload ${errorCount} file${errorCount > 1 ? 's' : ''}`);
+    } else {
+      toast.warning(`${successCount} uploaded, ${errorCount} failed`);
+      setUploadProgress(`${successCount} uploaded, ${errorCount} failed`);
+    }
+
+    // Clear progress message after 3 seconds
+    setTimeout(() => setUploadProgress(""), 3000);
+  };
 
   if (loading) {
     return (
@@ -152,33 +240,82 @@ export default function LibraryPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
-                    variant={viewMode === 'card' ? 'default' : 'outline'}
+                    variant={viewMode === "card" ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setViewMode('card')}
+                    onClick={() => setViewMode("card")}
                   >
                     <LayoutGridIcon className="h-4 w-4 mr-2" />
                     Cards
                   </Button>
                   <Button
-                    variant={viewMode === 'list' ? 'default' : 'outline'}
+                    variant={viewMode === "list" ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setViewMode('list')}
+                    onClick={() => setViewMode("list")}
                   >
                     <ListIcon className="h-4 w-4 mr-2" />
                     List
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
                     <UploadIcon className="h-4 w-4 mr-2" />
-                    Upload
+                    Upload Files
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => folderInputRef.current?.click()}
+                  >
+                    <FolderIcon className="h-4 w-4 mr-2" />
+                    Upload Folder
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,.epub,.mobi,.djvu"
+                    multiple
+                    onChange={handleFileUpload}
+                    style={{ display: 'none' }}
+                  />
+                  <input
+                    ref={folderInputRef}
+                    type="file"
+                    accept=".pdf,.epub,.mobi,.djvu"
+                    multiple
+                    // @ts-expect-error - webkitdirectory is not in the standard types
+                    webkitdirectory=""
+                    onChange={handleFileUpload}
+                    style={{ display: 'none' }}
+                  />
                 </div>
               </div>
+
+              {/* Upload Progress */}
+              {uploadProgress && (
+                <div className="space-y-2">
+                  <div className="text-sm text-blue-600 dark:text-blue-400">
+                    {uploading && (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                        {uploadProgress}
+                      </div>
+                    )}
+                    {!uploading && uploadProgress}
+                  </div>
+                  {uploading && uploadProgressPercent > 0 && (
+                    <Progress value={uploadProgressPercent} className="w-full" />
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Content */}
             <div className="mb-4">
               <p className="text-sm text-muted-foreground">
-                {filteredDocuments.length} document{filteredDocuments.length !== 1 ? 's' : ''} found
+                {filteredDocuments.length} document
+                {filteredDocuments.length !== 1 ? "s" : ""} found
               </p>
             </div>
 
@@ -189,7 +326,7 @@ export default function LibraryPage() {
                   <p>Try adjusting your search or category filter</p>
                 </div>
               </div>
-            ) : viewMode === 'card' ? (
+            ) : viewMode === "card" ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredDocuments.map((document, index) => (
                   <DocumentCard
@@ -197,6 +334,7 @@ export default function LibraryPage() {
                     document={document}
                     onClick={handleDocumentClick}
                     onDownload={handleDownload}
+                    onFavoriteToggle={handleFavoriteToggle}
                   />
                 ))}
               </div>
@@ -216,6 +354,8 @@ export default function LibraryPage() {
           open={dialogOpen}
           onOpenChange={setDialogOpen}
           onDownload={handleDownload}
+          onDelete={handleDocumentDelete}
+          onFavoriteToggle={handleFavoriteToggle}
         />
       </div>
     </div>

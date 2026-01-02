@@ -100,7 +100,7 @@ export function CategoryTree({ categories, selectedCategory, onCategorySelect }:
       <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
         Categories
       </h3>
-      <ScrollArea className="h-64">
+      <ScrollArea className="h-128">
         <div className="space-y-1">
           <Button
             variant={selectedCategory === '' ? "secondary" : "ghost"}
