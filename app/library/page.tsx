@@ -12,6 +12,7 @@ import { DocumentList } from "@/components/library/document-list";
 import { CategoryTree } from "@/components/library/category-tree";
 import { TagFilter } from "@/components/library/tag-filter";
 import { DocumentDetailDialog } from "@/components/library/document-detail-dialog";
+import { SettingsDialog } from "@/components/library/settings-dialog";
 import { LibraryDocument, LibraryCategory } from "@/lib/library";
 
 type ViewMode = "card" | "list";
@@ -271,6 +272,7 @@ export default function LibraryPage() {
                     <FolderIcon className="h-4 w-4 mr-2" />
                     Upload Folder
                   </Button>
+                  <SettingsDialog />
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -355,7 +357,6 @@ export default function LibraryPage() {
           onOpenChange={setDialogOpen}
           onDownload={handleDownload}
           onDelete={handleDocumentDelete}
-          onFavoriteToggle={handleFavoriteToggle}
         />
       </div>
     </div>
