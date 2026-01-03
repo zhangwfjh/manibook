@@ -20,7 +20,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const filePath = path.join(LIBRARY_DIR, filename);
-    const metadataPath = filePath.replace(/\.(pdf|epub|djvu|mobi)$/i, '.json');
+    const metadataPath = filePath.replace(/\.(pdf|epub|djvu)$/i, '.json');
 
     // Delete from database first
     const deletedDocument = await prisma.document.deleteMany({

@@ -51,8 +51,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file type
-    const allowedTypes = ['application/pdf', 'application/epub+zip', 'application/x-mobipocket-ebook', 'image/vnd.djvu'];
-    const allowedExtensions = ['.pdf', '.epub', '.mobi', '.djvu'];
+    const allowedExtensions = ['.pdf', '.epub', '.djvu'];
 
     const fileExtension = path.extname(file.name).toLowerCase();
     if (!allowedExtensions.includes(fileExtension)) {
@@ -107,7 +106,7 @@ export async function POST(request: NextRequest) {
     fs.mkdirSync(categoryDir, { recursive: true });
 
     // Generate filename from title
-    const safeTitle = metadata.title.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const safeTitle = metadata.title.replace(/[\/\\?%*:|"<>]/g, '_');
     let newFilename = `${safeTitle}${fileExtension}`;
 
     // Ensure filename uniqueness

@@ -1,33 +1,12 @@
 import mupdf from "mupdf";
 import { parseEPUB } from "@/lib/epub";
-import { ollamaCall, qwenCall } from "@/lib/llms";
+import { ollamaCall, qwenCall, vllmCall } from "@/lib/llms";
 import fs from "fs";
 import { execSync } from "child_process";
 
-const extractTextFromImage = async (imageData: Uint8Array) =>
-  (
-    await ollamaCall(
-      [
-        {
-          role: "system",
-          content:
-            "Extract all readable text from this image. " +
-            "Pay special attention to titles, author names, publication information, " +
-            "and other metadata that would help identify this document.",
-        },
-        {
-          role: "user",
-          content: "Extract texts.",
-          images: [Buffer.from(imageData).toString('base64')],
-        },
-      ],
-      { model: "qwen3-vl" }
-    )
-  ).message.content;
-
 interface LLMProvider {
   name: string;
-  type: 'openai-compatible' | 'ollama';
+  type: "openai-compatible" | "ollama";
   model: string;
   baseURL: string;
   apiKey?: string;
@@ -41,55 +20,104 @@ interface LLMSettings {
   };
 }
 
-export async function extractMetadataFromFile(filePath: string, llmSettings?: LLMSettings) {
+export async function extractMetadataFromFile(
+  filePath: string,
+  llmSettings?: LLMSettings
+) {
   const extension = filePath.split(".").pop()?.toLowerCase();
 
   let coverText: string = "";
-  let coverImage: Uint8Array;
+  let coverImage: Uint8Array = new Uint8Array();
   let numPages: number = 0;
   let metadata: Record<string, unknown> = {};
+  const maxForewordPage = 5;
+  const maxForewordLength = 2000;
 
   if (extension === "djvu") {
-    coverText = execSync(`djvutxt --page=1-5 "${filePath}"`).toString();
-    // execSync(
-    //   `ddjvu -format=tiff -page=1 -quality=80 ${filePath} examples/cover.jpg`
-    // );
-    // coverImage = fs.readFileSync("examples/cover.jpg");
+    coverText = execSync(`djvutxt --page=1-${maxForewordPage} "${filePath}"`)
+      .toString()
+      .slice(0, maxForewordLength);
+    const tmpCoverName = filePath.replace(/\.(djvu)$/i, "_cover.jpg");
+    console.log(tmpCoverName);
+    execSync(
+      `ddjvu -format=tiff -page=1 -quality=80 "${filePath}" "${tmpCoverName}"`
+    );
+    coverImage = fs.readFileSync(tmpCoverName);
+    fs.unlinkSync(tmpCoverName);
     numPages = parseInt(execSync(`djvused -e n "${filePath}"`).toString());
   }
   if (extension === "epub") {
     const epub = await parseEPUB(fs.readFileSync(filePath));
-    // coverImage = new Uint8Array(await epub.coverImage!.arrayBuffer());
+    coverImage = new Uint8Array(await epub.coverImage!.arrayBuffer());
     coverText = (
       await Promise.all(
-        Array.from({ length: 5 }, (_, i) => epub.pages[i]?.content || "")
+        Array.from(
+          { length: maxForewordPage },
+          (_, i) => epub.pages[i]?.content || ""
+        )
       )
-    ).join("\n\n").slice(0, 2000);
+    )
+      .join("\n\n")
+      .slice(0, maxForewordLength);
   }
   if (extension === "pdf") {
     const document = mupdf.Document.openDocument(fs.readFileSync(filePath));
     numPages = document.countPages();
     const page = document.loadPage(0);
-    // coverImage = page
-    //   .toPixmap(mupdf.Matrix.identity, mupdf.ColorSpace.DeviceRGB)
-    //   .asJPEG(80);
-    // fs.writeFileSync("examples/cover.jpg", coverImage);
-    coverText = page.toStructuredText().asText();
-    if (coverText.length < 100) {
-      coverText = (
-        await Promise.all(
-          Array.from({ length: Math.min(5, numPages) }, (_, i) =>
-            document.loadPage(i).toStructuredText().asText()
-          )
+    coverImage = page
+      .toPixmap(mupdf.Matrix.identity, mupdf.ColorSpace.DeviceRGB)
+      .asJPEG(80);
+    coverText = (
+      await Promise.all(
+        Array.from({ length: Math.min(maxForewordPage, numPages) }, (_, i) =>
+          document.loadPage(i).toStructuredText().asText()
         )
-      ).join("\n\n");
-    }
-    // if (coverText.length < 100) {
-    //   coverText = await extractTextFromImage(coverImage);
-    // }
+      )
+    ).join("\n\n");
   }
-  // Get the provider for metadata extraction
-  const metadataProvider = llmSettings?.providers.find(p => p.name === llmSettings.jobs.metadataExtraction);
+  fs.writeFileSync("cover.jpg", Buffer.from(coverImage));
+
+  if (coverText.length < 100) {
+    const metadataProvider = llmSettings?.providers.find(
+      (p) => p.name === llmSettings.jobs.imageTextExtraction
+    );
+
+    coverText = (
+      await vllmCall(
+        [
+          {
+            role: "system",
+            content:
+              "Extract all readable text from this image. " +
+              "Pay special attention to titles, author names, publication information, " +
+              "and other metadata that would help identify this document.",
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "image_url",
+                image_url: {
+                  url:
+                    "data:image;base64," +
+                    Buffer.from(coverImage).toString("base64"),
+                },
+              },
+            ],
+          },
+        ],
+        {
+          model: metadataProvider!.model,
+          baseURL: metadataProvider!.baseURL,
+          apiKey: metadataProvider!.apiKey,
+        }
+      )
+    ).choices[0].message.content;
+  }
+
+  const metadataProvider = llmSettings?.providers.find(
+    (p) => p.name === llmSettings.jobs.metadataExtraction
+  );
 
   for (let retry = 0; retry < 3; retry++) {
     try {
@@ -102,8 +130,8 @@ export async function extractMetadataFromFile(filePath: string, llmSettings?: LL
                 "Extract title, authors, publication year, publisher, and other metadata from the document. " +
                 "If any information is missing, leave it empty. " +
                 "Infer the document type (Article or Book or Others). " +
-                "Infer the 2-level category of the document (e.g., 'Physics > Classical Mechanics', 'Computer Vision > Object Detection'). " +
-                "Also infer the language, keywords and abstract of the document. " +
+                "Infer the unique TWO-level category of the document (e.g., 'Physics > Classical Mechanics', 'Computer Vision > Object Detection'). " +
+                "Also infer the language (e.g., 'Chinese', 'English'), keywords and abstract of the document. " +
                 "Respond in JSON format with keys: doctype, title, authors, publication_year, publisher, category, language, keywords, abstract, metadata.",
             },
             {
@@ -138,7 +166,11 @@ async function sortFiles(dirPath: string) {
   const files = fs.readdirSync(dirPath);
   for (const file of files) {
     const extension = file.slice(file.lastIndexOf("."));
-    if (file.endsWith(".epub") || file.endsWith(".pdf") || file.endsWith(".djvu")) {
+    if (
+      file.endsWith(".epub") ||
+      file.endsWith(".pdf") ||
+      file.endsWith(".djvu")
+    ) {
       console.info(`Processing file: ${file}`);
       const metadata = await extractMetadataFromFile(`${dirPath}/${file}`);
       const doctype = (metadata.doctype as string) || "unknown";
@@ -154,7 +186,10 @@ async function sortFiles(dirPath: string) {
         .join("/");
       const newDir = `${dirPath}/${doctype}/${categoryPath}`;
       fs.mkdirSync(newDir, { recursive: true });
-      fs.renameSync(`${dirPath}/${file}`, `${newDir}/[${year}] ${title}.${extension}`);
+      fs.renameSync(
+        `${dirPath}/${file}`,
+        `${newDir}/[${year}] ${title}.${extension}`
+      );
     }
   }
 }
@@ -165,7 +200,7 @@ async function generateMetadataForLibrary(dirPath: string) {
     const fullPath = `${dirPath}/${file}`;
     const stat = fs.statSync(fullPath);
     if (stat.isFile() && file.match(/\.(pdf|epub|djvu)$/i)) {
-      const jsonPath = fullPath.replace(/\.(pdf|epub|djvu)$/i, '.json');
+      const jsonPath = fullPath.replace(/\.(pdf|epub|djvu)$/i, ".json");
       if (!fs.existsSync(jsonPath)) {
         console.info(`Processing file: ${file}`);
         try {

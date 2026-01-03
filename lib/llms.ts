@@ -29,6 +29,25 @@ export async function ollamaCall(messages: Array<Message>, options?: ChatRequest
     return await response.json();
 }
 
+export async function vllmCall(messages: Array<Message>, options?: ChatRequestOption) {
+    const { model, apiKey, baseURL, stream, response_format } = options || {};
+    const url = `${baseURL ? baseURL : 'http://localhost:8000/v1'}/chat/completions`;
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            model: model,
+            messages: messages,
+            response_format: { type: response_format || 'text' },
+            stream: stream || false
+        })
+    });
+    return await response.json();
+}
+
 export async function qwenCall(messages: Array<Message>, options?: ChatRequestOption) {
     const { model, apiKey, baseURL, stream, think, response_format } = options || {};
     const url = `${baseURL ? baseURL : 'https://dashscope.aliyuncs.com/compatible-mode/v1/'}/chat/completions`;

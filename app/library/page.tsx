@@ -276,7 +276,7 @@ export default function LibraryPage() {
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept=".pdf,.epub,.mobi,.djvu"
+                    accept=".pdf,.epub,.djvu"
                     multiple
                     onChange={handleFileUpload}
                     style={{ display: 'none' }}
@@ -284,7 +284,7 @@ export default function LibraryPage() {
                   <input
                     ref={folderInputRef}
                     type="file"
-                    accept=".pdf,.epub,.mobi,.djvu"
+                    accept=".pdf,.epub,.djvu"
                     multiple
                     // @ts-expect-error - webkitdirectory is not in the standard types
                     webkitdirectory=""
