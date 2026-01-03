@@ -1,0 +1,34 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Document {
+  id                String   @id @default(cuid())
+  filename          String   @unique
+  filePath          String
+  url               String
+  doctype           String   // 'Book' | 'Article' | 'Others'
+  title             String
+  authors           String   // JSON array of authors as string
+  publicationYear   Int?
+  publisher         String?
+  category          String
+  language          String?
+  keywords          String   // JSON array of keywords as string
+  abstract          String?
+  favorite          Boolean  @default(false)
+  metadata          String?  // JSON string for additional metadata
+  hash              String?  @unique // SHA256 hash for duplicate detection
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("documents")
+}

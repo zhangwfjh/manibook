@@ -8,6 +8,7 @@ export interface DocumentMetadata {
   language?: string;
   keywords?: string[];
   abstract?: string;
+  favorite?: boolean;
   metadata?: Record<string, unknown>;
 }
 

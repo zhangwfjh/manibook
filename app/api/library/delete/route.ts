@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { prisma } from '@/lib/db';
 
 const LIBRARY_DIR = path.join(process.cwd(), 'public', 'library');
 
@@ -21,15 +22,21 @@ export async function DELETE(request: NextRequest) {
     const filePath = path.join(LIBRARY_DIR, filename);
     const metadataPath = filePath.replace(/\.(pdf|epub|djvu|mobi)$/i, '.json');
 
-    // Check if file exists
-    if (!fs.existsSync(filePath)) {
-      return NextResponse.json({ error: 'File not found' }, { status: 404 });
+    // Delete from database first
+    const deletedDocument = await prisma.document.deleteMany({
+      where: { filename },
+    });
+
+    if (deletedDocument.count === 0) {
+      return NextResponse.json({ error: 'Document not found in database' }, { status: 404 });
     }
 
-    // Delete the file
-    fs.unlinkSync(filePath);
+    // Delete the physical file
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
 
-    // Delete the metadata file if it exists
+    // Delete the old metadata file if it exists (for backward compatibility)
     if (fs.existsSync(metadataPath)) {
       fs.unlinkSync(metadataPath);
     }

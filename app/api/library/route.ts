@@ -1,22 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { prisma } from '@/lib/db';
 import { DocumentMetadata, LibraryCategory, LibraryDocument } from '@/lib/library';
-
-const LIBRARY_DIR = path.join(process.cwd(), 'public', 'library');
-
-function readMetadata(filePath: string): DocumentMetadata | null {
-  const jsonPath = filePath.replace(/\.(pdf|epub|djvu|mobi)$/i, '.json');
-  if (fs.existsSync(jsonPath)) {
-    try {
-      const content = fs.readFileSync(jsonPath, 'utf-8');
-      return JSON.parse(content);
-    } catch (error) {
-      console.error(`Error reading metadata for ${filePath}:`, error);
-    }
-  }
-  return null;
-}
+import { Document } from '@prisma/client';
 
 function buildCategoryTree(documents: LibraryDocument[]): LibraryCategory[] {
   const root: LibraryCategory = {
@@ -77,48 +62,44 @@ function buildCategoryTree(documents: LibraryDocument[]): LibraryCategory[] {
   return root.children;
 }
 
+function dbDocumentToLibraryDocument(dbDoc: Document): LibraryDocument {
+  return {
+    path: dbDoc.filePath,
+    filename: dbDoc.filename,
+    metadata: {
+      doctype: dbDoc.doctype as 'Book' | 'Article' | 'Others',
+      title: dbDoc.title,
+      authors: JSON.parse(dbDoc.authors),
+      publication_year: dbDoc.publicationYear || undefined,
+      publisher: dbDoc.publisher || undefined,
+      category: dbDoc.category,
+      language: dbDoc.language || undefined,
+      keywords: JSON.parse(dbDoc.keywords),
+      abstract: dbDoc.abstract || undefined,
+      favorite: dbDoc.favorite,
+      metadata: dbDoc.metadata ? JSON.parse(dbDoc.metadata) : undefined,
+    },
+    categoryPath: [], // Will be computed from category string
+    url: dbDoc.url,
+  };
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
 
-    if (!fs.existsSync(LIBRARY_DIR)) {
-      return NextResponse.json({ categories: [], documents: [] });
-    }
+    // Fetch all documents from database
+    const dbDocuments = await prisma.document.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
 
-    const documents: LibraryDocument[] = [];
-
-    function scanDirectory(dirPath: string, relativePath: string[] = []) {
-      const items = fs.readdirSync(dirPath);
-
-      for (const item of items) {
-        const fullPath = path.join(dirPath, item);
-        const stat = fs.statSync(fullPath);
-
-        if (stat.isDirectory()) {
-          scanDirectory(fullPath, [...relativePath, item]);
-        } else if (item.match(/\.(pdf|epub|djvu|mobi)$/i)) {
-          const metadata = readMetadata(fullPath);
-          if (metadata) {
-            const categoryPath = relativePath.slice(1); // Skip the doctype level
-            documents.push({
-              path: fullPath,
-              filename: item,
-              metadata,
-              categoryPath,
-              url: `/library/${relativePath.join('/')}/${item}`.replace(/\/+/g, '/')
-            });
-          }
-        }
-      }
-    }
-
-    scanDirectory(LIBRARY_DIR);
+    const documents: LibraryDocument[] = dbDocuments.map(dbDocumentToLibraryDocument);
 
     if (category) {
       // Filter documents by category
       const filteredDocuments = documents.filter(doc =>
-        doc.categoryPath.join(' > ').startsWith(category)
+        doc.metadata.category.startsWith(category)
       );
       return NextResponse.json({ documents: filteredDocuments });
     } else {

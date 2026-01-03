@@ -3,6 +3,8 @@ import fs from 'fs';
 import path from 'path';
 import { DocumentMetadata } from '@/lib/library';
 import { extractMetadataFromFile } from '@/app/library/metadata';
+import { prisma } from '@/lib/db';
+import { computeSHA256 } from '@/lib/utils';
 
 const LIBRARY_DIR = path.join(process.cwd(), 'public', 'library');
 
@@ -24,22 +26,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unsupported file type' }, { status: 400 });
     }
 
-    // Generate filename
-    const timestamp = Date.now();
-    const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const newFilename = `${timestamp}_${safeName}`;
-
-    // Save file to library directory
-    const filePath = path.join(LIBRARY_DIR, newFilename);
+    // Get file buffer and compute hash for duplicate check
     const buffer = Buffer.from(await file.arrayBuffer());
-    fs.writeFileSync(filePath, buffer);
+    const fileHash = computeSHA256(buffer);
+
+    // Check if document with this hash already exists
+    const existingDocument = await prisma.document.findUnique({
+      where: { hash: fileHash }
+    });
+
+    if (existingDocument) {
+      return NextResponse.json({
+        error: 'Duplicate file detected',
+        message: 'This exact file has already been uploaded to prevent duplicates. Each document can only be stored once.',
+        existingDocument: {
+          id: existingDocument.id,
+          filename: existingDocument.filename,
+          title: existingDocument.title,
+          uploadedAt: existingDocument.createdAt
+        },
+        reason: 'SHA256 hash match - identical file content detected'
+      }, { status: 409 }); // 409 Conflict
+    }
+
+    // Save file temporarily
+    const tempFilename = `temp_${fileHash}${fileExtension}`;
+    const tempFilePath = path.join(LIBRARY_DIR, tempFilename);
+    fs.writeFileSync(tempFilePath, buffer);
 
     // Generate AI-powered metadata
     let metadata: DocumentMetadata;
     try {
       if (fileExtension !== '.mobi') {
         // Use AI extraction for supported formats
-        const extractedMetadata = await extractMetadataFromFile(filePath);
+        const extractedMetadata = await extractMetadataFromFile(tempFilePath);
         const doctype = (extractedMetadata.doctype as string);
         const validDoctypes = ['Book', 'Article', 'Others'];
         metadata = {
@@ -76,9 +96,50 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    // Save metadata
-    const metadataPath = filePath.replace(/\.(pdf|epub|djvu|mobi)$/i, '.json');
-    fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
+    // Parse category for folder structure
+    const categoryParts = metadata.category.split('>').map(part => part.trim()).filter(part => part);
+    const folderPath = categoryParts.slice(0, 2).join('/'); // 2-level folders
+    const categoryDir = path.join(LIBRARY_DIR, folderPath);
+
+    // Ensure category directory exists
+    fs.mkdirSync(categoryDir, { recursive: true });
+
+    // Generate filename from title
+    const safeTitle = metadata.title.replace(/[^a-zA-Z0-9.-]/g, '_');
+    let newFilename = `${safeTitle}${fileExtension}`;
+
+    // Ensure filename uniqueness
+    let counter = 1;
+    while (fs.existsSync(path.join(categoryDir, newFilename))) {
+      newFilename = `${safeTitle}_${counter}${fileExtension}`;
+      counter++;
+    }
+
+    // Move file to final location
+    const filePath = path.join(categoryDir, newFilename);
+    fs.renameSync(tempFilePath, filePath);
+
+    // Save to database
+    const url = `/library/${folderPath}/${newFilename}`.replace(/\/+/g, '/');
+    await prisma.document.create({
+      data: {
+        filename: newFilename,
+        filePath,
+        url,
+        doctype: metadata.doctype,
+        title: metadata.title,
+        authors: JSON.stringify(metadata.authors),
+        publicationYear: metadata.publication_year,
+        publisher: metadata.publisher,
+        category: metadata.category,
+        language: metadata.language,
+        keywords: JSON.stringify(metadata.keywords || []),
+        abstract: metadata.abstract,
+        favorite: metadata.favorite || false,
+        metadata: metadata.metadata ? JSON.stringify(metadata.metadata) : null,
+        hash: fileHash,
+      },
+    });
 
     return NextResponse.json({
       success: true,

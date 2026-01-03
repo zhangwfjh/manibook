@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-
-const LIBRARY_DIR = path.join(process.cwd(), 'public', 'library');
+import { prisma } from '@/lib/db';
 
 export async function PATCH(request: NextRequest) {
   try {
@@ -14,27 +11,15 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Filename parameter is required' }, { status: 400 });
     }
 
-    // Validate filename to prevent directory traversal
-    if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
-      return NextResponse.json({ error: 'Invalid filename' }, { status: 400 });
+    // Update favorite status in database
+    const updatedDocument = await prisma.document.updateMany({
+      where: { filename },
+      data: { favorite },
+    });
+
+    if (updatedDocument.count === 0) {
+      return NextResponse.json({ error: 'Document not found' }, { status: 404 });
     }
-
-    const metadataPath = path.join(LIBRARY_DIR, filename.replace(/\.(pdf|epub|djvu|mobi)$/i, '.json'));
-
-    // Check if metadata file exists
-    if (!fs.existsSync(metadataPath)) {
-      return NextResponse.json({ error: 'Document metadata not found' }, { status: 404 });
-    }
-
-    // Read current metadata
-    const metadataContent = fs.readFileSync(metadataPath, 'utf-8');
-    const metadata = JSON.parse(metadataContent);
-
-    // Update favorite status
-    metadata.favorite = favorite;
-
-    // Write updated metadata back to file
-    fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
 
     return NextResponse.json({
       success: true,
