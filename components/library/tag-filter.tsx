@@ -2,7 +2,8 @@ import { useState, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { XIcon } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { SearchIcon, XIcon } from 'lucide-react';
 import { LibraryDocument } from '@/lib/library';
 
 interface TagFilterProps {
@@ -12,6 +13,12 @@ interface TagFilterProps {
 }
 
 export function TagFilter({ documents, selectedTags, onTagsChange }: TagFilterProps) {
+  const [tagSearch, setTagSearch] = useState("");
+
+  const normalizeTag = (tag: string): string => {
+    return tag.trim().toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+  };
+
   const availableTags = useMemo(() => {
     // Extract all unique keywords from documents
     const tagSet = new Set<string>();
@@ -19,13 +26,17 @@ export function TagFilter({ documents, selectedTags, onTagsChange }: TagFilterPr
       if (doc.metadata.keywords) {
         doc.metadata.keywords.forEach(keyword => {
           if (keyword && keyword.trim()) {
-            tagSet.add(keyword.trim());
+            tagSet.add(normalizeTag(keyword));
           }
         });
       }
     });
     return Array.from(tagSet).sort();
   }, [documents]);
+
+  const filteredTags = useMemo(() => {
+    return availableTags.filter(tag => tag.toLowerCase().includes(tagSearch.toLowerCase()));
+  }, [availableTags, tagSearch]);
 
   const handleTagToggle = (tag: string) => {
     if (selectedTags.includes(tag)) {
@@ -84,12 +95,21 @@ export function TagFilter({ documents, selectedTags, onTagsChange }: TagFilterPr
       {/* Available Tags */}
       <ScrollArea className="h-96">
         <div className="space-y-2">
+          <div className="relative">
+            <SearchIcon className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-3 w-3" />
+            <Input
+              placeholder="Search tags..."
+              value={tagSearch}
+              onChange={(e) => setTagSearch(e.target.value)}
+              className="pl-7 h-7 text-xs"
+            />
+          </div>
           <p className="text-xs text-muted-foreground">Click to filter:</p>
           <div className="flex flex-wrap gap-1">
-            {availableTags.map(tag => {
+            {filteredTags.map(tag => {
               const isSelected = selectedTags.includes(tag);
               const count = documents.filter(doc =>
-                doc.metadata.keywords?.includes(tag)
+                doc.metadata.keywords?.some(kw => normalizeTag(kw) === tag)
               ).length;
 
               return (
@@ -107,6 +127,11 @@ export function TagFilter({ documents, selectedTags, onTagsChange }: TagFilterPr
               );
             })}
           </div>
+          {filteredTags.length === 0 && availableTags.length > 0 && (
+            <p className="text-xs text-muted-foreground italic">
+              No tags match your search
+            </p>
+          )}
           {availableTags.length === 0 && (
             <p className="text-xs text-muted-foreground italic">
               No tags available

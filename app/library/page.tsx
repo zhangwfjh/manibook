@@ -24,6 +24,10 @@ import { LibraryDocument, LibraryCategory } from "@/lib/library";
 
 type ViewMode = "card" | "list";
 
+const normalizeTag = (tag: string): string => {
+  return tag.trim().toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+};
+
 export default function LibraryPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("card");
   const [documents, setDocuments] = useState<LibraryDocument[]>([]);
@@ -81,7 +85,7 @@ export default function LibraryPage() {
 
     const matchesTags =
       selectedTags.length === 0 ||
-      selectedTags.some((tag) => doc.metadata.keywords?.includes(tag));
+      selectedTags.some((tag) => doc.metadata.keywords?.some(kw => normalizeTag(kw) === tag));
     const matchesSearch =
       !searchQuery ||
       doc.metadata.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
