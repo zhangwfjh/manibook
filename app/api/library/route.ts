@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
-import { DocumentMetadata, LibraryCategory, LibraryDocument } from '@/lib/library';
+import { getPrismaClient } from '@/lib/db';
+import { LibraryCategory, LibraryDocument } from '@/lib/library';
 import { Document } from '@prisma/client';
+import { getLibrary } from '@/lib/libraries';
 
 function buildCategoryTree(documents: LibraryDocument[]): LibraryCategory[] {
   const root: LibraryCategory = {
@@ -90,6 +91,16 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
+    const library = searchParams.get('library') || 'default';
+
+    // Get library info
+    const libraryInfo = getLibrary(library);
+    if (!libraryInfo) {
+      return NextResponse.json({ error: 'Library not found' }, { status: 404 });
+    }
+
+    // Get Prisma client for this library
+    const prisma = getPrismaClient(libraryInfo.path);
 
     // Fetch all documents from database
     const dbDocuments = await prisma.document.findMany({

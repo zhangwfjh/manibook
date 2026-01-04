@@ -9,7 +9,7 @@ import { LayoutGridIcon, ListIcon, SearchIcon, UploadIcon, FolderIcon } from "lu
 import { toast } from "sonner";
 import { DocumentCard } from "@/components/library/document-card";
 import { DocumentList } from "@/components/library/document-list";
-import { CategoryTree } from "@/components/library/category-tree";
+import { LibraryManager } from "@/components/library/library-manager";
 import { TagFilter } from "@/components/library/tag-filter";
 import { DocumentDetailDialog } from "@/components/library/document-detail-dialog";
 import { SettingsDialog } from "@/components/library/settings-dialog";
@@ -22,7 +22,9 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { LibraryDocument, LibraryCategory } from "@/lib/library";
+import { Library } from "@/lib/libraries";
 
 type ViewMode = "card" | "list";
 
@@ -49,13 +51,35 @@ export default function LibraryPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
 
+  // Library management
+  const [currentLibrary, setCurrentLibrary] = useState<string>("default");
+  const [libraries, setLibraries] = useState<Library[]>([]);
+  const [createLibraryOpen, setCreateLibraryOpen] = useState(false);
+  const [newLibraryName, setNewLibraryName] = useState("");
+  const [newLibraryPath, setNewLibraryPath] = useState("");
+  const [renameLibraryOpen, setRenameLibraryOpen] = useState(false);
+  const [archiveLibraryOpen, setArchiveLibraryOpen] = useState(false);
+  const [renameLibraryName, setRenameLibraryName] = useState("");
+
+
   useEffect(() => {
+    fetchLibraries();
     fetchLibraryData();
-  }, []);
+  }, [currentLibrary]);
+
+  const fetchLibraries = async () => {
+    try {
+      const response = await fetch("/api/libraries");
+      const data = await response.json();
+      setLibraries(data.libraries || []);
+    } catch (error) {
+      console.error("Error fetching libraries:", error);
+    }
+  };
 
   const fetchLibraryData = async () => {
     try {
-      const response = await fetch("/api/library");
+      const response = await fetch(`/api/library?library=${currentLibrary}`);
       const data = await response.json();
       setDocuments(data.documents || []);
       setCategories(data.categories || []);
@@ -64,6 +88,106 @@ export default function LibraryPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCreateLibrary = async () => {
+    if (!newLibraryName || !newLibraryPath) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/libraries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newLibraryName, path: newLibraryPath }),
+      });
+
+      if (response.ok) {
+        toast.success("Library created successfully");
+        setCreateLibraryOpen(false);
+        setCurrentLibrary(newLibraryName); // Switch to the new library
+        setNewLibraryName("");
+        setNewLibraryPath("");
+        await fetchLibraries();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to create library");
+      }
+    } catch (error) {
+      console.error("Error creating library:", error);
+      toast.error("Failed to create library");
+    }
+  };
+
+  const handleRenameLibrary = async () => {
+    if (!renameLibraryName.trim()) {
+      toast.error("Please enter a new library name");
+      return;
+    }
+
+    if (renameLibraryName === currentLibrary) {
+      toast.error("New name must be different from current name");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/libraries?oldName=${encodeURIComponent(currentLibrary)}&newName=${encodeURIComponent(renameLibraryName)}`, {
+        method: "PATCH",
+      });
+
+      if (response.ok) {
+        toast.success("Library renamed successfully");
+        setRenameLibraryOpen(false);
+        setCurrentLibrary(renameLibraryName); // Switch to the renamed library
+        setRenameLibraryName("");
+        await fetchLibraries();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to rename library");
+      }
+    } catch (error) {
+      console.error("Error renaming library:", error);
+      toast.error("Failed to rename library");
+    }
+  };
+
+  const handleArchiveLibrary = async () => {
+    try {
+      const response = await fetch(`/api/libraries?name=${encodeURIComponent(currentLibrary)}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        toast.success("Library archived successfully");
+        setArchiveLibraryOpen(false);
+        // Switch to the first available library or "default"
+        const remainingLibraries = libraries.filter(lib => lib.name !== currentLibrary);
+        if (remainingLibraries.length > 0) {
+          setCurrentLibrary(remainingLibraries[0].name);
+        } else {
+          setCurrentLibrary("default");
+        }
+        await fetchLibraries();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to archive library");
+      }
+    } catch (error) {
+      console.error("Error archiving library:", error);
+      toast.error("Failed to archive library");
+    }
+  };
+
+  const handleOpenRenameDialog = (libraryName: string) => {
+    setRenameLibraryName(libraryName);
+    setRenameLibraryOpen(true);
+  };
+
+  const handleOpenArchiveDialog = (libraryName: string) => {
+    // For archive, we need to switch to the library first, then open archive dialog
+    setCurrentLibrary(libraryName);
+    setArchiveLibraryOpen(true);
   };
 
   const filteredDocuments = documents.filter((doc) => {
@@ -148,11 +272,27 @@ export default function LibraryPage() {
   };
 
   const handleDocumentDelete = async (document: LibraryDocument) => {
+    try {
+      await fetch(`/api/library/delete?filename=${document.filename}&library=${currentLibrary}`, {
+        method: 'DELETE',
+      });
+    } catch (error) {
+      console.error('Error deleting document:', error);
+    }
     // Refresh the library data after deletion
     await fetchLibraryData();
   };
 
   const handleDocumentUpdate = async (updatedDoc: Record<string, any>) => {
+    try {
+      await fetch(`/api/library/update?library=${currentLibrary}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedDoc),
+      });
+    } catch (error) {
+      console.error('Error updating document:', error);
+    }
     // Convert updatedDoc to LibraryDocument and update selected document
     const libraryDoc: LibraryDocument = {
       path: updatedDoc.filePath,
@@ -180,6 +320,13 @@ export default function LibraryPage() {
   };
 
   const handleFavoriteToggle = async (document: LibraryDocument) => {
+    try {
+      await fetch(`/api/library/favorite?filename=${document.filename}&favorite=${!document.metadata.favorite}&library=${currentLibrary}`, {
+        method: 'PATCH',
+      });
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    }
     // Refresh the library data after favorite toggle
     await fetchLibraryData();
   };
@@ -204,7 +351,7 @@ export default function LibraryPage() {
       formData.append('file', file);
 
       try {
-        const response = await fetch('/api/library/upload', {
+        const response = await fetch(`/api/library/upload?library=${currentLibrary}`, {
           method: 'POST',
           body: formData,
         });
@@ -271,20 +418,78 @@ export default function LibraryPage() {
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Library</h1>
-          <p className="text-muted-foreground">
-            Organize and browse your collection of books and articles
-          </p>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">Library</h1>
+              <p className="text-muted-foreground">
+                Organize and browse your collection of books and articles
+              </p>
+            </div>
+            <div className="flex items-center gap-4">
+              <Dialog open={createLibraryOpen} onOpenChange={setCreateLibraryOpen}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Create New Library</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="library-name">Library Name</Label>
+                      <Input
+                        id="library-name"
+                        value={newLibraryName}
+                        onChange={(e) => setNewLibraryName(e.target.value)}
+                        placeholder="Enter library name"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="library-path">Library Location</Label>
+                      <Input
+                        id="library-path"
+                        value={newLibraryPath}
+                        onChange={(e) => setNewLibraryPath(e.target.value)}
+                        placeholder="Enter full path to library directory (e.g., C:\Users\John\Documents\Library or /home/john/library)"
+                      />
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Enter the full path to an empty directory where you want to store your library files.
+                        The directory will be created if it doesn't exist.
+                      </p>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setCreateLibraryOpen(false);
+                          setNewLibraryName("");
+                          setNewLibraryPath("");
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button onClick={handleCreateLibrary}>
+                        Create
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
         </div>
 
         <div className="flex gap-8">
           {/* Sidebar */}
           <div className="w-80 shrink-0 space-y-6">
-            {/* Category Tree */}
-            <CategoryTree
+            {/* Library Manager */}
+            <LibraryManager
+              libraries={libraries}
+              currentLibrary={currentLibrary}
               categories={categories}
               selectedCategory={selectedCategory}
+              onLibrarySelect={setCurrentLibrary}
               onCategorySelect={setSelectedCategory}
+              onCreateLibrary={() => setCreateLibraryOpen(true)}
+              onRenameLibrary={handleOpenRenameDialog}
+              onArchiveLibrary={handleOpenArchiveDialog}
             />
 
             <Separator />
@@ -428,7 +633,7 @@ export default function LibraryPage() {
               <div className="text-center py-12">
                 <div className="text-muted-foreground">
                   <p className="text-lg mb-2">No documents found</p>
-                  <p>Try adjusting your search or category filter</p>
+                  <p>Try adjusting your search or category filter.</p>
                 </div>
               </div>
             ) : viewMode === "card" ? (
@@ -462,6 +667,69 @@ export default function LibraryPage() {
           onDelete={handleDocumentDelete}
           onUpdate={handleDocumentUpdate}
         />
+
+        {/* Rename Library Dialog */}
+        <Dialog open={renameLibraryOpen} onOpenChange={setRenameLibraryOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Rename Library</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="rename-library-name">New Library Name</Label>
+                <Input
+                  id="rename-library-name"
+                  value={renameLibraryName}
+                  onChange={(e) => setRenameLibraryName(e.target.value)}
+                  placeholder="Enter new library name"
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setRenameLibraryOpen(false);
+                    setRenameLibraryName("");
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button onClick={handleRenameLibrary}>
+                  Rename
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Archive Library Dialog */}
+        <Dialog open={archiveLibraryOpen} onOpenChange={setArchiveLibraryOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Archive Library</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Are you sure you want to archive the library "{currentLibrary}"?
+                All documents and data in this library will be preserved on disk.
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setArchiveLibraryOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={handleArchiveLibrary}
+                >
+                  Archive Library
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

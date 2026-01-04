@@ -1,18 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { prisma } from '@/lib/db';
-
-const LIBRARY_DIR = path.join(process.cwd(), 'public', 'library');
+import { getPrismaClient } from '@/lib/db';
+import { getLibrary } from '@/lib/libraries';
 
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const filename = searchParams.get('filename');
+    const library = searchParams.get('library') || 'default';
 
     if (!filename) {
       return NextResponse.json({ error: 'Filename parameter is required' }, { status: 400 });
     }
+
+    // Get library info
+    const libraryInfo = getLibrary(library);
+    if (!libraryInfo) {
+      return NextResponse.json({ error: 'Library not found' }, { status: 404 });
+    }
+
+    // Get Prisma client for this library
+    const prisma = getPrismaClient(libraryInfo.path);
 
     // Validate filename to prevent directory traversal
     if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
@@ -28,9 +37,12 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Document not found in database' }, { status: 404 });
     }
 
-    // Delete the cover file if it exists
-    if ((document as any).coverUrl) {
-      const coverPath = path.join(process.cwd(), 'public', (document as any).coverUrl);
+    // Delete the cover file if it exists (covers are stored in storage directory)
+    if (document.coverUrl) {
+      // Extract path from coverUrl (e.g., /api/library/default/file/Computer Science/book_cover.jpg)
+      const urlParts = document.coverUrl.split('/').slice(5); // Skip /api/library/default/file/
+      const coverRelativePath = urlParts.join('/');
+      const coverPath = path.join(libraryInfo.path, 'storage', coverRelativePath);
       if (fs.existsSync(coverPath)) {
         fs.unlinkSync(coverPath);
       }

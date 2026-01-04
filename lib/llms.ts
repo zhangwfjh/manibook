@@ -1,6 +1,6 @@
 interface Message {
     role: 'system' | 'user' | 'assistant';
-    content: string | Array<{ type: 'text'; text: string } | { type: 'image'; image: Uint8Array }>;
+    content: string | Array<{ type: 'text'; text: string } | { type: 'image'; image: Uint8Array } | { type: 'image_url'; image_url: { url: string } }>;
     images?: Array<string>;
 };
 

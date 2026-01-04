@@ -3,14 +3,22 @@ import fs from 'fs';
 import path from 'path';
 import { DocumentMetadata } from '@/lib/library';
 import { extractMetadataFromFile } from '@/app/library/metadata';
-import { prisma } from '@/lib/db';
+import { getPrismaClient } from '@/lib/db';
 import { computeSHA256 } from '@/lib/utils';
 import { loadLLMSettings } from '@/lib/llm-settings';
-
-const LIBRARY_DIR = path.join(process.cwd(), 'public', 'library');
+import { getLibrary } from '@/lib/libraries';
 
 export async function POST(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const library = searchParams.get('library') || 'default';
+
+    // Get library info
+    const libraryInfo = getLibrary(library);
+    if (!libraryInfo) {
+      return NextResponse.json({ error: 'Library not found' }, { status: 404 });
+    }
+
     const formData = await request.formData();
     const file = formData.get('file') as File;
 
@@ -35,6 +43,9 @@ export async function POST(request: NextRequest) {
     // Compute SHA256 hash
     const hash = computeSHA256(buffer);
 
+    // Get Prisma client for this library
+    const prisma = getPrismaClient(libraryInfo.path);
+
     // Check if file already exists
     const existingDoc = await prisma.document.findFirst({
       where: { hash }
@@ -43,9 +54,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'File already exists' }, { status: 400 });
     }
 
+    // Use library root directory
+    const libraryDir = libraryInfo.path;
+
     // Save file temporarily
     const tempFilename = `temp_${Date.now()}${fileExtension}`;
-    const tempFilePath = path.join(LIBRARY_DIR, tempFilename);
+    const tempFilePath = path.join(libraryDir, tempFilename);
     fs.writeFileSync(tempFilePath, buffer);
 
     // Generate AI-powered metadata
@@ -87,7 +101,7 @@ export async function POST(request: NextRequest) {
     // Parse category for folder structure
     const categoryParts = metadata.category.split('>').map(part => part.trim()).filter(part => part);
     const folderPath = categoryParts.slice(0, 2).join('/'); // 2-level folders
-    const categoryDir = path.join(LIBRARY_DIR, folderPath);
+    const categoryDir = path.join(libraryDir, folderPath);
 
     // Ensure category directory exists
     fs.mkdirSync(categoryDir, { recursive: true });
@@ -112,11 +126,11 @@ export async function POST(request: NextRequest) {
       const coverFilename = `${newFilename.replace(/\.(pdf|epub|djvu)$/i, '')}_cover.jpg`;
       const coverPath = path.join(categoryDir, coverFilename);
       fs.writeFileSync(coverPath, cover);
-      coverUrl = `/library/${folderPath}/${coverFilename}`.replace(/\/+/g, '/');
+      coverUrl = `/api/library/${library}/file/${folderPath}/${coverFilename}`.replace(/\/+/g, '/');
     }
 
     // Save to database
-    const url = `/library/${folderPath}/${newFilename}`.replace(/\/+/g, '/');
+    const url = `/api/library/${library}/file/${folderPath}/${newFilename}`.replace(/\/+/g, '/');
     await prisma.document.create({
       data: {
         filename: newFilename,

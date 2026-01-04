@@ -1,12 +1,28 @@
 import { PrismaClient } from '@prisma/client'
+import path from 'path';
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined
+// Cache for Prisma clients by library path
+const prismaClients = new Map<string, PrismaClient>();
+
+export function getPrismaClient(libraryPath: string): PrismaClient {
+  const dbPath = path.join(libraryPath, 'db.sqlite');
+  const databaseUrl = `file:${dbPath}`;
+
+  if (!prismaClients.has(databaseUrl)) {
+    const client = new PrismaClient({
+      datasources: {
+        db: {
+          url: databaseUrl,
+        },
+      },
+    });
+    prismaClients.set(databaseUrl, client);
+  }
+
+  return prismaClients.get(databaseUrl)!;
 }
 
-export const prisma = globalForPrisma.prisma ?? new PrismaClient()
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+export const prisma = new PrismaClient()
 
 // Database utility functions
 export const dbUtils = {
