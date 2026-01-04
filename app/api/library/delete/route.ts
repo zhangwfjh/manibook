@@ -19,26 +19,31 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid filename' }, { status: 400 });
     }
 
-    const filePath = path.join(LIBRARY_DIR, filename);
-    const metadataPath = filePath.replace(/\.(pdf|epub|djvu)$/i, '.json');
-
-    // Delete from database first
-    const deletedDocument = await prisma.document.deleteMany({
+    // Find the document first to get cover info and file path
+    const document = await prisma.document.findUnique({
       where: { filename },
     });
 
-    if (deletedDocument.count === 0) {
+    if (!document) {
       return NextResponse.json({ error: 'Document not found in database' }, { status: 404 });
     }
 
-    // Delete the physical file
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+    // Delete the cover file if it exists
+    if ((document as any).coverUrl) {
+      const coverPath = path.join(process.cwd(), 'public', (document as any).coverUrl);
+      if (fs.existsSync(coverPath)) {
+        fs.unlinkSync(coverPath);
+      }
     }
 
-    // Delete the old metadata file if it exists (for backward compatibility)
-    if (fs.existsSync(metadataPath)) {
-      fs.unlinkSync(metadataPath);
+    // Delete from database
+    await prisma.document.delete({
+      where: { filename },
+    });
+
+    // Delete the physical file
+    if (fs.existsSync(document.filePath)) {
+      fs.unlinkSync(document.filePath);
     }
 
     return NextResponse.json({

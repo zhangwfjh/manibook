@@ -32,6 +32,17 @@ export async function POST(request: NextRequest) {
     // Get file buffer
     const buffer = Buffer.from(await file.arrayBuffer());
 
+    // Compute SHA256 hash
+    const hash = computeSHA256(buffer);
+
+    // Check if file already exists
+    const existingDoc = await prisma.document.findFirst({
+      where: { hash }
+    });
+    if (existingDoc) {
+      return NextResponse.json({ error: 'File already exists' }, { status: 400 });
+    }
+
     // Save file temporarily
     const tempFilename = `temp_${Date.now()}${fileExtension}`;
     const tempFilePath = path.join(LIBRARY_DIR, tempFilename);
@@ -123,7 +134,7 @@ export async function POST(request: NextRequest) {
         abstract: metadata.abstract,
         favorite: metadata.favorite || false,
         metadata: metadata.metadata ? JSON.stringify(metadata.metadata) : null,
-        hash: null,
+        hash,
       },
     });
 

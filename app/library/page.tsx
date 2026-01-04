@@ -106,8 +106,30 @@ export default function LibraryPage() {
     await fetchLibraryData();
   };
 
-  const handleDocumentUpdate = async (document: LibraryDocument) => {
-    // Refresh the library data after update
+  const handleDocumentUpdate = async (updatedDoc: Record<string, any>) => {
+    // Convert updatedDoc to LibraryDocument and update selected document
+    const libraryDoc: LibraryDocument = {
+      path: updatedDoc.filePath,
+      filename: updatedDoc.filename,
+      url: updatedDoc.url,
+      coverUrl: updatedDoc.coverUrl,
+      metadata: {
+        doctype: updatedDoc.doctype,
+        title: updatedDoc.title,
+        authors: JSON.parse(updatedDoc.authors || '[]'),
+        publication_year: updatedDoc.publicationYear,
+        publisher: updatedDoc.publisher,
+        category: updatedDoc.category,
+        language: updatedDoc.language,
+        keywords: JSON.parse(updatedDoc.keywords || '[]'),
+        abstract: updatedDoc.abstract,
+        favorite: updatedDoc.favorite,
+        metadata: updatedDoc.metadata ? JSON.parse(updatedDoc.metadata) : undefined,
+      },
+      categoryPath: [], // can leave empty
+    };
+    setSelectedDocument(libraryDoc);
+    // Also refresh the library data
     await fetchLibraryData();
   };
 

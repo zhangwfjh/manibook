@@ -151,7 +151,7 @@ export function DocumentCard({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="flex flex-wrap gap-1 cursor-help">
-                    {metadata.keywords.slice(0, 4).map((keyword, index) => (
+                    {metadata.keywords.slice(0, 5).map((keyword, index) => (
                       <Badge
                         key={index}
                         variant="secondary"
@@ -160,9 +160,9 @@ export function DocumentCard({
                         {keyword}
                       </Badge>
                     ))}
-                    {metadata.keywords.length > 4 && (
+                    {metadata.keywords.length > 5 && (
                       <Badge variant="secondary" className="text-xs">
-                        +{metadata.keywords.length - 4}
+                        +{metadata.keywords.length - 5}
                       </Badge>
                     )}
                   </div>
