@@ -20,6 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { LibraryDocument, LibraryCategory } from "@/lib/library";
 
 type ViewMode = "card" | "list";
@@ -36,6 +38,7 @@ export default function LibraryPage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<string>("title-asc");
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedDocument, setSelectedDocument] =
     useState<LibraryDocument | null>(null);
@@ -95,7 +98,8 @@ export default function LibraryPage() {
       doc.metadata.keywords?.some((keyword) =>
         keyword.toLowerCase().includes(searchQuery.toLowerCase())
       );
-    return matchesCategory && matchesTags && matchesSearch;
+    const matchesFavorites = !showFavoritesOnly || doc.metadata.favorite;
+    return matchesCategory && matchesTags && matchesSearch && matchesFavorites;
   });
 
   const sortedDocuments = useMemo(() => {
@@ -282,6 +286,23 @@ export default function LibraryPage() {
               selectedCategory={selectedCategory}
               onCategorySelect={setSelectedCategory}
             />
+
+            <Separator />
+
+            {/* Favorites Filter */}
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                Favorites
+              </h3>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="favorites"
+                  checked={showFavoritesOnly}
+                  onCheckedChange={setShowFavoritesOnly}
+                />
+                <Label htmlFor="favorites" className="text-sm">Show only favorites</Label>
+              </div>
+            </div>
 
             <Separator />
 
