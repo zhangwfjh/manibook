@@ -13,23 +13,22 @@ datasource db {
 model Document {
   id                String   @id @default(cuid())
   filename          String   @unique
-  filePath          String
   url               String
-  coverUrl          String?  // URL to cover image
   doctype           String   // 'Book' | 'Article' | 'Others'
   title             String
   authors           String   // JSON array of authors as string
   publicationYear   Int?
   publisher         String?
   category          String
-  language          String?
+  language          String
   keywords          String   // JSON array of keywords as string
-  abstract          String?
+  abstract          String
   favorite          Boolean  @default(false)
   metadata          String?  // JSON string for additional metadata
-  hash              String?  @unique // SHA256 hash for duplicate detection
+  hash              String   @unique // SHA256 hash for duplicate detection
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+  numPages          Int
 
   @@map("documents")
 }

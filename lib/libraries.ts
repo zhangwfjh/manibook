@@ -110,9 +110,7 @@ export async function ensureLibraryStructure(libraryPath: string): Promise<void>
         CREATE TABLE "documents" (
           "id" TEXT NOT NULL PRIMARY KEY,
           "filename" TEXT NOT NULL UNIQUE,
-          "filePath" TEXT NOT NULL,
           "url" TEXT NOT NULL,
-          "coverUrl" TEXT,
           "doctype" TEXT NOT NULL,
           "title" TEXT NOT NULL,
           "authors" TEXT NOT NULL,
@@ -126,7 +124,8 @@ export async function ensureLibraryStructure(libraryPath: string): Promise<void>
           "metadata" TEXT,
           "hash" TEXT UNIQUE,
           "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+          "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "numPages" INTEGER NOT NULL DEFAULT 0
         )
       `;
 

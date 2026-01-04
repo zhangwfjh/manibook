@@ -23,7 +23,7 @@ interface LLMSettings {
 export async function extractMetadataFromFile(
   filePath: string,
   llmSettings?: LLMSettings
-): Promise<{ metadata: Record<string, unknown>; cover: Uint8Array | null }> {
+): Promise<{ metadata: Record<string, unknown>; cover: Uint8Array | null; numPages: number }> {
   const extension = filePath.split(".").pop()?.toLowerCase();
 
   let foreword: string = "";
@@ -161,7 +161,7 @@ export async function extractMetadataFromFile(
     }
   }
 
-  return { metadata, cover };
+  return { metadata, cover, numPages };
 }
 
 async function sortFiles(dirPath: string) {

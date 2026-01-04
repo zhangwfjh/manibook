@@ -1,3 +1,4 @@
+import Image from "next/image";
 import {
   Dialog,
   DialogContent,
@@ -142,18 +143,18 @@ export function DocumentDetailDialog({
       <DialogContent className="max-w-5xl w-full min-w-3xl max-h-[90vh]">
         <DialogHeader>
           <div className="flex items-start gap-4">
-            {document.coverUrl && (
-              <div className="shrink-0">
-                <img
-                  src={document.coverUrl}
-                  alt={`${metadata.title} cover`}
-                  className="w-24 h-32 object-cover rounded-lg border shadow-sm"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                  }}
-                />
-              </div>
-            )}
+            <div className="shrink-0">
+              <Image
+                src={document.url.replace(/\.(pdf|epub|djvu)$/i, "_cover.jpg")}
+                alt={`${metadata.title} cover`}
+                width={150}
+                height={200}
+                className="w-24 h-32 object-cover rounded-lg border shadow-sm"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
+              />
+            </div>
             <div className="flex-1">
               <DialogTitle className="text-xl font-semibold">
                 {metadata.title}
@@ -168,48 +169,93 @@ export function DocumentDetailDialog({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-3">
                 <div>
-                  <Label htmlFor="title" className="text-sm font-medium text-muted-foreground">TITLE</Label>
+                  <Label
+                    htmlFor="title"
+                    className="text-sm font-medium text-muted-foreground"
+                  >
+                    TITLE
+                  </Label>
                   {isEditing ? (
                     <Input
                       id="title"
-                      value={editedMetadata?.title || ''}
-                      onChange={(e) => setEditedMetadata(prev => prev ? {...prev, title: e.target.value} : prev)}
+                      value={editedMetadata?.title || ""}
+                      onChange={(e) =>
+                        setEditedMetadata((prev) =>
+                          prev ? { ...prev, title: e.target.value } : prev
+                        )
+                      }
                       className="mt-1"
                     />
                   ) : (
-                    <div className="mt-1 text-lg font-semibold">{metadata.title}</div>
+                    <div className="mt-1 text-lg font-semibold">
+                      {metadata.title}
+                    </div>
                   )}
                 </div>
 
                 <div>
-                  <Label htmlFor="authors" className="text-sm font-medium text-muted-foreground">AUTHORS</Label>
+                  <Label
+                    htmlFor="authors"
+                    className="text-sm font-medium text-muted-foreground"
+                  >
+                    AUTHORS
+                  </Label>
                   {isEditing ? (
                     <Input
                       id="authors"
-                      value={editedMetadata?.authors?.join(', ') || ''}
-                      onChange={(e) => setEditedMetadata(prev => prev ? {
-                        ...prev,
-                        authors: e.target.value.split(',').map(a => a.trim()).filter(a => a)
-                      } : prev)}
+                      value={editedMetadata?.authors?.join(", ") || ""}
+                      onChange={(e) =>
+                        setEditedMetadata((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                authors: e.target.value
+                                  .split(",")
+                                  .map((a) => a.trim())
+                                  .filter((a) => a),
+                              }
+                            : prev
+                        )
+                      }
                       className="mt-1"
                       placeholder="Author 1, Author 2, Author 3"
                     />
                   ) : (
                     <div className="flex items-center gap-2 mt-1">
                       <UsersIcon className="h-4 w-4 text-muted-foreground" />
-                      <span>{metadata.authors && metadata.authors.length > 0 ? metadata.authors.join(', ') : 'Not specified'}</span>
+                      <span>
+                        {metadata.authors && metadata.authors.length > 0
+                          ? metadata.authors.join(", ")
+                          : "Not specified"}
+                      </span>
                     </div>
                   )}
                 </div>
 
                 <div>
-                  <Label htmlFor="publication_year" className="text-sm font-medium text-muted-foreground">PUBLICATION YEAR</Label>
+                  <Label
+                    htmlFor="publication_year"
+                    className="text-sm font-medium text-muted-foreground"
+                  >
+                    PUBLICATION YEAR
+                  </Label>
                   {isEditing ? (
                     <Input
                       id="publication_year"
                       type="number"
-                      value={editedMetadata?.publication_year || ''}
-                      onChange={(e) => setEditedMetadata(prev => prev ? {...prev, publication_year: e.target.value ? parseInt(e.target.value) : undefined} : prev)}
+                      value={editedMetadata?.publication_year || ""}
+                      onChange={(e) =>
+                        setEditedMetadata((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                publication_year: e.target.value
+                                  ? parseInt(e.target.value)
+                                  : undefined,
+                              }
+                            : prev
+                        )
+                      }
                       className="mt-1"
                       placeholder="2023"
                     />
@@ -226,12 +272,21 @@ export function DocumentDetailDialog({
                 </div>
 
                 <div>
-                  <Label htmlFor="publisher" className="text-sm font-medium text-muted-foreground">PUBLISHER</Label>
+                  <Label
+                    htmlFor="publisher"
+                    className="text-sm font-medium text-muted-foreground"
+                  >
+                    PUBLISHER
+                  </Label>
                   {isEditing ? (
                     <Input
                       id="publisher"
-                      value={editedMetadata?.publisher || ''}
-                      onChange={(e) => setEditedMetadata(prev => prev ? {...prev, publisher: e.target.value} : prev)}
+                      value={editedMetadata?.publisher || ""}
+                      onChange={(e) =>
+                        setEditedMetadata((prev) =>
+                          prev ? { ...prev, publisher: e.target.value } : prev
+                        )
+                      }
                       className="mt-1"
                       placeholder="Publisher name"
                     />
@@ -250,11 +305,25 @@ export function DocumentDetailDialog({
 
               <div className="space-y-3">
                 <div>
-                  <Label htmlFor="doctype" className="text-sm font-medium text-muted-foreground">DOCUMENT TYPE</Label>
+                  <Label
+                    htmlFor="doctype"
+                    className="text-sm font-medium text-muted-foreground"
+                  >
+                    DOCUMENT TYPE
+                  </Label>
                   {isEditing ? (
                     <Select
-                      value={editedMetadata?.doctype || ''}
-                      onValueChange={(value) => setEditedMetadata(prev => prev ? {...prev, doctype: value as 'Book' | 'Article' | 'Others'} : prev)}
+                      value={editedMetadata?.doctype || ""}
+                      onValueChange={(value) =>
+                        setEditedMetadata((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                doctype: value as "Book" | "Article" | "Others",
+                              }
+                            : prev
+                        )
+                      }
                     >
                       <SelectTrigger className="mt-1">
                         <SelectValue placeholder="Select type" />
@@ -267,7 +336,11 @@ export function DocumentDetailDialog({
                     </Select>
                   ) : (
                     <div className="flex items-center gap-2 mt-1">
-                      <Badge variant={metadata.doctype === 'Book' ? 'default' : 'secondary'}>
+                      <Badge
+                        variant={
+                          metadata.doctype === "Book" ? "default" : "secondary"
+                        }
+                      >
                         <BookOpenIcon className="h-3 w-3 mr-1" />
                         {metadata.doctype}
                       </Badge>
@@ -276,12 +349,21 @@ export function DocumentDetailDialog({
                 </div>
 
                 <div>
-                  <Label htmlFor="category" className="text-sm font-medium text-muted-foreground">CATEGORY</Label>
+                  <Label
+                    htmlFor="category"
+                    className="text-sm font-medium text-muted-foreground"
+                  >
+                    CATEGORY
+                  </Label>
                   {isEditing ? (
                     <Input
                       id="category"
-                      value={editedMetadata?.category || ''}
-                      onChange={(e) => setEditedMetadata(prev => prev ? {...prev, category: e.target.value} : prev)}
+                      value={editedMetadata?.category || ""}
+                      onChange={(e) =>
+                        setEditedMetadata((prev) =>
+                          prev ? { ...prev, category: e.target.value } : prev
+                        )
+                      }
                       className="mt-1"
                       placeholder="e.g., Science > Physics > Quantum"
                     />
@@ -298,30 +380,55 @@ export function DocumentDetailDialog({
                 </div>
 
                 <div>
-                  <Label htmlFor="language" className="text-sm font-medium text-muted-foreground">LANGUAGE</Label>
+                  <Label
+                    htmlFor="language"
+                    className="text-sm font-medium text-muted-foreground"
+                  >
+                    LANGUAGE
+                  </Label>
                   {isEditing ? (
                     <Input
                       id="language"
-                      value={editedMetadata?.language || ''}
-                      onChange={(e) => setEditedMetadata(prev => prev ? {...prev, language: e.target.value} : prev)}
+                      value={editedMetadata?.language || ""}
+                      onChange={(e) =>
+                        setEditedMetadata((prev) =>
+                          prev ? { ...prev, language: e.target.value } : prev
+                        )
+                      }
                       className="mt-1"
                       placeholder="English"
                     />
                   ) : (
-                    <span className="mt-1 block text-sm">{metadata.language || 'Not specified'}</span>
+                    <span className="mt-1 block text-sm">
+                      {metadata.language || "Not specified"}
+                    </span>
                   )}
                 </div>
 
                 <div>
-                  <Label htmlFor="keywords" className="text-sm font-medium text-muted-foreground">KEYWORDS</Label>
+                  <Label
+                    htmlFor="keywords"
+                    className="text-sm font-medium text-muted-foreground"
+                  >
+                    KEYWORDS
+                  </Label>
                   {isEditing ? (
                     <Input
                       id="keywords"
-                      value={editedMetadata?.keywords?.join(', ') || ''}
-                      onChange={(e) => setEditedMetadata(prev => prev ? {
-                        ...prev,
-                        keywords: e.target.value.split(',').map(k => k.trim()).filter(k => k)
-                      } : prev)}
+                      value={editedMetadata?.keywords?.join(", ") || ""}
+                      onChange={(e) =>
+                        setEditedMetadata((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                keywords: e.target.value
+                                  .split(",")
+                                  .map((k) => k.trim())
+                                  .filter((k) => k),
+                              }
+                            : prev
+                        )
+                      }
                       className="mt-1"
                       placeholder="keyword1, keyword2, keyword3"
                     />
@@ -336,7 +443,9 @@ export function DocumentDetailDialog({
                           ))}
                         </div>
                       ) : (
-                        <span className="text-muted-foreground">No keywords</span>
+                        <span className="text-muted-foreground">
+                          No keywords
+                        </span>
                       )}
                     </div>
                   )}
@@ -345,12 +454,21 @@ export function DocumentDetailDialog({
             </div>
 
             <div>
-              <Label htmlFor="abstract" className="text-sm font-medium text-muted-foreground">ABSTRACT</Label>
+              <Label
+                htmlFor="abstract"
+                className="text-sm font-medium text-muted-foreground"
+              >
+                ABSTRACT
+              </Label>
               {isEditing ? (
                 <Textarea
                   id="abstract"
-                  value={editedMetadata?.abstract || ''}
-                  onChange={(e) => setEditedMetadata(prev => prev ? {...prev, abstract: e.target.value} : prev)}
+                  value={editedMetadata?.abstract || ""}
+                  onChange={(e) =>
+                    setEditedMetadata((prev) =>
+                      prev ? { ...prev, abstract: e.target.value } : prev
+                    )
+                  }
                   className="mt-1 min-h-[100px]"
                   placeholder="Document abstract or summary..."
                 />
@@ -368,89 +486,115 @@ export function DocumentDetailDialog({
             </div>
 
             <div>
-              <Label className="text-sm font-medium text-muted-foreground">ADDITIONAL METADATA</Label>
+              <Label className="text-sm font-medium text-muted-foreground">
+                ADDITIONAL METADATA
+              </Label>
               {isEditing ? (
                 <div className="mt-1 space-y-2">
-                  {editedMetadata?.metadata && Object.keys(editedMetadata.metadata).length > 0 ? (
-                    Object.entries(editedMetadata.metadata).map(([key, value], index) => (
-                      <div key={key} className="flex gap-2 items-center">
-                        <Input
-                          placeholder="Key"
-                          value={key}
-                          onChange={(e) => {
-                            const newKey = e.target.value;
-                            setEditedMetadata(prev => {
-                              if (!prev?.metadata) return prev;
-                              const newMetadata = { ...prev.metadata };
-                              delete newMetadata[key];
-                              newMetadata[newKey] = value;
-                              return { ...prev, metadata: newMetadata };
-                            });
-                          }}
-                          className="flex-1"
-                        />
-                        <Input
-                          placeholder="Value"
-                          value={Array.isArray(value) ? value.join(', ') : String(value)}
-                          onChange={(e) => setEditedMetadata(prev => {
-                            if (!prev?.metadata) return prev;
-                            const newMetadata = { ...prev.metadata };
-                            newMetadata[key] = e.target.value;
-                            return { ...prev, metadata: newMetadata };
-                          })}
-                          className="flex-1"
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setEditedMetadata(prev => {
-                            if (!prev?.metadata) return prev;
-                            const newMetadata = { ...prev.metadata };
-                            delete newMetadata[key];
-                            return { ...prev, metadata: newMetadata };
-                          })}
-                        >
-                          <XIcon className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))
+                  {editedMetadata?.metadata &&
+                  Object.keys(editedMetadata.metadata).length > 0 ? (
+                    Object.entries(editedMetadata.metadata).map(
+                      ([key, value], index) => (
+                        <div key={key} className="flex gap-2 items-center">
+                          <Input
+                            placeholder="Key"
+                            value={key}
+                            onChange={(e) => {
+                              const newKey = e.target.value;
+                              setEditedMetadata((prev) => {
+                                if (!prev?.metadata) return prev;
+                                const newMetadata = { ...prev.metadata };
+                                delete newMetadata[key];
+                                newMetadata[newKey] = value;
+                                return { ...prev, metadata: newMetadata };
+                              });
+                            }}
+                            className="flex-1"
+                          />
+                          <Input
+                            placeholder="Value"
+                            value={
+                              Array.isArray(value)
+                                ? value.join(", ")
+                                : String(value)
+                            }
+                            onChange={(e) =>
+                              setEditedMetadata((prev) => {
+                                if (!prev?.metadata) return prev;
+                                const newMetadata = { ...prev.metadata };
+                                newMetadata[key] = e.target.value;
+                                return { ...prev, metadata: newMetadata };
+                              })
+                            }
+                            className="flex-1"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              setEditedMetadata((prev) => {
+                                if (!prev?.metadata) return prev;
+                                const newMetadata = { ...prev.metadata };
+                                delete newMetadata[key];
+                                return { ...prev, metadata: newMetadata };
+                              })
+                            }
+                          >
+                            <XIcon className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )
+                    )
                   ) : (
-                    <div className="text-sm text-muted-foreground">No additional metadata</div>
+                    <div className="text-sm text-muted-foreground">
+                      No additional metadata
+                    </div>
                   )}
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setEditedMetadata(prev => {
-                      const currentMetadata = prev?.metadata || {};
-                      const newKey = `field_${Object.keys(currentMetadata).length + 1}`;
-                      return prev ? {
-                        ...prev,
-                        metadata: { ...currentMetadata, [newKey]: '' }
-                      } : prev;
-                    })}
+                    onClick={() =>
+                      setEditedMetadata((prev) => {
+                        const currentMetadata = prev?.metadata || {};
+                        const newKey = `field_${
+                          Object.keys(currentMetadata).length + 1
+                        }`;
+                        return prev
+                          ? {
+                              ...prev,
+                              metadata: { ...currentMetadata, [newKey]: "" },
+                            }
+                          : prev;
+                      })
+                    }
                   >
                     Add Field
                   </Button>
                 </div>
               ) : (
                 <div className="mt-1">
-                  {metadata.metadata && Object.keys(metadata.metadata).length > 0 ? (
+                  {metadata.metadata &&
+                  Object.keys(metadata.metadata).length > 0 ? (
                     <div className="space-y-1 text-sm bg-muted/50 p-4 rounded-md">
                       {Object.entries(metadata.metadata).map(([key, value]) => (
                         <div key={key} className="flex justify-between">
                           <span className="text-muted-foreground capitalize">
-                            {key.replace(/_/g, ' ')}:
+                            {key.replace(/_/g, " ")}:
                           </span>
                           <span className="ml-2 text-right">
-                            {Array.isArray(value) ? value.join(', ') : String(value)}
+                            {Array.isArray(value)
+                              ? value.join(", ")
+                              : String(value)}
                           </span>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <span className="text-muted-foreground">No additional metadata</span>
+                    <span className="text-muted-foreground">
+                      No additional metadata
+                    </span>
                   )}
                 </div>
               )}
@@ -460,7 +604,9 @@ export function DocumentDetailDialog({
 
             {/* File Information */}
             <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-3">FILE INFORMATION</h3>
+              <h3 className="text-sm font-medium text-muted-foreground mb-3">
+                FILE INFORMATION
+              </h3>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="text-muted-foreground">Filename:</span>

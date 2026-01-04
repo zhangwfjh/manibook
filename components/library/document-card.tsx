@@ -187,20 +187,18 @@ export function DocumentCard({
             )}
           </div>
 
-          {document.coverUrl && (
-            <div className="shrink-0">
-              <Image
-                src={document.coverUrl}
-                alt={`${metadata.title} cover`}
-                width={150}
-                height={200}
-                className="object-cover rounded border shadow-sm"
-                onError={(e) => {
-                  e.currentTarget.style.display = "none";
-                }}
-              />
-            </div>
-          )}
+          <div className="shrink-0">
+            <Image
+              src={document.url.replace(/\.(pdf|epub|djvu)$/i, "_cover.jpg")}
+              alt={`${metadata.title} cover`}
+              width={150}
+              height={200}
+              className="object-cover rounded border shadow-sm"
+              onError={(e) => {
+                e.currentTarget.style.display = "none";
+              }}
+            />
+          </div>
         </CardContent>
       </div>
     </Card>

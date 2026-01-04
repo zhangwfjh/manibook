@@ -298,7 +298,6 @@ export default function LibraryPage() {
       path: updatedDoc.filePath,
       filename: updatedDoc.filename,
       url: updatedDoc.url,
-      coverUrl: updatedDoc.coverUrl,
       metadata: {
         doctype: updatedDoc.doctype,
         title: updatedDoc.title,
@@ -311,6 +310,7 @@ export default function LibraryPage() {
         abstract: updatedDoc.abstract,
         favorite: updatedDoc.favorite,
         metadata: updatedDoc.metadata ? JSON.parse(updatedDoc.metadata) : undefined,
+        numPages: updatedDoc.numPages,
       },
       categoryPath: [], // can leave empty
     };
