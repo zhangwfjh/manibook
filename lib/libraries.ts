@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 import { PrismaClient } from '@prisma/client';
-import { getPrismaClient } from './db';
 
 export interface Library {
   name: string;
@@ -79,95 +78,6 @@ export function getLibrary(name: string): Library | null {
 
 export function getLibraryNames(): string[] {
   return readLibraries().map(lib => lib.name);
-}
-
-export async function migrateAllLibrariesFromStorage(): Promise<void> {
-  const libraries = readLibraries();
-  console.log(`Starting migration for ${libraries.length} libraries...`);
-
-  for (const library of libraries) {
-    console.log(`Migrating library: ${library.name}`);
-    const success = await migrateLibraryFromStorage(library.name);
-    if (!success) {
-      console.error(`Failed to migrate library: ${library.name}`);
-    }
-  }
-
-  console.log('Migration completed for all libraries');
-}
-
-export async function migrateLibraryFromStorage(libraryName: string): Promise<boolean> {
-  try {
-    const library = getLibrary(libraryName);
-    if (!library) {
-      console.error(`Library ${libraryName} not found`);
-      return false;
-    }
-
-    const libraryPath = library.path;
-    const storagePath = path.join(libraryPath, 'storage');
-
-    // Check if storage folder exists
-    if (!fs.existsSync(storagePath)) {
-      console.log(`No storage folder found for library ${libraryName}`);
-      return true; // Already migrated or no files to migrate
-    }
-
-    // Get Prisma client for this library
-    const prisma = getPrismaClient(libraryPath);
-
-    // Get all documents from database
-    const documents = await prisma.document.findMany();
-
-    // Move files and update database
-    for (const doc of documents) {
-      const oldFilePath = doc.filePath;
-      const oldCoverUrl = doc.coverUrl;
-
-      // Calculate new paths (remove /storage/ from path)
-      const relativePath = path.relative(storagePath, oldFilePath);
-      const newFilePath = path.join(libraryPath, relativePath);
-
-      // Ensure destination directory exists
-      const newDir = path.dirname(newFilePath);
-      if (!fs.existsSync(newDir)) {
-        fs.mkdirSync(newDir, { recursive: true });
-      }
-
-      // Move the file if it exists
-      if (fs.existsSync(oldFilePath)) {
-        fs.renameSync(oldFilePath, newFilePath);
-      }
-
-      // Update cover URL if it exists
-      let newCoverUrl = oldCoverUrl;
-      if (oldCoverUrl && oldCoverUrl.includes('/storage/')) {
-        newCoverUrl = oldCoverUrl.replace('/storage/', '/');
-      }
-
-      // Update database record
-      await prisma.document.update({
-        where: { id: doc.id },
-        data: {
-          filePath: newFilePath,
-          coverUrl: newCoverUrl,
-        },
-      });
-    }
-
-    // Remove empty storage directory
-    try {
-      fs.rmdirSync(storagePath, { recursive: true });
-    } catch (error) {
-      console.warn(`Could not remove storage directory: ${error}`);
-    }
-
-    console.log(`Successfully migrated library ${libraryName} from storage folder`);
-    return true;
-  } catch (error) {
-    console.error(`Error migrating library ${libraryName}:`, error);
-    return false;
-  }
 }
 
 export async function ensureLibraryStructure(libraryPath: string): Promise<void> {

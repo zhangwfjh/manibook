@@ -1,6 +1,6 @@
 import mupdf from "mupdf";
 import { parseEPUB } from "@/lib/epub";
-import { ollamaCall, qwenCall, vllmCall } from "@/lib/llms";
+import { vllmCall } from "@/lib/llms";
 import fs from "fs";
 import { execSync } from "child_process";
 
@@ -61,6 +61,7 @@ export async function extractMetadataFromFile(
     )
       .join("\n\n")
       .slice(0, maxForewordLength);
+    numPages = epub.pages.length;
   }
   if (extension === "pdf") {
     const document = mupdf.Document.openDocument(fs.readFileSync(filePath));
@@ -123,7 +124,7 @@ export async function extractMetadataFromFile(
   for (let retry = 0; retry < 3; retry++) {
     try {
       const responseString = (
-        await qwenCall(
+        await vllmCall(
           [
             {
               role: "system",
