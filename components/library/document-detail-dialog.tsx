@@ -1,10 +1,38 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { DownloadIcon, UsersIcon, CalendarIcon, BookOpenIcon, FileTextIcon, GlobeIcon, TagIcon, TrashIcon } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  DownloadIcon,
+  UsersIcon,
+  CalendarIcon,
+  BookOpenIcon,
+  FileTextIcon,
+  GlobeIcon,
+  TagIcon,
+  TrashIcon,
+  EditIcon,
+  SaveIcon,
+  XIcon,
+} from "lucide-react";
 import { LibraryDocument } from "@/lib/library";
+import { useState, useEffect } from "react";
 
 interface DocumentDetailDialogProps {
   document: LibraryDocument | null;
@@ -12,6 +40,7 @@ interface DocumentDetailDialogProps {
   onOpenChange: (open: boolean) => void;
   onDownload?: (document: LibraryDocument) => void;
   onDelete?: (document: LibraryDocument) => void;
+  onUpdate?: (updatedDoc: Record<string, any>) => void;
 }
 
 export function DocumentDetailDialog({
@@ -19,8 +48,19 @@ export function DocumentDetailDialog({
   open,
   onOpenChange,
   onDownload,
-  onDelete
+  onDelete,
+  onUpdate,
 }: DocumentDetailDialogProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedMetadata, setEditedMetadata] = useState(document?.metadata);
+
+  // Update edited metadata when document changes
+  useEffect(() => {
+    if (document?.metadata) {
+      setEditedMetadata(document.metadata);
+    }
+  }, [document?.metadata]); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (!document) return null;
 
   const { metadata } = document;
@@ -30,39 +70,86 @@ export function DocumentDetailDialog({
     onOpenChange(false);
   };
 
+  const handleEdit = () => {
+    setIsEditing(true);
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setEditedMetadata(metadata);
+  };
+
+  const handleSave = async () => {
+    if (!editedMetadata) return;
+
+    try {
+      const response = await fetch("/api/library/update", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          filename: document.filename,
+          metadata: editedMetadata,
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setIsEditing(false);
+        onUpdate?.(result.document);
+        alert("Document updated successfully");
+      } else {
+        alert("Failed to update document");
+      }
+    } catch (error) {
+      console.error("Error updating document:", error);
+      alert("Error updating document");
+    }
+  };
+
   const handleDelete = async () => {
-    if (window.confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
+    if (
+      window.confirm(
+        "Are you sure you want to delete this document? This action cannot be undone."
+      )
+    ) {
       try {
-        const response = await fetch(`/api/library/delete?filename=${encodeURIComponent(document.filename)}`, {
-          method: 'DELETE',
-        });
+        const response = await fetch(
+          `/api/library/delete?filename=${encodeURIComponent(
+            document.filename
+          )}`,
+          {
+            method: "DELETE",
+          }
+        );
 
         if (response.ok) {
           onDelete?.(document);
           onOpenChange(false);
         } else {
-          alert('Failed to delete document');
+          alert("Failed to delete document");
         }
       } catch (error) {
-        console.error('Error deleting document:', error);
-        alert('Error deleting document');
+        console.error("Error deleting document:", error);
+        alert("Error deleting document");
       }
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh]">
+      <DialogContent className="max-w-5xl w-full min-w-3xl max-h-[90vh]">
         <DialogHeader>
           <div className="flex items-start gap-4">
             {document.coverUrl && (
-              <div className="flex-shrink-0">
+              <div className="shrink-0">
                 <img
                   src={document.coverUrl}
                   alt={`${metadata.title} cover`}
                   className="w-24 h-32 object-cover rounded-lg border shadow-sm"
                   onError={(e) => {
-                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.style.display = "none";
                   }}
                 />
               </div>
@@ -81,62 +168,276 @@ export function DocumentDetailDialog({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-3">
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-2">TYPE & CATEGORY</h3>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant={metadata.doctype === 'Book' ? 'default' : 'secondary'}>
-                      <BookOpenIcon className="h-3 w-3 mr-1" />
-                      {metadata.doctype}
-                    </Badge>
-                    {metadata.category && (
-                      <Badge variant="outline">
-                        <FileTextIcon className="h-3 w-3 mr-1" />
-                        {metadata.category}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-2">AUTHORS</h3>
-                  {metadata.authors && metadata.authors.length > 0 ? (
-                    <div className="flex items-center gap-2">
-                      <UsersIcon className="h-4 w-4 text-muted-foreground" />
-                      <span>{metadata.authors.join(', ')}</span>
-                    </div>
+                  <Label htmlFor="title" className="text-sm font-medium text-muted-foreground">TITLE</Label>
+                  {isEditing ? (
+                    <Input
+                      id="title"
+                      value={editedMetadata?.title || ''}
+                      onChange={(e) => setEditedMetadata(prev => prev ? {...prev, title: e.target.value} : prev)}
+                      className="mt-1"
+                    />
                   ) : (
-                    <span className="text-muted-foreground">Not specified</span>
+                    <div className="mt-1 text-lg font-semibold">{metadata.title}</div>
                   )}
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-2">PUBLICATION</h3>
-                  <div className="space-y-1">
-                    {metadata.publication_year && (
-                      <div className="flex items-center gap-2">
-                        <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                        <span>{metadata.publication_year}</span>
-                      </div>
-                    )}
-                    {metadata.publisher && (
-                      <div className="flex items-center gap-2">
-                        <GlobeIcon className="h-4 w-4 text-muted-foreground" />
-                        <span>{metadata.publisher}</span>
-                      </div>
-                    )}
-                  </div>
+                  <Label htmlFor="authors" className="text-sm font-medium text-muted-foreground">AUTHORS</Label>
+                  {isEditing ? (
+                    <Input
+                      id="authors"
+                      value={editedMetadata?.authors?.join(', ') || ''}
+                      onChange={(e) => setEditedMetadata(prev => prev ? {
+                        ...prev,
+                        authors: e.target.value.split(',').map(a => a.trim()).filter(a => a)
+                      } : prev)}
+                      className="mt-1"
+                      placeholder="Author 1, Author 2, Author 3"
+                    />
+                  ) : (
+                    <div className="flex items-center gap-2 mt-1">
+                      <UsersIcon className="h-4 w-4 text-muted-foreground" />
+                      <span>{metadata.authors && metadata.authors.length > 0 ? metadata.authors.join(', ') : 'Not specified'}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <Label htmlFor="publication_year" className="text-sm font-medium text-muted-foreground">PUBLICATION YEAR</Label>
+                  {isEditing ? (
+                    <Input
+                      id="publication_year"
+                      type="number"
+                      value={editedMetadata?.publication_year || ''}
+                      onChange={(e) => setEditedMetadata(prev => prev ? {...prev, publication_year: e.target.value ? parseInt(e.target.value) : undefined} : prev)}
+                      className="mt-1"
+                      placeholder="2023"
+                    />
+                  ) : (
+                    <div className="flex items-center gap-2 mt-1">
+                      {metadata.publication_year && (
+                        <>
+                          <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                          <span>{metadata.publication_year}</span>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <Label htmlFor="publisher" className="text-sm font-medium text-muted-foreground">PUBLISHER</Label>
+                  {isEditing ? (
+                    <Input
+                      id="publisher"
+                      value={editedMetadata?.publisher || ''}
+                      onChange={(e) => setEditedMetadata(prev => prev ? {...prev, publisher: e.target.value} : prev)}
+                      className="mt-1"
+                      placeholder="Publisher name"
+                    />
+                  ) : (
+                    <div className="flex items-center gap-2 mt-1">
+                      {metadata.publisher && (
+                        <>
+                          <GlobeIcon className="h-4 w-4 text-muted-foreground" />
+                          <span>{metadata.publisher}</span>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
               <div className="space-y-3">
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-2">LANGUAGE</h3>
-                  <span className="text-sm">{metadata.language || 'Not specified'}</span>
+                  <Label htmlFor="doctype" className="text-sm font-medium text-muted-foreground">DOCUMENT TYPE</Label>
+                  {isEditing ? (
+                    <Select
+                      value={editedMetadata?.doctype || ''}
+                      onValueChange={(value) => setEditedMetadata(prev => prev ? {...prev, doctype: value as 'Book' | 'Article' | 'Others'} : prev)}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Book">Book</SelectItem>
+                        <SelectItem value="Article">Article</SelectItem>
+                        <SelectItem value="Others">Others</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant={metadata.doctype === 'Book' ? 'default' : 'secondary'}>
+                        <BookOpenIcon className="h-3 w-3 mr-1" />
+                        {metadata.doctype}
+                      </Badge>
+                    </div>
+                  )}
                 </div>
 
-                {metadata.metadata && Object.keys(metadata.metadata).length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-2">ADDITIONAL METADATA</h3>
-                    <div className="space-y-1 text-sm">
+                <div>
+                  <Label htmlFor="category" className="text-sm font-medium text-muted-foreground">CATEGORY</Label>
+                  {isEditing ? (
+                    <Input
+                      id="category"
+                      value={editedMetadata?.category || ''}
+                      onChange={(e) => setEditedMetadata(prev => prev ? {...prev, category: e.target.value} : prev)}
+                      className="mt-1"
+                      placeholder="e.g., Science > Physics > Quantum"
+                    />
+                  ) : (
+                    <div className="mt-1">
+                      {metadata.category && (
+                        <Badge variant="outline">
+                          <FileTextIcon className="h-3 w-3 mr-1" />
+                          {metadata.category}
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <Label htmlFor="language" className="text-sm font-medium text-muted-foreground">LANGUAGE</Label>
+                  {isEditing ? (
+                    <Input
+                      id="language"
+                      value={editedMetadata?.language || ''}
+                      onChange={(e) => setEditedMetadata(prev => prev ? {...prev, language: e.target.value} : prev)}
+                      className="mt-1"
+                      placeholder="English"
+                    />
+                  ) : (
+                    <span className="mt-1 block text-sm">{metadata.language || 'Not specified'}</span>
+                  )}
+                </div>
+
+                <div>
+                  <Label htmlFor="keywords" className="text-sm font-medium text-muted-foreground">KEYWORDS</Label>
+                  {isEditing ? (
+                    <Input
+                      id="keywords"
+                      value={editedMetadata?.keywords?.join(', ') || ''}
+                      onChange={(e) => setEditedMetadata(prev => prev ? {
+                        ...prev,
+                        keywords: e.target.value.split(',').map(k => k.trim()).filter(k => k)
+                      } : prev)}
+                      className="mt-1"
+                      placeholder="keyword1, keyword2, keyword3"
+                    />
+                  ) : (
+                    <div className="mt-1">
+                      {metadata.keywords && metadata.keywords.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {metadata.keywords.map((keyword, index) => (
+                            <Badge key={index} variant="secondary">
+                              {keyword}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">No keywords</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="abstract" className="text-sm font-medium text-muted-foreground">ABSTRACT</Label>
+              {isEditing ? (
+                <Textarea
+                  id="abstract"
+                  value={editedMetadata?.abstract || ''}
+                  onChange={(e) => setEditedMetadata(prev => prev ? {...prev, abstract: e.target.value} : prev)}
+                  className="mt-1 min-h-[100px]"
+                  placeholder="Document abstract or summary..."
+                />
+              ) : (
+                <div className="mt-1">
+                  {metadata.abstract ? (
+                    <div className="text-sm leading-relaxed bg-muted/50 p-4 rounded-md">
+                      {metadata.abstract}
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground">No abstract</span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <Label className="text-sm font-medium text-muted-foreground">ADDITIONAL METADATA</Label>
+              {isEditing ? (
+                <div className="mt-1 space-y-2">
+                  {editedMetadata?.metadata && Object.keys(editedMetadata.metadata).length > 0 ? (
+                    Object.entries(editedMetadata.metadata).map(([key, value], index) => (
+                      <div key={key} className="flex gap-2 items-center">
+                        <Input
+                          placeholder="Key"
+                          value={key}
+                          onChange={(e) => {
+                            const newKey = e.target.value;
+                            setEditedMetadata(prev => {
+                              if (!prev?.metadata) return prev;
+                              const newMetadata = { ...prev.metadata };
+                              delete newMetadata[key];
+                              newMetadata[newKey] = value;
+                              return { ...prev, metadata: newMetadata };
+                            });
+                          }}
+                          className="flex-1"
+                        />
+                        <Input
+                          placeholder="Value"
+                          value={Array.isArray(value) ? value.join(', ') : String(value)}
+                          onChange={(e) => setEditedMetadata(prev => {
+                            if (!prev?.metadata) return prev;
+                            const newMetadata = { ...prev.metadata };
+                            newMetadata[key] = e.target.value;
+                            return { ...prev, metadata: newMetadata };
+                          })}
+                          className="flex-1"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditedMetadata(prev => {
+                            if (!prev?.metadata) return prev;
+                            const newMetadata = { ...prev.metadata };
+                            delete newMetadata[key];
+                            return { ...prev, metadata: newMetadata };
+                          })}
+                        >
+                          <XIcon className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-sm text-muted-foreground">No additional metadata</div>
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEditedMetadata(prev => {
+                      const currentMetadata = prev?.metadata || {};
+                      const newKey = `field_${Object.keys(currentMetadata).length + 1}`;
+                      return prev ? {
+                        ...prev,
+                        metadata: { ...currentMetadata, [newKey]: '' }
+                      } : prev;
+                    })}
+                  >
+                    Add Field
+                  </Button>
+                </div>
+              ) : (
+                <div className="mt-1">
+                  {metadata.metadata && Object.keys(metadata.metadata).length > 0 ? (
+                    <div className="space-y-1 text-sm bg-muted/50 p-4 rounded-md">
                       {Object.entries(metadata.metadata).map(([key, value]) => (
                         <div key={key} className="flex justify-between">
                           <span className="text-muted-foreground capitalize">
@@ -148,39 +449,14 @@ export function DocumentDetailDialog({
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
-              </div>
+                  ) : (
+                    <span className="text-muted-foreground">No additional metadata</span>
+                  )}
+                </div>
+              )}
             </div>
 
             <Separator />
-
-            {/* Keywords */}
-            {metadata.keywords && metadata.keywords.length > 0 && (
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
-                  <TagIcon className="h-4 w-4" />
-                  KEYWORDS
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {metadata.keywords.map((keyword, index) => (
-                    <Badge key={index} variant="secondary">
-                      {keyword}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Abstract */}
-            {metadata.abstract && (
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-3">ABSTRACT</h3>
-                <div className="text-sm leading-relaxed bg-muted/50 p-4 rounded-md">
-                  {metadata.abstract}
-                </div>
-              </div>
-            )}
 
             {/* File Information */}
             <div>
@@ -207,14 +483,37 @@ export function DocumentDetailDialog({
           <Button
             variant="destructive"
             onClick={handleDelete}
+            disabled={isEditing}
           >
             <TrashIcon className="h-4 w-4 mr-2" />
-            Delete Document
+            Delete
           </Button>
-          <Button onClick={handleDownload}>
-            <DownloadIcon className="h-4 w-4 mr-2" />
-            Download Document
-          </Button>
+
+          <div className="flex gap-2">
+            {isEditing ? (
+              <>
+                <Button variant="outline" onClick={handleCancel}>
+                  <XIcon className="h-4 w-4 mr-2" />
+                  Cancel
+                </Button>
+                <Button onClick={handleSave}>
+                  <SaveIcon className="h-4 w-4 mr-2" />
+                  Save
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="outline" onClick={handleEdit}>
+                  <EditIcon className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+                <Button onClick={handleDownload}>
+                  <DownloadIcon className="h-4 w-4 mr-2" />
+                  Download
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>

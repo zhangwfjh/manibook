@@ -106,6 +106,11 @@ export default function LibraryPage() {
     await fetchLibraryData();
   };
 
+  const handleDocumentUpdate = async (document: LibraryDocument) => {
+    // Refresh the library data after update
+    await fetchLibraryData();
+  };
+
   const handleFavoriteToggle = async (document: LibraryDocument) => {
     // Refresh the library data after favorite toggle
     await fetchLibraryData();
@@ -357,6 +362,7 @@ export default function LibraryPage() {
           onOpenChange={setDialogOpen}
           onDownload={handleDownload}
           onDelete={handleDocumentDelete}
+          onUpdate={handleDocumentUpdate}
         />
       </div>
     </div>
