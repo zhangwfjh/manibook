@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -13,6 +13,13 @@ import { CategoryTree } from "@/components/library/category-tree";
 import { TagFilter } from "@/components/library/tag-filter";
 import { DocumentDetailDialog } from "@/components/library/document-detail-dialog";
 import { SettingsDialog } from "@/components/library/settings-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { LibraryDocument, LibraryCategory } from "@/lib/library";
 
 type ViewMode = "card" | "list";
@@ -24,6 +31,7 @@ export default function LibraryPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<string>("title-asc");
   const [loading, setLoading] = useState(true);
   const [selectedDocument, setSelectedDocument] =
     useState<LibraryDocument | null>(null);
@@ -85,6 +93,36 @@ export default function LibraryPage() {
       );
     return matchesCategory && matchesTags && matchesSearch;
   });
+
+  const sortedDocuments = useMemo(() => {
+    const sorted = [...filteredDocuments];
+    sorted.sort((a, b) => {
+      const [field, order] = sortBy.split('-');
+      let aVal: any, bVal: any;
+
+      switch (field) {
+        case 'title':
+          aVal = a.metadata.title.toLowerCase();
+          bVal = b.metadata.title.toLowerCase();
+          break;
+        case 'publicationYear':
+          aVal = a.metadata.publication_year || 0;
+          bVal = b.metadata.publication_year || 0;
+          break;
+        case 'updatedAt':
+          aVal = a.metadata.updatedAt ? new Date(a.metadata.updatedAt) : new Date(0);
+          bVal = b.metadata.updatedAt ? new Date(b.metadata.updatedAt) : new Date(0);
+          break;
+        default:
+          return 0;
+      }
+
+      if (aVal < bVal) return order === 'asc' ? -1 : 1;
+      if (aVal > bVal) return order === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return sorted;
+  }, [filteredDocuments, sortBy]);
 
   const handleDownload = (doc: LibraryDocument) => {
     // Create a temporary link to download the file
@@ -267,6 +305,19 @@ export default function LibraryPage() {
                   />
                 </div>
                 <div className="flex items-center gap-2">
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="Sort by..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="title-asc">Title A-Z</SelectItem>
+                      <SelectItem value="title-desc">Title Z-A</SelectItem>
+                      <SelectItem value="publicationYear-desc">Publication Year Newest</SelectItem>
+                      <SelectItem value="publicationYear-asc">Publication Year Oldest</SelectItem>
+                      <SelectItem value="updatedAt-desc">Recently Updated</SelectItem>
+                      <SelectItem value="updatedAt-asc">Least Recently Updated</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <Button
                     variant={viewMode === "card" ? "default" : "outline"}
                     size="sm"
@@ -343,12 +394,12 @@ export default function LibraryPage() {
             {/* Content */}
             <div className="mb-4">
               <p className="text-sm text-muted-foreground">
-                {filteredDocuments.length} document
-                {filteredDocuments.length !== 1 ? "s" : ""} found
+                {sortedDocuments.length} document
+                {sortedDocuments.length !== 1 ? "s" : ""} found
               </p>
             </div>
 
-            {filteredDocuments.length === 0 ? (
+            {sortedDocuments.length === 0 ? (
               <div className="text-center py-12">
                 <div className="text-muted-foreground">
                   <p className="text-lg mb-2">No documents found</p>
@@ -357,7 +408,7 @@ export default function LibraryPage() {
               </div>
             ) : viewMode === "card" ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {filteredDocuments.map((document, index) => (
+                {sortedDocuments.map((document, index) => (
                   <DocumentCard
                     key={index}
                     document={document}
@@ -369,7 +420,7 @@ export default function LibraryPage() {
               </div>
             ) : (
               <DocumentList
-                documents={filteredDocuments}
+                documents={sortedDocuments}
                 onClick={handleDocumentClick}
                 onDownload={handleDownload}
               />

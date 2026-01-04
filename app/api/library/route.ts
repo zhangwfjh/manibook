@@ -78,6 +78,7 @@ function dbDocumentToLibraryDocument(dbDoc: Document): LibraryDocument {
       abstract: dbDoc.abstract || undefined,
       favorite: dbDoc.favorite,
       metadata: dbDoc.metadata ? JSON.parse(dbDoc.metadata) : undefined,
+      updatedAt: dbDoc.updatedAt,
     },
     categoryPath: [], // Will be computed from category string
     url: dbDoc.url,

@@ -10,6 +10,7 @@ export interface DocumentMetadata {
   abstract?: string;
   favorite?: boolean;
   metadata?: Record<string, unknown>;
+  updatedAt?: Date;
 }
 
 export interface LibraryDocument {
