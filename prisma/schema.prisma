@@ -15,6 +15,7 @@ model Document {
   filename          String   @unique
   filePath          String
   url               String
+  coverUrl          String?  // URL to cover image
   doctype           String   // 'Book' | 'Article' | 'Others'
   title             String
   authors           String   // JSON array of authors as string

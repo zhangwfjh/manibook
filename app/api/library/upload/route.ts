@@ -5,36 +5,7 @@ import { DocumentMetadata } from '@/lib/library';
 import { extractMetadataFromFile } from '@/app/library/metadata';
 import { prisma } from '@/lib/db';
 import { computeSHA256 } from '@/lib/utils';
-
-interface LLMProvider {
-  name: string;
-  type: 'openai-compatible' | 'ollama';
-  model: string;
-  baseURL: string;
-  apiKey?: string;
-}
-
-interface LLMSettings {
-  providers: LLMProvider[];
-  jobs: {
-    metadataExtraction: string;
-    imageTextExtraction: string;
-  };
-}
-
-// Import the settings loading function from the API route
-function loadLLMSettings(): LLMSettings {
-  try {
-    const settingsPath = path.join(process.cwd(), '.llm-settings.json');
-    if (fs.existsSync(settingsPath)) {
-      const data = fs.readFileSync(settingsPath, 'utf-8');
-      return JSON.parse(data);
-    }
-  } catch (error) {
-    console.error('Error loading LLM settings:', error);
-  }
-  return { providers: [], jobs: { metadataExtraction: '', imageTextExtraction: '' } };
-}
+import { loadLLMSettings } from '@/lib/llm-settings';
 
 const LIBRARY_DIR = path.join(process.cwd(), 'public', 'library');
 
@@ -68,9 +39,13 @@ export async function POST(request: NextRequest) {
 
     // Generate AI-powered metadata
     let metadata: DocumentMetadata;
+    let coverUrl: string | undefined;
+    let cover: Uint8Array | null = null;
     try {
       // Use AI extraction for supported formats
-      const extractedMetadata = await extractMetadataFromFile(tempFilePath, llmSettings);
+      const result = await extractMetadataFromFile(tempFilePath, llmSettings);
+      const { metadata: extractedMetadata } = result;
+      cover = result.cover;
       const doctype = (extractedMetadata.doctype as string);
       const validDoctypes = ['Book', 'Article', 'Others'];
       metadata = {
@@ -85,6 +60,7 @@ export async function POST(request: NextRequest) {
         abstract: extractedMetadata.abstract as string,
         metadata: extractedMetadata.metadata as Record<string, unknown>,
       };
+
     } catch (error) {
       console.warn('Error extracting metadata, using basic metadata:', error);
       // Fallback to basic metadata
@@ -120,6 +96,14 @@ export async function POST(request: NextRequest) {
     const filePath = path.join(categoryDir, newFilename);
     fs.renameSync(tempFilePath, filePath);
 
+    // Save cover image if available (now that we have the final filename and directory)
+    if (cover) {
+      const coverFilename = `${newFilename.replace(/\.(pdf|epub|djvu)$/i, '')}_cover.jpg`;
+      const coverPath = path.join(categoryDir, coverFilename);
+      fs.writeFileSync(coverPath, cover);
+      coverUrl = `/library/${folderPath}/${coverFilename}`.replace(/\/+/g, '/');
+    }
+
     // Save to database
     const url = `/library/${folderPath}/${newFilename}`.replace(/\/+/g, '/');
     await prisma.document.create({
@@ -127,6 +111,7 @@ export async function POST(request: NextRequest) {
         filename: newFilename,
         filePath,
         url,
+        coverUrl,
         doctype: metadata.doctype,
         title: metadata.title,
         authors: JSON.stringify(metadata.authors),

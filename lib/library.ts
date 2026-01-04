@@ -18,6 +18,7 @@ export interface LibraryDocument {
   metadata: DocumentMetadata;
   categoryPath: string[];
   url: string;
+  coverUrl?: string;
 }
 
 export interface LibraryCategory {

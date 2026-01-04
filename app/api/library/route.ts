@@ -81,6 +81,7 @@ function dbDocumentToLibraryDocument(dbDoc: Document): LibraryDocument {
     },
     categoryPath: [], // Will be computed from category string
     url: dbDoc.url,
+    coverUrl: dbDoc.coverUrl || undefined,
   };
 }
 

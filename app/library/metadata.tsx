@@ -23,18 +23,18 @@ interface LLMSettings {
 export async function extractMetadataFromFile(
   filePath: string,
   llmSettings?: LLMSettings
-) {
+): Promise<{ metadata: Record<string, unknown>; cover: Uint8Array | null }> {
   const extension = filePath.split(".").pop()?.toLowerCase();
 
-  let coverText: string = "";
-  let coverImage: Uint8Array = new Uint8Array();
+  let foreword: string = "";
+  let cover: Uint8Array | null = null;
   let numPages: number = 0;
   let metadata: Record<string, unknown> = {};
-  const maxForewordPage = 5;
+  const maxForewordPages = 5;
   const maxForewordLength = 2000;
 
   if (extension === "djvu") {
-    coverText = execSync(`djvutxt --page=1-${maxForewordPage} "${filePath}"`)
+    foreword = execSync(`djvutxt --page=1-${maxForewordPages} "${filePath}"`)
       .toString()
       .slice(0, maxForewordLength);
     const tmpCoverName = filePath.replace(/\.(djvu)$/i, "_cover.jpg");
@@ -42,17 +42,19 @@ export async function extractMetadataFromFile(
     execSync(
       `ddjvu -format=tiff -page=1 -quality=80 "${filePath}" "${tmpCoverName}"`
     );
-    coverImage = fs.readFileSync(tmpCoverName);
+    cover = fs.readFileSync(tmpCoverName);
     fs.unlinkSync(tmpCoverName);
     numPages = parseInt(execSync(`djvused -e n "${filePath}"`).toString());
   }
   if (extension === "epub") {
     const epub = await parseEPUB(fs.readFileSync(filePath));
-    coverImage = new Uint8Array(await epub.coverImage!.arrayBuffer());
-    coverText = (
+    if (epub.coverImage) {
+      cover = new Uint8Array(await epub.coverImage.arrayBuffer());
+    }
+    foreword = (
       await Promise.all(
         Array.from(
-          { length: maxForewordPage },
+          { length: maxForewordPages },
           (_, i) => epub.pages[i]?.content || ""
         )
       )
@@ -64,25 +66,24 @@ export async function extractMetadataFromFile(
     const document = mupdf.Document.openDocument(fs.readFileSync(filePath));
     numPages = document.countPages();
     const page = document.loadPage(0);
-    coverImage = page
+    cover = page
       .toPixmap(mupdf.Matrix.identity, mupdf.ColorSpace.DeviceRGB)
       .asJPEG(80);
-    coverText = (
+    foreword = (
       await Promise.all(
-        Array.from({ length: Math.min(maxForewordPage, numPages) }, (_, i) =>
+        Array.from({ length: Math.min(maxForewordPages, numPages) }, (_, i) =>
           document.loadPage(i).toStructuredText().asText()
         )
       )
     ).join("\n\n");
   }
-  fs.writeFileSync("cover.jpg", Buffer.from(coverImage));
 
-  if (coverText.length < 100) {
+  if (cover && foreword.length < 100) {
     const metadataProvider = llmSettings?.providers.find(
       (p) => p.name === llmSettings.jobs.imageTextExtraction
     );
 
-    coverText = (
+    foreword = (
       await vllmCall(
         [
           {
@@ -100,7 +101,7 @@ export async function extractMetadataFromFile(
                 image_url: {
                   url:
                     "data:image;base64," +
-                    Buffer.from(coverImage).toString("base64"),
+                    Buffer.from(cover).toString("base64"),
                 },
               },
             ],
@@ -136,7 +137,7 @@ export async function extractMetadataFromFile(
             },
             {
               role: "user",
-              content: coverText,
+              content: foreword,
             },
           ],
           {
@@ -159,7 +160,7 @@ export async function extractMetadataFromFile(
     }
   }
 
-  return metadata;
+  return { metadata, cover };
 }
 
 async function sortFiles(dirPath: string) {
@@ -172,7 +173,7 @@ async function sortFiles(dirPath: string) {
       file.endsWith(".djvu")
     ) {
       console.info(`Processing file: ${file}`);
-      const metadata = await extractMetadataFromFile(`${dirPath}/${file}`);
+      const { metadata } = await extractMetadataFromFile(`${dirPath}/${file}`);
       const doctype = (metadata.doctype as string) || "unknown";
       const category = (metadata.category as string) || "uncategorized";
       const year = metadata.publication_year || "0000";

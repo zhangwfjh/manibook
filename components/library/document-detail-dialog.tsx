@@ -54,9 +54,25 @@ export function DocumentDetailDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold pr-8">
-            {metadata.title}
-          </DialogTitle>
+          <div className="flex items-start gap-4">
+            {document.coverUrl && (
+              <div className="flex-shrink-0">
+                <img
+                  src={document.coverUrl}
+                  alt={`${metadata.title} cover`}
+                  className="w-24 h-32 object-cover rounded-lg border shadow-sm"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              </div>
+            )}
+            <div className="flex-1">
+              <DialogTitle className="text-xl font-semibold">
+                {metadata.title}
+              </DialogTitle>
+            </div>
+          </div>
         </DialogHeader>
 
         <ScrollArea className="max-h-[70vh] pr-4">
