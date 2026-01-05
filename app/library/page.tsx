@@ -247,7 +247,7 @@ export default function LibraryPage() {
     const sorted = [...filteredDocuments];
     sorted.sort((a, b) => {
       const [field, order] = sortBy.split("-");
-      let aVal: any, bVal: any;
+      let aVal: string | number | Date, bVal: string | number | Date;
 
       switch (field) {
         case "title":
@@ -551,7 +551,7 @@ export default function LibraryPage() {
                       <p className="text-sm text-muted-foreground mt-1">
                         Enter the full path to an empty directory where you want
                         to store your library files. The directory will be
-                        created if it doesn't exist.
+                        created if it does not exist.
                       </p>
                     </div>
                     <div className="flex justify-end gap-2">
@@ -845,7 +845,7 @@ export default function LibraryPage() {
             </DialogHeader>
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Are you sure you want to archive the library "{currentLibrary}"?
+                Are you sure you want to archive the library &quot;{currentLibrary}&quot;?
                 All documents and data in this library will be preserved on
                 disk.
               </p>
