@@ -26,14 +26,13 @@ import {
   BookOpenIcon,
   FileTextIcon,
   GlobeIcon,
-  TagIcon,
   TrashIcon,
   EditIcon,
   SaveIcon,
   XIcon,
 } from "lucide-react";
 import { LibraryDocument } from "@/lib/library";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 interface DocumentDetailDialogProps {
   document: LibraryDocument | null;
@@ -56,14 +55,6 @@ export function DocumentDetailDialog({
   const [editedMetadata, setEditedMetadata] = useState(document?.metadata);
   const [newKeyword, setNewKeyword] = useState("");
 
-  // Update edited metadata when document changes
-  useEffect(() => {
-    if (document?.metadata) {
-      setEditedMetadata(document.metadata);
-      setNewKeyword("");
-    }
-  }, [document?.metadata]); // eslint-disable-line react-hooks/exhaustive-deps
-
   if (!document) return null;
 
   const { metadata } = document;
@@ -75,6 +66,7 @@ export function DocumentDetailDialog({
 
   const handleEdit = () => {
     setIsEditing(true);
+    setEditedMetadata(metadata);
     setNewKeyword("");
   };
 
@@ -143,7 +135,7 @@ export function DocumentDetailDialog({
           <div className="flex items-start gap-4">
             <div className="shrink-0">
               <Image
-                src={document.url.replace(/\/([^\/]+)$/, (match, filename) => {
+                src={document.url.replace(/\/([^\/]+)$/, (_match, filename) => {
                   const coverFilename = `[Cover] ${filename.replace(
                     /\.(pdf|epub|djvu)$/i,
                     ".jpg"
@@ -424,17 +416,25 @@ export function DocumentDetailDialog({
                   {isEditing ? (
                     <div className="mt-1 space-y-2">
                       <div>
-                        <Label htmlFor="main-category" className="text-xs text-muted-foreground">
+                        <Label
+                          htmlFor="main-category"
+                          className="text-xs text-muted-foreground"
+                        >
                           Main Category
                         </Label>
                         <Input
                           id="main-category"
-                          value={(editedMetadata?.category?.split(' > ')[0] || '')}
+                          value={
+                            editedMetadata?.category?.split(" > ")[0] || ""
+                          }
                           onChange={(e) => {
                             const newMain = e.target.value;
-                            const currentParts = editedMetadata?.category?.split(' > ') || [];
-                            const currentSub = currentParts.slice(1).join(' > ') || '';
-                            const newCategory = newMain + (currentSub ? ` > ${currentSub}` : '');
+                            const currentParts =
+                              editedMetadata?.category?.split(" > ") || [];
+                            const currentSub =
+                              currentParts.slice(1).join(" > ") || "";
+                            const newCategory =
+                              newMain + (currentSub ? ` > ${currentSub}` : "");
                             setEditedMetadata((prev) =>
                               prev ? { ...prev, category: newCategory } : prev
                             );
@@ -443,17 +443,27 @@ export function DocumentDetailDialog({
                         />
                       </div>
                       <div>
-                        <Label htmlFor="sub-category" className="text-xs text-muted-foreground">
+                        <Label
+                          htmlFor="sub-category"
+                          className="text-xs text-muted-foreground"
+                        >
                           Sub Category
                         </Label>
                         <Input
                           id="sub-category"
-                          value={(editedMetadata?.category?.split(' > ').slice(1).join(' > ') || '')}
+                          value={
+                            editedMetadata?.category
+                              ?.split(" > ")
+                              .slice(1)
+                              .join(" > ") || ""
+                          }
                           onChange={(e) => {
                             const newSub = e.target.value;
-                            const currentParts = editedMetadata?.category?.split(' > ') || [];
-                            const currentMain = currentParts[0] || '';
-                            const newCategory = currentMain + (newSub ? ` > ${newSub}` : '');
+                            const currentParts =
+                              editedMetadata?.category?.split(" > ") || [];
+                            const currentMain = currentParts[0] || "";
+                            const newCategory =
+                              currentMain + (newSub ? ` > ${newSub}` : "");
                             setEditedMetadata((prev) =>
                               prev ? { ...prev, category: newCategory } : prev
                             );
@@ -485,7 +495,11 @@ export function DocumentDetailDialog({
                     <div className="mt-1">
                       <div className="flex flex-wrap gap-2 items-center">
                         {editedMetadata?.keywords?.map((keyword, index) => (
-                          <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                          <Badge
+                            key={index}
+                            variant="secondary"
+                            className="flex items-center gap-1"
+                          >
                             {keyword}
                             <button
                               type="button"
@@ -496,7 +510,10 @@ export function DocumentDetailDialog({
                                   prev
                                     ? {
                                         ...prev,
-                                        keywords: prev.keywords?.filter((_, i) => i !== index) || [],
+                                        keywords:
+                                          prev.keywords?.filter(
+                                            (_, i) => i !== index
+                                          ) || [],
                                       }
                                     : prev
                                 );
@@ -517,7 +534,10 @@ export function DocumentDetailDialog({
                                   prev
                                     ? {
                                         ...prev,
-                                        keywords: [...(prev.keywords || []), newKeyword.trim()],
+                                        keywords: [
+                                          ...(prev.keywords || []),
+                                          newKeyword.trim(),
+                                        ],
                                       }
                                     : prev
                                 );
@@ -528,7 +548,8 @@ export function DocumentDetailDialog({
                                 prev
                                   ? {
                                       ...prev,
-                                      keywords: prev.keywords?.slice(0, -1) || [],
+                                      keywords:
+                                        prev.keywords?.slice(0, -1) || [],
                                     }
                                   : prev
                               );
@@ -601,7 +622,7 @@ export function DocumentDetailDialog({
                   {editedMetadata?.metadata &&
                   Object.keys(editedMetadata.metadata).length > 0 ? (
                     Object.entries(editedMetadata.metadata).map(
-                      ([key, value], index) => (
+                      ([key, value], _index) => (
                         <div key={key} className="flex gap-2 items-center">
                           <Input
                             placeholder="Key"
