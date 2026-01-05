@@ -1,10 +1,24 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import {
   LayoutGridIcon,
   ListIcon,
@@ -762,7 +776,54 @@ export default function LibraryPage() {
             </div>
 
             {/* Content */}
-            <div className="mb-4">
+            <div className="mb-4 flex flex-row justify-between">
+              {/* Breadcrumb */}
+              {currentLibrary && (
+                <Breadcrumb>
+                  <BreadcrumbList>
+                    <BreadcrumbItem>Location:</BreadcrumbItem>
+                    <BreadcrumbItem>
+                      <BreadcrumbLink
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setSelectedCategory("");
+                        }}
+                      >
+                        {currentLibrary}
+                      </BreadcrumbLink>
+                    </BreadcrumbItem>
+                    {selectedCategory &&
+                      selectedCategory
+                        .split(" > ")
+                        .map((part, index, array) => (
+                          <React.Fragment key={index}>
+                            <BreadcrumbSeparator />
+                            <BreadcrumbItem>
+                              {index === array.length - 1 ? (
+                                <BreadcrumbPage>{part}</BreadcrumbPage>
+                              ) : (
+                                <BreadcrumbLink
+                                  href="#"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    const newCategory = array
+                                      .slice(0, index + 1)
+                                      .join(" > ");
+                                    setSelectedCategory(newCategory);
+                                  }}
+                                >
+                                  {part}
+                                </BreadcrumbLink>
+                              )}
+                            </BreadcrumbItem>
+                          </React.Fragment>
+                        ))}
+                  </BreadcrumbList>
+                </Breadcrumb>
+              )}
+
+              {/* Document count */}
               <p className="text-sm text-muted-foreground">
                 {sortedDocuments.length} document
                 {sortedDocuments.length !== 1 ? "s" : ""} found
@@ -851,9 +912,9 @@ export default function LibraryPage() {
             </DialogHeader>
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Are you sure you want to archive the library &quot;{currentLibrary}&quot;?
-                All documents and data in this library will be preserved on
-                disk.
+                Are you sure you want to archive the library &quot;
+                {currentLibrary}&quot;? All documents and data in this library
+                will be preserved on disk.
               </p>
               <div className="flex justify-end gap-2">
                 <Button
