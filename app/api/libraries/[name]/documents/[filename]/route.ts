@@ -112,12 +112,13 @@ export async function PUT(
       }
 
       // Derive old file path from url
-      const oldUrlParts = existingDoc.url.split('/').slice(5); // Skip /api/libraries/library/files/
-      const oldFileRelativePath = oldUrlParts.join('/');
+      console.warn(existingDoc.url);
+      const oldFileRelativePath = existingDoc.url.substring(6);   // Skip lib://
+      console.warn(libraryInfo.path);
       const oldFilePath = path.join(libraryInfo.path, oldFileRelativePath);
 
       const newFilePath = path.join(categoryDir, newFilename);
-      const newUrl = `/api/libraries/${name}/files/${folderPath}/${newFilename}`.replace(/\/+/g, '/');
+      const newUrl =`lib://` + `${folderPath}/${newFilename}`.replace(/\/+/g, '/');
 
       // Move file to new location
       fs.renameSync(oldFilePath, newFilePath);

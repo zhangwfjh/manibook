@@ -304,7 +304,9 @@ export default function LibraryPage() {
   const handleDownload = (doc: LibraryDocument) => {
     // Create a temporary link to download the file
     const link = window.document.createElement("a");
-    link.href = doc.url;
+    link.href = doc.url.startsWith("lib://")
+      ? `/api/libraries/${currentLibrary}/files/${doc.url.substring(6)}`
+      : doc.url;
     link.download = doc.filename;
     window.document.body.appendChild(link);
     link.click();
@@ -643,8 +645,12 @@ export default function LibraryPage() {
                       <SelectItem value="title-desc">Title Z-A</SelectItem>
                       <SelectItem value="author-asc">Author A-Z</SelectItem>
                       <SelectItem value="author-desc">Author Z-A</SelectItem>
-                      <SelectItem value="publisher-asc">Publisher A-Z</SelectItem>
-                      <SelectItem value="publisher-desc">Publisher Z-A</SelectItem>
+                      <SelectItem value="publisher-asc">
+                        Publisher A-Z
+                      </SelectItem>
+                      <SelectItem value="publisher-desc">
+                        Publisher Z-A
+                      </SelectItem>
                       <SelectItem value="publicationYear-desc">
                         Publication Year Newest
                       </SelectItem>
@@ -652,13 +658,19 @@ export default function LibraryPage() {
                         Publication Year Oldest
                       </SelectItem>
                       <SelectItem value="language-asc">Language A-Z</SelectItem>
-                      <SelectItem value="language-desc">Language Z-A</SelectItem>
+                      <SelectItem value="language-desc">
+                        Language Z-A
+                      </SelectItem>
                       <SelectItem value="doctype-asc">Type A-Z</SelectItem>
                       <SelectItem value="doctype-desc">Type Z-A</SelectItem>
                       <SelectItem value="numPages-asc">Pages Fewest</SelectItem>
                       <SelectItem value="numPages-desc">Pages Most</SelectItem>
-                      <SelectItem value="favorite-desc">Favorites First</SelectItem>
-                      <SelectItem value="favorite-asc">Non-Favorites First</SelectItem>
+                      <SelectItem value="favorite-desc">
+                        Favorites First
+                      </SelectItem>
+                      <SelectItem value="favorite-asc">
+                        Non-Favorites First
+                      </SelectItem>
                       <SelectItem value="updatedAt-desc">
                         Recently Updated
                       </SelectItem>
@@ -763,6 +775,7 @@ export default function LibraryPage() {
                 {sortedDocuments.map((document, index) => (
                   <DocumentCard
                     key={index}
+                    library={currentLibrary}
                     document={document}
                     onClick={handleDocumentClick}
                     onDownload={handleDownload}
@@ -783,6 +796,7 @@ export default function LibraryPage() {
 
         {/* Document Detail Dialog */}
         <DocumentDetailDialog
+          library={currentLibrary}
           document={selectedDocument}
           open={dialogOpen}
           onOpenChange={setDialogOpen}

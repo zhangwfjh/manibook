@@ -154,7 +154,7 @@ export async function extractMetadataFromFile(
           }
         )
       ).choices[0].message.content;
-      console.warn(`numPages=${numPages}, metadata=${responseString}`);
+      console.warn(`metadata=${responseString}`);
       const jsonMatch = responseString.match(/```json\n([\s\S]*?)\n```/);
       const jsonString = jsonMatch?.[1] || responseString;
       const parsed = JSON.parse(jsonString);
@@ -169,14 +169,18 @@ export async function extractMetadataFromFile(
             parsed.keywords.split(",").map((kw: string) => kw.trim()),
           ];
         }
-        parsed.keywords = [
-          parsed.keywords.replace(/\b\w/g, (l: string) => l.toUpperCase()),
-        ];
+        parsed.keywords = parsed.keywords.map((kw: string) =>
+          kw.replace(/\b\w/g, (l: string) => l.toUpperCase())
+        );
       }
-      if (parsed.authors && typeof parsed.authors === "string") {
-        parsed.authors = [
-          parsed.authors.split(",").map((a: string) => a.trim()),
-        ];
+      if (parsed.authors) {
+        if (typeof parsed.authors === "string") {
+          parsed.authors = [
+            parsed.authors.split(",").map((a: string) => a.trim()),
+          ];
+        }
+      } else {
+        parsed.authors = ["Unknown Author"];
       }
       if (Array.isArray(parsed.category)) {
         parsed.category = parsed.category[0];
@@ -188,6 +192,7 @@ export async function extractMetadataFromFile(
         throw error;
       }
       console.warn(`Error parsing metadata, retrying...`);
+      console.error(error);
     }
   }
 

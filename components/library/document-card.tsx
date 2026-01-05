@@ -23,6 +23,7 @@ import {
 import { LibraryDocument } from "@/lib/library";
 
 interface DocumentCardProps {
+  library: string;
   document: LibraryDocument;
   onClick?: (document: LibraryDocument) => void;
   onDownload?: (document: LibraryDocument) => void;
@@ -30,6 +31,7 @@ interface DocumentCardProps {
 }
 
 export function DocumentCard({
+  library,
   document,
   onClick,
   onDownload,
@@ -171,13 +173,15 @@ export function DocumentCard({
 
           <div className="shrink-0">
             <Image
-              src={document.url.replace(/\/([^\/]+)$/, (match, filename) => {
-                const coverFilename = `[Cover] ${filename.replace(
-                  /\.(pdf|epub|djvu)$/i,
-                  ".jpg"
-                )}`;
-                return `/${coverFilename}`;
-              })}
+              src={`/api/libraries/${library}/files/${document.url
+                .substring(6)
+                .replace(
+                  document.filename,
+                  `[Cover] ${document.filename.replace(
+                    /\.(pdf|epub|djvu)$/i,
+                    ".jpg"
+                  )}`
+                )}`}
               alt={`${metadata.title} cover`}
               width={150}
               height={200}

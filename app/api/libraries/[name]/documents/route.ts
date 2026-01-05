@@ -114,16 +114,15 @@ export async function POST(
       cover = extractedCover;
       numPages = extractedNumPages;
       const doctype = (extractedMetadata.doctype as string);
-      const validDoctypes = ['Article', 'Book', 'Others'];
       metadata = {
-        doctype: (validDoctypes.includes(doctype) ? doctype : 'Book') as 'Article' | 'Book' | 'Others',
-        title: (extractedMetadata.title as string) || path.parse(file.name).name,
-        authors: Array.isArray(extractedMetadata.authors) ? extractedMetadata.authors as string[] : ['Unknown'],
+        doctype: doctype as 'Article' | 'Book' | 'Others',
+        title: extractedMetadata.title as string,
+        authors: extractedMetadata.authors as string[],
         publication_year: extractedMetadata.publication_year as number || undefined,
         publisher: extractedMetadata.publisher as string || undefined,
-        category: (Array.isArray(extractedMetadata.category) ? extractedMetadata.category[0] : extractedMetadata.category) as string || 'Others',
-        language: (extractedMetadata.language as string) || 'Unknown',
-        keywords: Array.isArray(extractedMetadata.keywords) ? extractedMetadata.keywords as string[] : [],
+        category: extractedMetadata.category as string,
+        language: extractedMetadata.language as string,
+        keywords: extractedMetadata.keywords as string[],
         abstract: extractedMetadata.abstract as string || '',
         metadata: extractedMetadata.metadata as Record<string, unknown> || undefined,
         favorite: false,
@@ -131,6 +130,7 @@ export async function POST(
       };
 
     } catch (error) {
+      console.error('Error extracting metadata:', error);
       return NextResponse.json({ error: 'File parse failed' }, { status: 400 });
     }
 
@@ -165,7 +165,7 @@ export async function POST(
     }
 
     // Save to database
-    const url = `/api/libraries/${name}/files/${folderPath}/${newFilename}`.replace(/\/+/g, '/');
+    const url = `lib://` + `${folderPath}/${newFilename}`.replace(/\/+/g, '/');
     await prisma.document.create({
       data: {
         filename: newFilename,

@@ -35,6 +35,7 @@ import { LibraryDocument } from "@/lib/library";
 import { useState } from "react";
 
 interface DocumentDetailDialogProps {
+  library: string;
   document: LibraryDocument | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -44,6 +45,7 @@ interface DocumentDetailDialogProps {
 }
 
 export function DocumentDetailDialog({
+  library,
   document,
   open,
   onOpenChange,
@@ -135,10 +137,6 @@ export function DocumentDetailDialog({
       )
     ) {
       try {
-        // Extract library name from the document URL
-        const urlParts = document.url.split("/");
-        const library = urlParts[3]; // /api/library/{name}/file/...
-
         const response = await fetch(
           `/api/libraries/${library}/documents/${encodeURIComponent(
             document.filename
@@ -168,13 +166,15 @@ export function DocumentDetailDialog({
           <div className="flex items-start gap-4">
             <div className="shrink-0">
               <Image
-                src={document.url.replace(/\/([^\/]+)$/, (_match, filename) => {
-                  const coverFilename = `[Cover] ${filename.replace(
-                    /\.(pdf|epub|djvu)$/i,
-                    ".jpg"
-                  )}`;
-                  return `/${coverFilename}`;
-                })}
+                src={`/api/libraries/${library}/files/${document.url
+                  .substring(6)
+                  .replace(
+                    document.filename,
+                    `[Cover] ${document.filename.replace(
+                      /\.(pdf|epub|djvu)$/i,
+                      ".jpg"
+                    )}`
+                  )}`}
                 alt={`${metadata.title} cover`}
                 width={150}
                 height={200}

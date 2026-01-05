@@ -3,7 +3,7 @@ import { LibraryDocument, LibraryCategory, getLibrary } from './index';
 import { getPrismaClient } from '../db';
 
 export function dbDocumentToLibraryDocument(dbDoc: Document, library: string): LibraryDocument {
-  const path = dbDoc.url.replace(`/api/libraries/${library}/files/`, '');
+  const path = dbDoc.url.startsWith('lib://') ? dbDoc.url.substring(6) : dbDoc.url.replace(`/api/libraries/${library}/files/`, '');
   return {
     path,
     filename: dbDoc.filename,
@@ -23,7 +23,7 @@ export function dbDocumentToLibraryDocument(dbDoc: Document, library: string): L
       numPages: dbDoc.numPages,
     },
     categoryPath: [], // Will be computed from category string
-    url: dbDoc.url.replace('/api/library/', '/api/libraries/'), // Update URL to new structure
+    url: dbDoc.url,
   };
 }
 
