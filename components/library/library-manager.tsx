@@ -1,16 +1,26 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { ChevronRightIcon, ChevronDownIcon, FolderIcon, FileTextIcon, PlusIcon, LibraryIcon, MoreHorizontalIcon, EditIcon, TrashIcon } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  ChevronRightIcon,
+  ChevronDownIcon,
+  FolderIcon,
+  FileTextIcon,
+  PlusIcon,
+  LibraryIcon,
+  MoreHorizontalIcon,
+  EditIcon,
+  TrashIcon,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { LibraryCategory } from '@/lib/library';
-import { Library } from '@/lib/libraries';
+} from "@/components/ui/dropdown-menu";
+import { LibraryCategory } from "@/lib/library";
+import { Library } from "@/lib/libraries";
 
 interface LibraryManagerProps {
   libraries: Library[];
@@ -47,8 +57,15 @@ interface CategoryNodeProps {
   onToggleExpanded: (path: string) => void;
 }
 
-function CategoryNode({ category, level, selectedCategory, onCategorySelect, expandedNodes, onToggleExpanded }: CategoryNodeProps) {
-  const pathKey = category.path.join(' > ');
+function CategoryNode({
+  category,
+  level,
+  selectedCategory,
+  onCategorySelect,
+  expandedNodes,
+  onToggleExpanded,
+}: CategoryNodeProps) {
+  const pathKey = category.path.join(" > ");
   const isExpanded = expandedNodes.has(pathKey);
   const isSelected = selectedCategory === pathKey;
   const hasChildren = category.children.length > 0;
@@ -107,11 +124,22 @@ function CategoryNode({ category, level, selectedCategory, onCategorySelect, exp
   );
 }
 
-function LibraryNode({ library, isCurrent, isExpanded, categories, selectedCategory, documentCount, onToggleExpanded, onCategorySelect, onRenameLibrary, onArchiveLibrary: onArchiveLibrary }: LibraryNodeProps) {
+function LibraryNode({
+  library,
+  isCurrent,
+  isExpanded,
+  categories,
+  selectedCategory,
+  documentCount,
+  onToggleExpanded,
+  onCategorySelect,
+  onRenameLibrary,
+  onArchiveLibrary: onArchiveLibrary,
+}: LibraryNodeProps) {
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
   const handleToggleExpanded = (path: string) => {
-    setExpandedNodes(prev => {
+    setExpandedNodes((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(path)) {
         newSet.delete(path);
@@ -129,7 +157,10 @@ function LibraryNode({ library, isCurrent, isExpanded, categories, selectedCateg
           variant={isCurrent ? "secondary" : "ghost"}
           size="sm"
           className="flex-1 justify-start h-8 text-left"
-          onClick={() => onToggleExpanded(library.name)}
+          onClick={() => {
+            onToggleExpanded(library.name);
+            onCategorySelect("");
+          }}
         >
           {isExpanded ? (
             <ChevronDownIcon className="h-4 w-4 mr-1" />
@@ -168,17 +199,6 @@ function LibraryNode({ library, isCurrent, isExpanded, categories, selectedCateg
 
       {isExpanded && (
         <div className="ml-6 space-y-1">
-          <Button
-            variant={selectedCategory === '' ? "secondary" : "ghost"}
-            size="sm"
-            className="w-full justify-start h-8 text-left"
-            onClick={() => onCategorySelect('')}
-          >
-            <div className="w-5 mr-1" />
-            <FolderIcon className="h-4 w-4 mr-2" />
-            All Documents
-          </Button>
-
           {categories.map((category, index) => (
             <CategoryNode
               key={index}
@@ -206,10 +226,14 @@ export function LibraryManager({
   onCreateLibrary,
   onRenameLibrary,
   onArchiveLibrary: onArchiveLibrary,
-  refreshTrigger
+  refreshTrigger,
 }: LibraryManagerProps) {
-  const [expandedLibraries, setExpandedLibraries] = useState<Set<string>>(new Set([currentLibrary]));
-  const [libraryDocumentCounts, setLibraryDocumentCounts] = useState<Record<string, number>>({});
+  const [expandedLibraries, setExpandedLibraries] = useState<Set<string>>(
+    new Set([currentLibrary])
+  );
+  const [libraryDocumentCounts, setLibraryDocumentCounts] = useState<
+    Record<string, number>
+  >({});
 
   // Fetch document counts for all libraries
   useEffect(() => {
@@ -237,7 +261,7 @@ export function LibraryManager({
     onLibrarySelect(libraryName);
 
     // Toggle expansion - when expanding, collapse all others
-    setExpandedLibraries(prev => {
+    setExpandedLibraries((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(libraryName)) {
         // If already expanded, just collapse it
@@ -265,7 +289,9 @@ export function LibraryManager({
               isCurrent={library.name === currentLibrary}
               isExpanded={expandedLibraries.has(library.name)}
               categories={library.name === currentLibrary ? categories : []}
-              selectedCategory={library.name === currentLibrary ? selectedCategory : ''}
+              selectedCategory={
+                library.name === currentLibrary ? selectedCategory : ""
+              }
               documentCount={libraryDocumentCounts[library.name] || 0}
               onToggleExpanded={handleLibraryToggle}
               onCategorySelect={onCategorySelect}
