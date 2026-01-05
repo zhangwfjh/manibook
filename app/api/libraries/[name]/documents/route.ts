@@ -3,9 +3,9 @@ import fs from 'fs';
 import path from 'path';
 import { DocumentMetadata } from '@/lib/library';
 import { extractMetadataFromFile } from '@/app/library/metadata';
-import { computeSHA256 } from '@/lib/utils';
-import { loadLLMSettings } from '@/lib/llm-settings';
-import { validateLibraryAccess, dbDocumentToLibraryDocument, buildCategoryTree, getLibraryPrisma } from '@/lib/api-utils';
+import crypto from 'crypto';
+import { loadLLMSettings } from '@/lib/library/llm-settings';
+import { validateLibraryAccess, dbDocumentToLibraryDocument, buildCategoryTree, getLibraryPrisma } from '@/lib/library/api-utils';
 
 export async function GET(
   request: NextRequest,
@@ -83,7 +83,7 @@ export async function POST(
     const buffer = Buffer.from(await file.arrayBuffer());
 
     // Compute SHA256 hash
-    const hash = computeSHA256(buffer);
+    const hash = crypto.createHash('sha256').update(buffer).digest('hex');
 
     const prisma = getLibraryPrisma(name);
 

@@ -1,6 +1,6 @@
 import { Document } from '@prisma/client';
-import { LibraryDocument, LibraryCategory, getLibrary } from './library';
-import { getPrismaClient } from './db';
+import { LibraryDocument, LibraryCategory, getLibrary } from './index';
+import { getPrismaClient } from '../db';
 
 export function dbDocumentToLibraryDocument(dbDoc: Document, library: string): LibraryDocument {
   const path = dbDoc.url.replace(`/api/libraries/${library}/files/`, '');

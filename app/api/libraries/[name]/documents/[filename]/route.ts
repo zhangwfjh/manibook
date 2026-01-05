@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { validateLibraryAccess, dbDocumentToLibraryDocument, getLibraryPrisma } from '@/lib/api-utils';
+import { validateLibraryAccess, dbDocumentToLibraryDocument, getLibraryPrisma } from '@/lib/library/api-utils';
 import { LibraryDocument } from '@/lib/library';
 import { Document } from '@prisma/client';
 

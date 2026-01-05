@@ -1,6 +1,6 @@
 import mupdf from "mupdf";
-import { parseEPUB } from "@/lib/epub";
-import { vllmCall } from "@/lib/llms";
+import { parseEPUB } from "@/lib/parser";
+import { vllmCall } from "@/lib/llm";
 import fs from "fs";
 import { execSync } from "child_process";
 
