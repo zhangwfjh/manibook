@@ -3,6 +3,33 @@ import fs from 'fs';
 import path from 'path';
 import { getPrismaClient } from '@/lib/db';
 import { getLibrary } from '@/lib/libraries';
+import { LibraryDocument } from '@/lib/library';
+import { Document } from '@prisma/client';
+
+function dbDocumentToLibraryDocument(dbDoc: Document, library: string): LibraryDocument {
+  const path = dbDoc.url.replace(`/api/library/${library}/file/`, '');
+  return {
+    path,
+    filename: dbDoc.filename,
+    metadata: {
+      doctype: dbDoc.doctype as 'Book' | 'Article' | 'Others',
+      title: dbDoc.title,
+      authors: JSON.parse(dbDoc.authors),
+      publication_year: dbDoc.publicationYear || undefined,
+      publisher: dbDoc.publisher || undefined,
+      category: dbDoc.category,
+      language: dbDoc.language,
+      keywords: JSON.parse(dbDoc.keywords),
+      abstract: dbDoc.abstract,
+      favorite: dbDoc.favorite,
+      metadata: dbDoc.metadata ? JSON.parse(dbDoc.metadata) : undefined,
+      updatedAt: dbDoc.updatedAt,
+      numPages: dbDoc.numPages,
+    },
+    categoryPath: [], // Will be computed from category string
+    url: dbDoc.url,
+  };
+}
 
 export async function PUT(request: NextRequest) {
   try {
@@ -38,9 +65,7 @@ export async function PUT(request: NextRequest) {
     const newCategory = metadata.category;
     const newTitle = metadata.title;
 
-    const storageDir = path.join(libraryInfo.path, 'storage');
-
-    let updateData: any = {
+    const updateData: Record<string, unknown> = {
       title: metadata.title,
       authors: JSON.stringify(metadata.authors || []),
       publicationYear: metadata.publication_year,
@@ -60,7 +85,7 @@ export async function PUT(request: NextRequest) {
 
       const categoryParts = newCategory.split('>').map((part: string) => part.trim()).filter((part: string) => part);
       const folderPath = categoryParts.slice(0, 2).join('/');
-      const categoryDir = path.join(storageDir, folderPath);
+      const categoryDir = path.join(libraryInfo.path, folderPath);
 
       // Ensure category directory exists
       fs.mkdirSync(categoryDir, { recursive: true });
@@ -76,32 +101,29 @@ export async function PUT(request: NextRequest) {
         counter++;
       }
 
+      // Derive old file path from url
+      const oldUrlParts = existingDoc.url.split('/').slice(5); // Skip /api/library/library/file/
+      const oldFileRelativePath = oldUrlParts.join('/');
+      const oldFilePath = path.join(libraryInfo.path, oldFileRelativePath);
+
       const newFilePath = path.join(categoryDir, newFilename);
       const newUrl = `/api/library/${library}/file/${folderPath}/${newFilename}`.replace(/\/+/g, '/');
 
       // Move file to new location
-      fs.renameSync(existingDoc.filePath, newFilePath);
+      fs.renameSync(oldFilePath, newFilePath);
 
-      let newCoverUrl: string | null = null;
-      if (existingDoc.coverUrl) {
-        // Extract old cover path from URL
-        const oldUrlParts = existingDoc.coverUrl.split('/').slice(5); // Skip /api/library/default/file/
-        const oldCoverRelativePath = oldUrlParts.join('/');
-        const oldCoverPath = path.join(libraryInfo.path, 'storage', oldCoverRelativePath);
-
-        const newCoverFilename = `${newFilename.replace(fileExtension, '')}_cover.jpg`;
-        const newCoverPath = path.join(categoryDir, newCoverFilename);
-        if (fs.existsSync(oldCoverPath)) {
-          fs.renameSync(oldCoverPath, newCoverPath);
-        }
-        newCoverUrl = `/api/library/${library}/file/${folderPath}/${newCoverFilename}`.replace(/\/+/g, '/');
+      // Move cover if exists (cover filename is based on original filename)
+      const oldCoverFilename = `${existingDoc.filename.replace(/\.(pdf|epub|djvu)$/i, '')}_cover.jpg`;
+      const oldCoverPath = path.join(path.dirname(oldFilePath), oldCoverFilename);
+      const newCoverFilename = `${newFilename.replace(/\.(pdf|epub|djvu)$/i, '')}_cover.jpg`;
+      const newCoverPath = path.join(categoryDir, newCoverFilename);
+      if (fs.existsSync(oldCoverPath)) {
+        fs.renameSync(oldCoverPath, newCoverPath);
       }
 
       // Update path-related fields
       updateData.filename = newFilename;
-      updateData.filePath = newFilePath;
       updateData.url = newUrl;
-      updateData.coverUrl = newCoverUrl;
     }
 
     // Update the document
@@ -110,7 +132,8 @@ export async function PUT(request: NextRequest) {
       data: updateData
     });
 
-    return NextResponse.json({ success: true, document: updatedDoc });
+    const libraryDocument = dbDocumentToLibraryDocument(updatedDoc, library);
+    return NextResponse.json({ success: true, document: libraryDocument });
   } catch (error) {
     console.error('Error updating document:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

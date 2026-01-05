@@ -37,15 +37,16 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Document not found in database' }, { status: 404 });
     }
 
-    // Delete the cover file if it exists (covers are stored in storage directory)
-    if (document.coverUrl) {
-      // Extract path from coverUrl (e.g., /api/library/default/file/Computer Science/book_cover.jpg)
-      const urlParts = document.coverUrl.split('/').slice(5); // Skip /api/library/default/file/
-      const coverRelativePath = urlParts.join('/');
-      const coverPath = path.join(libraryInfo.path, 'storage', coverRelativePath);
-      if (fs.existsSync(coverPath)) {
-        fs.unlinkSync(coverPath);
-      }
+    // Derive file path from url
+    const urlParts = document.url.split('/').slice(5); // Skip /api/library/library/file/
+    const fileRelativePath = urlParts.join('/');
+    const filePath = path.join(libraryInfo.path, fileRelativePath);
+
+    // Delete the cover file if it exists
+    const coverFilename = `${document.filename.replace(/\.(pdf|epub|djvu)$/i, '')}_cover.jpg`;
+    const coverPath = path.join(path.dirname(filePath), coverFilename);
+    if (fs.existsSync(coverPath)) {
+      fs.unlinkSync(coverPath);
     }
 
     // Delete from database
@@ -54,8 +55,8 @@ export async function DELETE(request: NextRequest) {
     });
 
     // Delete the physical file
-    if (fs.existsSync(document.filePath)) {
-      fs.unlinkSync(document.filePath);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
     }
 
     return NextResponse.json({

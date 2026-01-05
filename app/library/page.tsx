@@ -283,40 +283,27 @@ export default function LibraryPage() {
     await fetchLibraryData();
   };
 
-  const handleDocumentUpdate = async (updatedDoc: Record<string, any>) => {
+  const handleDocumentUpdate = async (updatedDoc: LibraryDocument) => {
     try {
-      await fetch(`/api/library/update?library=${currentLibrary}`, {
+      const response = await fetch(`/api/library/update?library=${currentLibrary}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedDoc),
+        body: JSON.stringify({
+          filename: updatedDoc.filename,
+          metadata: updatedDoc.metadata,
+        }),
       });
+      if (response.ok) {
+        const result = await response.json();
+        setSelectedDocument(result.document);
+        // Also refresh the library data
+        await fetchLibraryData();
+      } else {
+        console.error('Error updating document');
+      }
     } catch (error) {
       console.error('Error updating document:', error);
     }
-    // Convert updatedDoc to LibraryDocument and update selected document
-    const libraryDoc: LibraryDocument = {
-      path: updatedDoc.filePath,
-      filename: updatedDoc.filename,
-      url: updatedDoc.url,
-      metadata: {
-        doctype: updatedDoc.doctype,
-        title: updatedDoc.title,
-        authors: JSON.parse(updatedDoc.authors || '[]'),
-        publication_year: updatedDoc.publicationYear,
-        publisher: updatedDoc.publisher,
-        category: updatedDoc.category,
-        language: updatedDoc.language,
-        keywords: JSON.parse(updatedDoc.keywords || '[]'),
-        abstract: updatedDoc.abstract,
-        favorite: updatedDoc.favorite,
-        metadata: updatedDoc.metadata ? JSON.parse(updatedDoc.metadata) : undefined,
-        numPages: updatedDoc.numPages,
-      },
-      categoryPath: [], // can leave empty
-    };
-    setSelectedDocument(libraryDoc);
-    // Also refresh the library data
-    await fetchLibraryData();
   };
 
   const handleFavoriteToggle = async (document: LibraryDocument) => {

@@ -63,9 +63,10 @@ function buildCategoryTree(documents: LibraryDocument[]): LibraryCategory[] {
   return root.children;
 }
 
-function dbDocumentToLibraryDocument(dbDoc: Document): LibraryDocument {
+function dbDocumentToLibraryDocument(dbDoc: Document, library: string): LibraryDocument {
+  const path = dbDoc.url.replace(`/api/library/${library}/file/`, '');
   return {
-    path: dbDoc.filePath,
+    path,
     filename: dbDoc.filename,
     metadata: {
       doctype: dbDoc.doctype as 'Book' | 'Article' | 'Others',
@@ -74,16 +75,16 @@ function dbDocumentToLibraryDocument(dbDoc: Document): LibraryDocument {
       publication_year: dbDoc.publicationYear || undefined,
       publisher: dbDoc.publisher || undefined,
       category: dbDoc.category,
-      language: dbDoc.language || undefined,
+      language: dbDoc.language,
       keywords: JSON.parse(dbDoc.keywords),
-      abstract: dbDoc.abstract || undefined,
+      abstract: dbDoc.abstract,
       favorite: dbDoc.favorite,
       metadata: dbDoc.metadata ? JSON.parse(dbDoc.metadata) : undefined,
       updatedAt: dbDoc.updatedAt,
+      numPages: dbDoc.numPages,
     },
     categoryPath: [], // Will be computed from category string
     url: dbDoc.url,
-    coverUrl: dbDoc.coverUrl || undefined,
   };
 }
 
@@ -107,7 +108,7 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' },
     });
 
-    const documents: LibraryDocument[] = dbDocuments.map(dbDocumentToLibraryDocument);
+    const documents: LibraryDocument[] = dbDocuments.map(dbDoc => dbDocumentToLibraryDocument(dbDoc, library));
 
     if (category) {
       // Filter documents by category

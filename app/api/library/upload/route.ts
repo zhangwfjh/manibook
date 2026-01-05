@@ -64,38 +64,33 @@ export async function POST(request: NextRequest) {
 
     // Generate AI-powered metadata
     let metadata: DocumentMetadata;
-    let coverUrl: string | undefined;
     let cover: Uint8Array | null = null;
+    let numPages = 0;
     try {
-      // Use AI extraction for supported formats
+    // Use AI extraction for supported formats
       const result = await extractMetadataFromFile(tempFilePath, llmSettings);
-      const { metadata: extractedMetadata } = result;
-      cover = result.cover;
+      const { metadata: extractedMetadata, cover: extractedCover, numPages: extractedNumPages } = result;
+      cover = extractedCover;
+      numPages = extractedNumPages;
       const doctype = (extractedMetadata.doctype as string);
       const validDoctypes = ['Book', 'Article', 'Others'];
       metadata = {
         doctype: (validDoctypes.includes(doctype) ? doctype : 'Book') as 'Book' | 'Article' | 'Others',
         title: (extractedMetadata.title as string) || path.parse(file.name).name,
         authors: Array.isArray(extractedMetadata.authors) ? extractedMetadata.authors as string[] : ['Unknown'],
-        publication_year: extractedMetadata.publication_year as number,
-        publisher: extractedMetadata.publisher as string,
-        category: (Array.isArray(extractedMetadata.category) ? extractedMetadata.category[0] : extractedMetadata.category) as string,
+        publication_year: extractedMetadata.publication_year as number || undefined,
+        publisher: extractedMetadata.publisher as string || undefined,
+        category: (Array.isArray(extractedMetadata.category) ? extractedMetadata.category[0] : extractedMetadata.category) as string || 'Others',
         language: (extractedMetadata.language as string) || 'Unknown',
         keywords: Array.isArray(extractedMetadata.keywords) ? extractedMetadata.keywords as string[] : [],
-        abstract: extractedMetadata.abstract as string,
-        metadata: extractedMetadata.metadata as Record<string, unknown>,
+        abstract: extractedMetadata.abstract as string || '',
+        metadata: extractedMetadata.metadata as Record<string, unknown> || undefined,
+        favorite: false,
+        numPages: extractedNumPages || 0,
       };
 
     } catch (error) {
-      console.warn('Error extracting metadata, using basic metadata:', error);
-      // Fallback to basic metadata
-      metadata = {
-        doctype: 'Book',
-        title: path.parse(file.name).name,
-        authors: ['Unknown'],
-        category: 'Others',
-        language: 'Unknown',
-      };
+      return NextResponse.json({ error: 'File parse failed' }, { status: 400 });
     }
 
     // Parse category for folder structure
@@ -118,15 +113,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Move file to final location
-    const filePath = path.join(categoryDir, newFilename);
-    fs.renameSync(tempFilePath, filePath);
+    const finalFilePath = path.join(categoryDir, newFilename);
+    fs.renameSync(tempFilePath, finalFilePath);
 
     // Save cover image if available (now that we have the final filename and directory)
     if (cover) {
       const coverFilename = `${newFilename.replace(/\.(pdf|epub|djvu)$/i, '')}_cover.jpg`;
       const coverPath = path.join(categoryDir, coverFilename);
       fs.writeFileSync(coverPath, cover);
-      coverUrl = `/api/library/${library}/file/${folderPath}/${coverFilename}`.replace(/\/+/g, '/');
     }
 
     // Save to database
@@ -134,9 +128,7 @@ export async function POST(request: NextRequest) {
     await prisma.document.create({
       data: {
         filename: newFilename,
-        filePath,
         url,
-        coverUrl,
         doctype: metadata.doctype,
         title: metadata.title,
         authors: JSON.stringify(metadata.authors),
@@ -149,6 +141,7 @@ export async function POST(request: NextRequest) {
         favorite: metadata.favorite || false,
         metadata: metadata.metadata ? JSON.stringify(metadata.metadata) : null,
         hash,
+        numPages,
       },
     });
 

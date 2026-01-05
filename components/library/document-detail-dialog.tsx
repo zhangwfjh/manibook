@@ -41,7 +41,7 @@ interface DocumentDetailDialogProps {
   onOpenChange: (open: boolean) => void;
   onDownload?: (document: LibraryDocument) => void;
   onDelete?: (document: LibraryDocument) => void;
-  onUpdate?: (updatedDoc: Record<string, any>) => void;
+  onUpdate?: (updatedDoc: LibraryDocument) => void;
 }
 
 export function DocumentDetailDialog({
@@ -83,26 +83,15 @@ export function DocumentDetailDialog({
   const handleSave = async () => {
     if (!editedMetadata) return;
 
-    try {
-      const response = await fetch("/api/library/update", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          filename: document.filename,
-          metadata: editedMetadata,
-        }),
-      });
+    // Create updated document with new metadata
+    const updatedDocument: LibraryDocument = {
+      ...document,
+      metadata: editedMetadata,
+    };
 
-      if (response.ok) {
-        const result = await response.json();
-        setIsEditing(false);
-        onUpdate?.(result.document);
-        alert("Document updated successfully");
-      } else {
-        alert("Failed to update document");
-      }
+    try {
+      onUpdate?.(updatedDocument);
+      setIsEditing(false);
     } catch (error) {
       console.error("Error updating document:", error);
       alert("Error updating document");

@@ -5,10 +5,11 @@ export interface DocumentMetadata {
   publication_year?: number;
   publisher?: string;
   category: string;
-  language?: string;
-  keywords?: string[];
-  abstract?: string;
-  favorite?: boolean;
+  language: string;
+  keywords: string[];
+  abstract: string;
+  favorite: boolean;
+  numPages: number;
   metadata?: Record<string, unknown>;
   updatedAt?: Date;
 }
@@ -19,7 +20,6 @@ export interface LibraryDocument {
   metadata: DocumentMetadata;
   categoryPath: string[];
   url: string;
-  coverUrl?: string;
 }
 
 export interface LibraryCategory {
