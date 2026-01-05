@@ -20,7 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { LibraryCategory } from "@/lib/library";
-import { Library } from "@/lib/libraries";
+import { Library } from "@/lib/library";
 
 interface LibraryManagerProps {
   libraries: Library[];
@@ -241,7 +241,7 @@ export function LibraryManager({
       const counts: Record<string, number> = {};
       for (const library of libraries) {
         try {
-          const response = await fetch(`/api/library?library=${library.name}`);
+          const response = await fetch(`/api/libraries/${library.name}/documents`);
           const data = await response.json();
           counts[library.name] = data.documents?.length || 0;
         } catch (error) {

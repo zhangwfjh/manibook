@@ -3,21 +3,64 @@ import fs from 'fs';
 import path from 'path';
 import { DocumentMetadata } from '@/lib/library';
 import { extractMetadataFromFile } from '@/app/library/metadata';
-import { getPrismaClient } from '@/lib/db';
 import { computeSHA256 } from '@/lib/utils';
 import { loadLLMSettings } from '@/lib/llm-settings';
-import { getLibrary } from '@/lib/libraries';
+import { validateLibraryAccess, dbDocumentToLibraryDocument, buildCategoryTree, getLibraryPrisma } from '@/lib/api-utils';
 
-export async function POST(request: NextRequest) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ name: string }> }
+) {
   try {
+    const { name } = await params;
     const { searchParams } = new URL(request.url);
-    const library = searchParams.get('library') || 'default';
+    const category = searchParams.get('category');
 
-    // Get library info
-    const libraryInfo = getLibrary(library);
-    if (!libraryInfo) {
-      return NextResponse.json({ error: 'Library not found' }, { status: 404 });
+    // Validate library access
+    const validation = validateLibraryAccess(name);
+    if (validation.error) {
+      return NextResponse.json({ error: validation.error }, { status: validation.status });
     }
+
+    const prisma = getLibraryPrisma(name);
+
+    // Fetch all documents from database
+    const dbDocuments = await prisma.document.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const documents = dbDocuments.map(dbDoc => dbDocumentToLibraryDocument(dbDoc, name));
+
+    if (category) {
+      // Filter documents by category
+      const filteredDocuments = documents.filter(doc =>
+        doc.metadata.category.startsWith(category)
+      );
+      return NextResponse.json({ documents: filteredDocuments });
+    } else {
+      // Return categories and all documents
+      const categories = buildCategoryTree(documents);
+      return NextResponse.json({ categories, documents });
+    }
+  } catch (error) {
+    console.error('Error in documents API:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ name: string }> }
+) {
+  try {
+    const { name } = await params;
+
+    // Validate library access
+    const validation = validateLibraryAccess(name);
+    if (validation.error) {
+      return NextResponse.json({ error: validation.error }, { status: validation.status });
+    }
+    const libraryInfo = validation.libraryInfo!;
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -31,7 +74,6 @@ export async function POST(request: NextRequest) {
 
     // Validate file type
     const allowedExtensions = ['.pdf', '.epub', '.djvu'];
-
     const fileExtension = path.extname(file.name).toLowerCase();
     if (!allowedExtensions.includes(fileExtension)) {
       return NextResponse.json({ error: 'Unsupported file type' }, { status: 400 });
@@ -43,8 +85,7 @@ export async function POST(request: NextRequest) {
     // Compute SHA256 hash
     const hash = computeSHA256(buffer);
 
-    // Get Prisma client for this library
-    const prisma = getPrismaClient(libraryInfo.path);
+    const prisma = getLibraryPrisma(name);
 
     // Check if file already exists
     const existingDoc = await prisma.document.findFirst({
@@ -67,7 +108,7 @@ export async function POST(request: NextRequest) {
     let cover: Uint8Array | null = null;
     let numPages = 0;
     try {
-    // Use AI extraction for supported formats
+      // Use AI extraction for supported formats
       const result = await extractMetadataFromFile(tempFilePath, llmSettings);
       const { metadata: extractedMetadata, cover: extractedCover, numPages: extractedNumPages } = result;
       cover = extractedCover;
@@ -124,7 +165,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Save to database
-    const url = `/api/library/${library}/file/${folderPath}/${newFilename}`.replace(/\/+/g, '/');
+    const url = `/api/libraries/${name}/files/${folderPath}/${newFilename}`.replace(/\/+/g, '/');
     await prisma.document.create({
       data: {
         filename: newFilename,

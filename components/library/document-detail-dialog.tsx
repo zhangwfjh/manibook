@@ -106,13 +106,13 @@ export function DocumentDetailDialog({
     ) {
       try {
         // Extract library name from the document URL
-        const urlParts = document.url.split('/');
+        const urlParts = document.url.split("/");
         const library = urlParts[3]; // /api/library/{library}/file/...
 
         const response = await fetch(
-          `/api/library/delete?filename=${encodeURIComponent(
+          `/api/libraries/${library}/documents/${encodeURIComponent(
             document.filename
-          )}&library=${encodeURIComponent(library)}`,
+          )}`,
           {
             method: "DELETE",
           }

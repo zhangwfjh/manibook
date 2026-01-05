@@ -1,21 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { getLibrary } from '@/lib/libraries';
+import { validateLibraryAccess } from '@/lib/api-utils';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ library: string; filename: string[] }> }
+  { params }: { params: Promise<{ name: string; filename: string[] }> }
 ) {
   try {
-    const { library, filename } = await params;
-    const filenamePath = filename.join('/');
+    const { name, filename } = await params;
+    const filenamePath = filename.map(segment => decodeURIComponent(segment)).join('/');
 
-    // Get library info
-    const libraryInfo = getLibrary(library);
-    if (!libraryInfo) {
-      return NextResponse.json({ error: 'Library not found' }, { status: 404 });
+    // Validate library access
+    const validation = validateLibraryAccess(name);
+    if (validation.error) {
+      return NextResponse.json({ error: validation.error }, { status: validation.status });
     }
+    const libraryInfo = validation.libraryInfo!;
 
     // Construct file path
     const filePath = path.join(libraryInfo.path, filenamePath);

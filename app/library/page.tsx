@@ -24,7 +24,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { LibraryDocument, LibraryCategory } from "@/lib/library";
-import { Library } from "@/lib/libraries";
+import { Library } from "@/lib/library";
 
 type ViewMode = "card" | "list";
 
@@ -80,7 +80,7 @@ export default function LibraryPage() {
 
   const fetchLibraryData = async () => {
     try {
-      const response = await fetch(`/api/library?library=${currentLibrary}`);
+      const response = await fetch(`/api/libraries/${currentLibrary}/documents`);
       const data = await response.json();
       setDocuments(data.documents || []);
       setCategories(data.categories || []);
@@ -133,8 +133,10 @@ export default function LibraryPage() {
     }
 
     try {
-      const response = await fetch(`/api/libraries?oldName=${encodeURIComponent(currentLibrary)}&newName=${encodeURIComponent(renameLibraryName)}`, {
+      const response = await fetch(`/api/libraries/${currentLibrary}`, {
         method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newName: renameLibraryName }),
       });
 
       if (response.ok) {
@@ -155,7 +157,7 @@ export default function LibraryPage() {
 
   const handleArchiveLibrary = async () => {
     try {
-      const response = await fetch(`/api/libraries?name=${encodeURIComponent(currentLibrary)}`, {
+      const response = await fetch(`/api/libraries/${currentLibrary}`, {
         method: "DELETE",
       });
 
@@ -275,7 +277,7 @@ export default function LibraryPage() {
 
   const handleDocumentDelete = async (document: LibraryDocument) => {
     try {
-      await fetch(`/api/library/delete?filename=${document.filename}&library=${currentLibrary}`, {
+      await fetch(`/api/libraries/${currentLibrary}/documents/${encodeURIComponent(document.filename)}`, {
         method: 'DELETE',
       });
     } catch (error) {
@@ -289,11 +291,10 @@ export default function LibraryPage() {
 
   const handleDocumentUpdate = async (updatedDoc: LibraryDocument) => {
     try {
-      const response = await fetch(`/api/library/update?library=${currentLibrary}`, {
+      const response = await fetch(`/api/libraries/${currentLibrary}/documents/${encodeURIComponent(updatedDoc.filename)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          filename: updatedDoc.filename,
           metadata: updatedDoc.metadata,
         }),
       });
@@ -314,8 +315,10 @@ export default function LibraryPage() {
 
   const handleFavoriteToggle = async (document: LibraryDocument) => {
     try {
-      await fetch(`/api/library/favorite?filename=${document.filename}&favorite=${!document.metadata.favorite}&library=${currentLibrary}`, {
+      await fetch(`/api/libraries/${currentLibrary}/documents/${encodeURIComponent(document.filename)}`, {
         method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ favorite: !document.metadata.favorite }),
       });
     } catch (error) {
       console.error('Error toggling favorite:', error);
@@ -359,7 +362,7 @@ export default function LibraryPage() {
       formData.append('file', file);
 
       try {
-        const response = await fetch(`/api/library/upload?library=${currentLibrary}`, {
+        const response = await fetch(`/api/libraries/${currentLibrary}/documents`, {
           method: 'POST',
           body: formData,
         });

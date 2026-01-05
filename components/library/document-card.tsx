@@ -46,27 +46,6 @@ export function DocumentCard({
     onDownload?.(document);
   };
 
-  const handleFavoriteClick = async (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent card click
-    const newFavoriteStatus = !metadata.favorite;
-    try {
-      const response = await fetch(
-        `/api/library/favorite?filename=${encodeURIComponent(
-          document.filename
-        )}&favorite=${newFavoriteStatus}`,
-        {
-          method: "PATCH",
-        }
-      );
-
-      if (response.ok) {
-        onFavoriteToggle?.(document);
-      }
-    } catch (error) {
-      console.error("Error updating favorite status:", error);
-    }
-  };
-
   return (
     <Card
       className="w-full flex flex-row hover:shadow-lg transition-shadow cursor-pointer"
@@ -92,7 +71,10 @@ export function DocumentCard({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handleFavoriteClick}
+                onClick={async (e: React.MouseEvent) => {
+                  e.stopPropagation();
+                  onFavoriteToggle?.(document);
+                }}
                 className={`h-6 w-6 p-0 ${
                   metadata.favorite
                     ? "text-yellow-500 hover:text-yellow-600"
@@ -190,7 +172,10 @@ export function DocumentCard({
           <div className="shrink-0">
             <Image
               src={document.url.replace(/\/([^\/]+)$/, (match, filename) => {
-                const coverFilename = `[Cover] ${filename.replace(/\.(pdf|epub|djvu)$/i, '.jpg')}`;
+                const coverFilename = `[Cover] ${filename.replace(
+                  /\.(pdf|epub|djvu)$/i,
+                  ".jpg"
+                )}`;
                 return `/${coverFilename}`;
               })}
               alt={`${metadata.title} cover`}
