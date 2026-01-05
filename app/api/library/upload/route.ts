@@ -73,9 +73,9 @@ export async function POST(request: NextRequest) {
       cover = extractedCover;
       numPages = extractedNumPages;
       const doctype = (extractedMetadata.doctype as string);
-      const validDoctypes = ['Book', 'Article', 'Others'];
+      const validDoctypes = ['Article', 'Book', 'Others'];
       metadata = {
-        doctype: (validDoctypes.includes(doctype) ? doctype : 'Book') as 'Book' | 'Article' | 'Others',
+        doctype: (validDoctypes.includes(doctype) ? doctype : 'Book') as 'Article' | 'Book' | 'Others',
         title: (extractedMetadata.title as string) || path.parse(file.name).name,
         authors: Array.isArray(extractedMetadata.authors) ? extractedMetadata.authors as string[] : ['Unknown'],
         publication_year: extractedMetadata.publication_year as number || undefined,

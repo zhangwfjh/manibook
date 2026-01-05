@@ -320,19 +320,32 @@ export default function LibraryPage() {
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
+
     if (!files || files.length === 0) return;
+
+    // Filter files to only include PDF, DJVU, EPUB formats
+    const allowedExtensions = ['pdf', 'djvu', 'epub'];
+    const filteredFiles = Array.from(files).filter(file => {
+      const extension = file.name.split('.').pop()?.toLowerCase();
+      return allowedExtensions.includes(extension || '');
+    });
+
+    if (filteredFiles.length === 0) {
+      toast.error("No valid files selected. Only PDF, DJVU, and EPUB files are allowed.");
+      return;
+    }
 
     setUploading(true);
     setUploadProgressPercent(0);
-    setUploadProgress(`Uploading ${files.length} file${files.length > 1 ? 's' : ''}...`);
+    setUploadProgress(`Uploading ${filteredFiles.length} file${filteredFiles.length > 1 ? 's' : ''}...`);
 
     let successCount = 0;
     let errorCount = 0;
 
     // Process files sequentially to avoid overwhelming the server
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      setUploadProgress(`Uploading ${file.name} (${i + 1}/${files.length})...`);
+    for (let i = 0; i < filteredFiles.length; i++) {
+      const file = filteredFiles[i];
+      setUploadProgress(`Uploading ${file.name} (${i + 1}/${filteredFiles.length})...`);
 
       const formData = new FormData();
       formData.append('file', file);
@@ -355,7 +368,7 @@ export default function LibraryPage() {
       }
 
       // Update progress percentage
-      const progress = Math.round(((i + 1) / files.length) * 100);
+      const progress = Math.round(((i + 1) / filteredFiles.length) * 100);
       setUploadProgressPercent(progress);
     }
 
