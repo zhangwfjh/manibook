@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -59,7 +59,7 @@ export default function LibraryPage() {
   const folderInputRef = useRef<HTMLInputElement>(null);
 
   // Library management
-  const [currentLibrary, setCurrentLibrary] = useState<string>("default");
+  const [currentLibrary, setCurrentLibrary] = useState<string>("");
   const [libraries, setLibraries] = useState<Library[]>([]);
   const [createLibraryOpen, setCreateLibraryOpen] = useState(false);
   const [newLibraryName, setNewLibraryName] = useState("");
@@ -69,22 +69,21 @@ export default function LibraryPage() {
   const [renameLibraryName, setRenameLibraryName] = useState("");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  useEffect(() => {
-    fetchLibraries();
-    fetchLibraryData();
-  }, [currentLibrary]);
-
-  const fetchLibraries = async () => {
+  const fetchLibraries = useCallback(async () => {
     try {
       const response = await fetch("/api/libraries");
       const data = await response.json();
-      setLibraries(data.libraries || []);
+      const libs = data.libraries || [];
+      setLibraries(libs);
+      if (libs.length > 0 && !currentLibrary) {
+        setCurrentLibrary(libs[0].name);
+      }
     } catch (error) {
       console.error("Error fetching libraries:", error);
     }
-  };
+  }, [currentLibrary]);
 
-  const fetchLibraryData = async () => {
+  const fetchLibraryData = useCallback(async () => {
     try {
       const response = await fetch(
         `/api/libraries/${currentLibrary}/documents`
@@ -97,7 +96,12 @@ export default function LibraryPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentLibrary]);
+
+  useEffect(() => {
+    fetchLibraries();
+    fetchLibraryData();
+  }, [currentLibrary, fetchLibraries, fetchLibraryData]);
 
   const handleCreateLibrary = async () => {
     if (!newLibraryName || !newLibraryPath) {
@@ -172,14 +176,14 @@ export default function LibraryPage() {
       if (response.ok) {
         toast.success("Library archived successfully");
         setArchiveLibraryOpen(false);
-        // Switch to the first available library or "default"
+        // Switch to the first available library
         const remainingLibraries = libraries.filter(
           (lib) => lib.name !== currentLibrary
         );
         if (remainingLibraries.length > 0) {
           setCurrentLibrary(remainingLibraries[0].name);
         } else {
-          setCurrentLibrary("default");
+          setCurrentLibrary("");
         }
         await fetchLibraries();
       } else {
@@ -699,6 +703,7 @@ export default function LibraryPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => fileInputRef.current?.click()}
+                    disabled={libraries.length === 0}
                   >
                     <UploadIcon className="h-4 w-4 mr-2" />
                     Upload Files
@@ -707,6 +712,7 @@ export default function LibraryPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => folderInputRef.current?.click()}
+                    disabled={libraries.length === 0}
                   >
                     <FolderIcon className="h-4 w-4 mr-2" />
                     Upload Folder
