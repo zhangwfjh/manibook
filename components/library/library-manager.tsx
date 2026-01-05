@@ -22,6 +22,7 @@ interface LibraryManagerProps {
   onCreateLibrary: () => void;
   onRenameLibrary: (libraryName: string) => void;
   onArchiveLibrary: (libraryName: string) => void;
+  refreshTrigger?: number;
 }
 
 interface LibraryNodeProps {
@@ -204,7 +205,8 @@ export function LibraryManager({
   onCategorySelect,
   onCreateLibrary,
   onRenameLibrary,
-  onArchiveLibrary: onArchiveLibrary
+  onArchiveLibrary: onArchiveLibrary,
+  refreshTrigger
 }: LibraryManagerProps) {
   const [expandedLibraries, setExpandedLibraries] = useState<Set<string>>(new Set([currentLibrary]));
   const [libraryDocumentCounts, setLibraryDocumentCounts] = useState<Record<string, number>>({});
@@ -228,7 +230,7 @@ export function LibraryManager({
     if (libraries.length > 0) {
       fetchCounts();
     }
-  }, [libraries]);
+  }, [libraries, refreshTrigger]);
 
   const handleLibraryToggle = (libraryName: string) => {
     // Switch to the clicked library

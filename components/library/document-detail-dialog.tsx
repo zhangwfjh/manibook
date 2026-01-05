@@ -105,10 +105,14 @@ export function DocumentDetailDialog({
       )
     ) {
       try {
+        // Extract library name from the document URL
+        const urlParts = document.url.split('/');
+        const library = urlParts[3]; // /api/library/{library}/file/...
+
         const response = await fetch(
           `/api/library/delete?filename=${encodeURIComponent(
             document.filename
-          )}`,
+          )}&library=${encodeURIComponent(library)}`,
           {
             method: "DELETE",
           }
@@ -134,7 +138,13 @@ export function DocumentDetailDialog({
           <div className="flex items-start gap-4">
             <div className="shrink-0">
               <Image
-                src={document.url.replace(/\.(pdf|epub|djvu)$/i, "_cover.jpg")}
+                src={document.url.replace(/\/([^\/]+)$/, (match, filename) => {
+                  const coverFilename = `[Cover] ${filename.replace(
+                    /\.(pdf|epub|djvu)$/i,
+                    ".jpg"
+                  )}`;
+                  return `/${coverFilename}`;
+                })}
                 alt={`${metadata.title} cover`}
                 width={150}
                 height={200}

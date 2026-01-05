@@ -79,12 +79,12 @@ export async function PUT(request: NextRequest) {
       updatedAt: new Date(),
     };
 
-    if (oldCategory !== newCategory || oldTitle !== newTitle) {
+    if (oldCategory !== newCategory || oldTitle !== newTitle || existingDoc.doctype !== metadata.doctype) {
       // Need to rename and move files
       const fileExtension = path.extname(existingDoc.filename);
 
       const categoryParts = newCategory.split('>').map((part: string) => part.trim()).filter((part: string) => part);
-      const folderPath = categoryParts.slice(0, 2).join('/');
+      const folderPath = [metadata.doctype, ...categoryParts.slice(0, 2)].join('/'); // doctype + 2-level category folders
       const categoryDir = path.join(libraryInfo.path, folderPath);
 
       // Ensure category directory exists
@@ -113,9 +113,9 @@ export async function PUT(request: NextRequest) {
       fs.renameSync(oldFilePath, newFilePath);
 
       // Move cover if exists (cover filename is based on original filename)
-      const oldCoverFilename = `${existingDoc.filename.replace(/\.(pdf|epub|djvu)$/i, '')}_cover.jpg`;
+      const oldCoverFilename = `[Cover] ${existingDoc.filename.replace(/\.(pdf|epub|djvu)$/i, '.jpg')}`;
       const oldCoverPath = path.join(path.dirname(oldFilePath), oldCoverFilename);
-      const newCoverFilename = `${newFilename.replace(/\.(pdf|epub|djvu)$/i, '')}_cover.jpg`;
+      const newCoverFilename = `[Cover] ${newFilename.replace(/\.(pdf|epub|djvu)$/i, '.jpg')}`;
       const newCoverPath = path.join(categoryDir, newCoverFilename);
       if (fs.existsSync(oldCoverPath)) {
         fs.renameSync(oldCoverPath, newCoverPath);

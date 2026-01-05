@@ -60,6 +60,7 @@ export default function LibraryPage() {
   const [renameLibraryOpen, setRenameLibraryOpen] = useState(false);
   const [archiveLibraryOpen, setArchiveLibraryOpen] = useState(false);
   const [renameLibraryName, setRenameLibraryName] = useState("");
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
 
   useEffect(() => {
@@ -282,6 +283,8 @@ export default function LibraryPage() {
     }
     // Refresh the library data after deletion
     await fetchLibraryData();
+    // Trigger refresh of library counts
+    setRefreshTrigger(prev => prev + 1);
   };
 
   const handleDocumentUpdate = async (updatedDoc: LibraryDocument) => {
@@ -299,6 +302,8 @@ export default function LibraryPage() {
         setSelectedDocument(result.document);
         // Also refresh the library data
         await fetchLibraryData();
+        // Trigger refresh of library counts
+        setRefreshTrigger(prev => prev + 1);
       } else {
         console.error('Error updating document');
       }
@@ -317,6 +322,8 @@ export default function LibraryPage() {
     }
     // Refresh the library data after favorite toggle
     await fetchLibraryData();
+    // Trigger refresh of library counts (though count doesn't change for favorites)
+    setRefreshTrigger(prev => prev + 1);
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -375,6 +382,8 @@ export default function LibraryPage() {
 
     // Refresh the library data
     await fetchLibraryData();
+    // Trigger refresh of library counts
+    setRefreshTrigger(prev => prev + 1);
 
     // Reset the file input
     if (fileInputRef.current) {
@@ -491,6 +500,7 @@ export default function LibraryPage() {
               onCreateLibrary={() => setCreateLibraryOpen(true)}
               onRenameLibrary={handleOpenRenameDialog}
               onArchiveLibrary={handleOpenArchiveDialog}
+              refreshTrigger={refreshTrigger}
             />
 
             <Separator />

@@ -43,7 +43,7 @@ export async function DELETE(request: NextRequest) {
     const filePath = path.join(libraryInfo.path, fileRelativePath);
 
     // Delete the cover file if it exists
-    const coverFilename = `${document.filename.replace(/\.(pdf|epub|djvu)$/i, '')}_cover.jpg`;
+    const coverFilename = `[Cover] ${document.filename.replace(/\.(pdf|epub|djvu)$/i, '.jpg')}`;
     const coverPath = path.join(path.dirname(filePath), coverFilename);
     if (fs.existsSync(coverPath)) {
       fs.unlinkSync(coverPath);

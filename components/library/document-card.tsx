@@ -189,7 +189,10 @@ export function DocumentCard({
 
           <div className="shrink-0">
             <Image
-              src={document.url.replace(/\.(pdf|epub|djvu)$/i, "_cover.jpg")}
+              src={document.url.replace(/\/([^\/]+)$/, (match, filename) => {
+                const coverFilename = `[Cover] ${filename.replace(/\.(pdf|epub|djvu)$/i, '.jpg')}`;
+                return `/${coverFilename}`;
+              })}
               alt={`${metadata.title} cover`}
               width={150}
               height={200}

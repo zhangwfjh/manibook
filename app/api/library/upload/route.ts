@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
 
     // Parse category for folder structure
     const categoryParts = metadata.category.split('>').map(part => part.trim()).filter(part => part);
-    const folderPath = categoryParts.slice(0, 2).join('/'); // 2-level folders
+    const folderPath = [metadata.doctype, ...categoryParts.slice(0, 2)].join('/'); // doctype + 2-level category folders
     const categoryDir = path.join(libraryDir, folderPath);
 
     // Ensure category directory exists
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
 
     // Save cover image if available (now that we have the final filename and directory)
     if (cover) {
-      const coverFilename = `${newFilename.replace(/\.(pdf|epub|djvu)$/i, '')}_cover.jpg`;
+      const coverFilename = `[Cover] ${newFilename.replace(/\.(pdf|epub|djvu)$/i, '.jpg')}`;
       const coverPath = path.join(categoryDir, coverFilename);
       fs.writeFileSync(coverPath, cover);
     }
