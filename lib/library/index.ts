@@ -14,6 +14,8 @@ export interface DocumentMetadata {
   abstract: string;
   favorite: boolean;
   numPages: number;
+  filesize: number;
+  format: string;
   metadata?: Record<string, unknown>;
   updatedAt?: Date;
 }
@@ -156,7 +158,9 @@ export async function ensureLibraryStructure(libraryPath: string): Promise<void>
           "hash" TEXT UNIQUE,
           "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
           "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          "numPages" INTEGER NOT NULL DEFAULT 0
+          "numPages" INTEGER NOT NULL DEFAULT 0,
+          "filesize" INTEGER NOT NULL DEFAULT 0,
+          "format" TEXT NOT NULL DEFAULT 'unknown'
         )
       `;
 

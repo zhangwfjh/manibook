@@ -21,6 +21,8 @@ export function dbDocumentToLibraryDocument(dbDoc: Document, library: string): L
       metadata: dbDoc.metadata ? JSON.parse(dbDoc.metadata) : undefined,
       updatedAt: dbDoc.updatedAt,
       numPages: dbDoc.numPages,
+      filesize: Number(dbDoc.filesize),
+      format: dbDoc.format,
     },
     categoryPath: [], // Will be computed from category string
     url: dbDoc.url,

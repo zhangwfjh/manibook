@@ -5,7 +5,6 @@ import {
   ChevronRightIcon,
   ChevronDownIcon,
   FolderIcon,
-  FileTextIcon,
   PlusIcon,
   LibraryIcon,
   MoreHorizontalIcon,
@@ -92,11 +91,7 @@ function CategoryNode({
         ) : (
           <div className="w-5 mr-1" />
         )}
-        {hasChildren ? (
-          <FolderIcon className="h-4 w-4 mr-2" />
-        ) : (
-          <FileTextIcon className="h-4 w-4 mr-2" />
-        )}
+        <FolderIcon className="h-4 w-4 mr-2" />
         <span className="truncate">{category.name}</span>
         {category.documents.length > 0 && (
           <span className="ml-auto text-xs text-muted-foreground">
@@ -245,6 +240,7 @@ export function LibraryManager({
           const data = await response.json();
           counts[library.name] = data.documents?.length || 0;
         } catch (error) {
+          console.warn(`Failed to fetch document count for library ${library.name}:`, error);
           counts[library.name] = 0;
         }
       }
@@ -280,7 +276,7 @@ export function LibraryManager({
       <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
         Libraries
       </h3>
-      <ScrollArea className="h-128">
+      <ScrollArea className="h-96">
         <div className="space-y-2">
           {libraries.map((library) => (
             <LibraryNode

@@ -127,6 +127,8 @@ export async function POST(
         metadata: extractedMetadata.metadata as Record<string, unknown> || undefined,
         favorite: false,
         numPages: extractedNumPages || 0,
+        filesize: buffer.length,
+        format: fileExtension.slice(1), // Remove the leading dot
       };
 
     } catch (error) {
@@ -183,6 +185,8 @@ export async function POST(
         metadata: metadata.metadata ? JSON.stringify(metadata.metadata) : null,
         hash,
         numPages,
+        filesize: BigInt(buffer.length),
+        format: metadata.format,
       },
     });
 

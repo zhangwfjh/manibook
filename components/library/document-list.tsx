@@ -4,6 +4,14 @@ import { Button } from "@/components/ui/button";
 import { DownloadIcon, HeartIcon } from "lucide-react";
 import { LibraryDocument } from "@/lib/library";
 
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
 interface DocumentListProps {
   documents: LibraryDocument[];
   onClick?: (document: LibraryDocument) => void;
@@ -38,6 +46,8 @@ export function DocumentList({ documents, onClick, onDownload, onFavoriteToggle 
             <TableHead>Publisher</TableHead>
             <TableHead>Language</TableHead>
             <TableHead>Pages</TableHead>
+            <TableHead>Format</TableHead>
+            <TableHead>File Size</TableHead>
             {/* <TableHead>Keywords</TableHead>
             <TableHead>Category</TableHead> */}
             <TableHead className="w-25">Actions</TableHead>
@@ -78,6 +88,12 @@ export function DocumentList({ documents, onClick, onDownload, onFavoriteToggle 
               </TableCell>
               <TableCell>
                 {document.metadata.numPages || '-'}
+              </TableCell>
+              <TableCell>
+                {document.metadata.format?.toUpperCase() || '-'}
+              </TableCell>
+              <TableCell>
+                {document.metadata.filesize ? formatFileSize(document.metadata.filesize) : '-'}
               </TableCell>
               {/* <TableCell className="max-w-xs">
                 <div className="flex flex-wrap gap-1">

@@ -30,9 +30,34 @@ import {
   EditIcon,
   SaveIcon,
   XIcon,
+  FileIcon,
+  BookIcon,
+  ImageIcon,
 } from "lucide-react";
 import { LibraryDocument } from "@/lib/library";
 import { useState } from "react";
+import React from "react";
+
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+function getFormatIcon(format: string) {
+  switch (format.toLowerCase()) {
+    case 'pdf':
+      return FileTextIcon;
+    case 'epub':
+      return BookIcon;
+    case 'djvu':
+      return ImageIcon;
+    default:
+      return FileIcon;
+  }
+}
 
 interface DocumentDetailDialogProps {
   library: string;
@@ -804,6 +829,28 @@ export function DocumentDetailDialog({
                   <span className="text-muted-foreground">File path:</span>
                   <div className="font-mono text-xs bg-muted px-2 py-1 rounded mt-1 break-all">
                     {document.path}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">File size:</span>
+                  <div className="flex items-center gap-2 mt-1">
+                    {metadata.filesize && metadata.format && (
+                      <>
+                        {React.createElement(getFormatIcon(metadata.format), { className: "h-4 w-4 text-muted-foreground" })}
+                        <span>{formatFileSize(metadata.filesize)}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Format:</span>
+                  <div className="flex items-center gap-2 mt-1">
+                    {metadata.format && (
+                      <>
+                        {React.createElement(getFormatIcon(metadata.format), { className: "h-4 w-4 text-muted-foreground" })}
+                        <span className="uppercase">{metadata.format}</span>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

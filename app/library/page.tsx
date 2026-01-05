@@ -31,6 +31,7 @@ import { DocumentCard } from "@/components/library/document-card";
 import { DocumentList } from "@/components/library/document-list";
 import { LibraryManager } from "@/components/library/library-manager";
 import { TagFilter } from "@/components/library/tag-filter";
+import { FormatFilter } from "@/components/library/format-filter";
 import { DocumentDetailDialog } from "@/components/library/document-detail-dialog";
 import { SettingsDialog } from "@/components/library/settings-dialog";
 import {
@@ -59,6 +60,7 @@ export default function LibraryPage() {
   const [categories, setCategories] = useState<LibraryCategory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedFormats, setSelectedFormats] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<string>("title-asc");
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
@@ -248,6 +250,9 @@ export default function LibraryPage() {
       selectedTags.some((tag) =>
         doc.metadata.keywords?.some((kw) => kw === tag)
       );
+    const matchesFormats =
+      selectedFormats.length === 0 ||
+      selectedFormats.includes(doc.metadata.format?.toUpperCase() || "");
     const matchesSearch =
       !searchQuery ||
       doc.metadata.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -258,7 +263,13 @@ export default function LibraryPage() {
         keyword.toLowerCase().includes(searchQuery.toLowerCase())
       );
     const matchesFavorites = !showFavoritesOnly || doc.metadata.favorite;
-    return matchesCategory && matchesTags && matchesSearch && matchesFavorites;
+    return (
+      matchesCategory &&
+      matchesTags &&
+      matchesFormats &&
+      matchesSearch &&
+      matchesFavorites
+    );
   });
 
   const sortedDocuments = useMemo(() => {
@@ -307,6 +318,10 @@ export default function LibraryPage() {
           bVal = b.metadata.updatedAt
             ? new Date(b.metadata.updatedAt)
             : new Date(0);
+          break;
+        case "filesize":
+          aVal = a.metadata.filesize || 0;
+          bVal = b.metadata.filesize || 0;
           break;
         default:
           return 0;
@@ -630,6 +645,15 @@ export default function LibraryPage() {
 
             <Separator />
 
+            {/* Format Filter */}
+            <FormatFilter
+              documents={documents}
+              selectedFormats={selectedFormats}
+              onFormatsChange={setSelectedFormats}
+            />
+
+            <Separator />
+
             {/* Tag Filter */}
             <TagFilter
               documents={documents}
@@ -694,6 +718,12 @@ export default function LibraryPage() {
                       </SelectItem>
                       <SelectItem value="updatedAt-asc">
                         Least Recently Updated
+                      </SelectItem>
+                      <SelectItem value="filesize-asc">
+                        File Size Smallest
+                      </SelectItem>
+                      <SelectItem value="filesize-desc">
+                        File Size Largest
                       </SelectItem>
                     </SelectContent>
                   </Select>

@@ -1,3 +1,4 @@
+import React from "react";
 import Image from "next/image";
 import {
   Card,
@@ -19,6 +20,10 @@ import {
   UsersIcon,
   CalendarIcon,
   StarIcon,
+  FileIcon,
+  FileTextIcon,
+  BookIcon,
+  ImageIcon,
 } from "lucide-react";
 import { LibraryDocument } from "@/lib/library";
 
@@ -28,6 +33,27 @@ interface DocumentCardProps {
   onClick?: (document: LibraryDocument) => void;
   onDownload?: (document: LibraryDocument) => void;
   onFavoriteToggle?: (document: LibraryDocument) => void;
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+function getFormatIcon(format: string) {
+  switch (format.toLowerCase()) {
+    case 'pdf':
+      return FileTextIcon;
+    case 'epub':
+      return BookIcon;
+    case 'djvu':
+      return ImageIcon;
+    default:
+      return FileIcon;
+  }
 }
 
 export function DocumentCard({
@@ -101,6 +127,13 @@ export function DocumentCard({
               <div className="flex items-center gap-1 text-sm text-muted-foreground">
                 <CalendarIcon className="h-4 w-4" />
                 <span>{metadata.publication_year}</span>
+              </div>
+            )}
+
+            {metadata.filesize && metadata.format && (
+              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                {React.createElement(getFormatIcon(metadata.format), { className: "h-4 w-4" })}
+                <span>{formatFileSize(metadata.filesize)}</span>
               </div>
             )}
 
