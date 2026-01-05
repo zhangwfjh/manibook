@@ -5,7 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
-import { LayoutGridIcon, ListIcon, SearchIcon, UploadIcon, FolderIcon } from "lucide-react";
+import {
+  LayoutGridIcon,
+  ListIcon,
+  SearchIcon,
+  UploadIcon,
+  FolderIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 import { DocumentCard } from "@/components/library/document-card";
 import { DocumentList } from "@/components/library/document-list";
@@ -22,15 +28,16 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { LibraryDocument, LibraryCategory } from "@/lib/library";
 import { Library } from "@/lib/library";
 
 type ViewMode = "card" | "list";
-
-const normalizeTag = (tag: string): string => {
-  return tag.trim().toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
-};
 
 export default function LibraryPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("card");
@@ -62,7 +69,6 @@ export default function LibraryPage() {
   const [renameLibraryName, setRenameLibraryName] = useState("");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-
   useEffect(() => {
     fetchLibraries();
     fetchLibraryData();
@@ -80,7 +86,9 @@ export default function LibraryPage() {
 
   const fetchLibraryData = async () => {
     try {
-      const response = await fetch(`/api/libraries/${currentLibrary}/documents`);
+      const response = await fetch(
+        `/api/libraries/${currentLibrary}/documents`
+      );
       const data = await response.json();
       setDocuments(data.documents || []);
       setCategories(data.categories || []);
@@ -165,7 +173,9 @@ export default function LibraryPage() {
         toast.success("Library archived successfully");
         setArchiveLibraryOpen(false);
         // Switch to the first available library or "default"
-        const remainingLibraries = libraries.filter(lib => lib.name !== currentLibrary);
+        const remainingLibraries = libraries.filter(
+          (lib) => lib.name !== currentLibrary
+        );
         if (remainingLibraries.length > 0) {
           setCurrentLibrary(remainingLibraries[0].name);
         } else {
@@ -200,7 +210,8 @@ export default function LibraryPage() {
       const selectedParts = selectedCategory.split(" > ");
       if (selectedParts.length >= 1) {
         const selectedDoctype = selectedParts[0];
-        const selectedCategoryPath = selectedParts.length > 1 ? selectedParts.slice(1).join(" > ") : null;
+        const selectedCategoryPath =
+          selectedParts.length > 1 ? selectedParts.slice(1).join(" > ") : null;
 
         // Check if doctype matches
         const doctypeMatches = doc.metadata.doctype === selectedDoctype;
@@ -216,7 +227,9 @@ export default function LibraryPage() {
 
     const matchesTags =
       selectedTags.length === 0 ||
-      selectedTags.some((tag) => doc.metadata.keywords?.some(kw => normalizeTag(kw) === tag));
+      selectedTags.some((tag) =>
+        doc.metadata.keywords?.some((kw) => kw === tag)
+      );
     const matchesSearch =
       !searchQuery ||
       doc.metadata.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -233,28 +246,32 @@ export default function LibraryPage() {
   const sortedDocuments = useMemo(() => {
     const sorted = [...filteredDocuments];
     sorted.sort((a, b) => {
-      const [field, order] = sortBy.split('-');
+      const [field, order] = sortBy.split("-");
       let aVal: any, bVal: any;
 
       switch (field) {
-        case 'title':
+        case "title":
           aVal = a.metadata.title.toLowerCase();
           bVal = b.metadata.title.toLowerCase();
           break;
-        case 'publicationYear':
+        case "publicationYear":
           aVal = a.metadata.publication_year || 0;
           bVal = b.metadata.publication_year || 0;
           break;
-        case 'updatedAt':
-          aVal = a.metadata.updatedAt ? new Date(a.metadata.updatedAt) : new Date(0);
-          bVal = b.metadata.updatedAt ? new Date(b.metadata.updatedAt) : new Date(0);
+        case "updatedAt":
+          aVal = a.metadata.updatedAt
+            ? new Date(a.metadata.updatedAt)
+            : new Date(0);
+          bVal = b.metadata.updatedAt
+            ? new Date(b.metadata.updatedAt)
+            : new Date(0);
           break;
         default:
           return 0;
       }
 
-      if (aVal < bVal) return order === 'asc' ? -1 : 1;
-      if (aVal > bVal) return order === 'asc' ? 1 : -1;
+      if (aVal < bVal) return order === "asc" ? -1 : 1;
+      if (aVal > bVal) return order === "asc" ? 1 : -1;
       return 0;
     });
     return sorted;
@@ -277,78 +294,101 @@ export default function LibraryPage() {
 
   const handleDocumentDelete = async (document: LibraryDocument) => {
     try {
-      await fetch(`/api/libraries/${currentLibrary}/documents/${encodeURIComponent(document.filename)}`, {
-        method: 'DELETE',
-      });
+      await fetch(
+        `/api/libraries/${currentLibrary}/documents/${encodeURIComponent(
+          document.filename
+        )}`,
+        {
+          method: "DELETE",
+        }
+      );
     } catch (error) {
-      console.error('Error deleting document:', error);
+      console.error("Error deleting document:", error);
     }
     // Refresh the library data after deletion
     await fetchLibraryData();
     // Trigger refresh of library counts
-    setRefreshTrigger(prev => prev + 1);
+    setRefreshTrigger((prev) => prev + 1);
   };
 
   const handleDocumentUpdate = async (updatedDoc: LibraryDocument) => {
     try {
-      const response = await fetch(`/api/libraries/${currentLibrary}/documents/${encodeURIComponent(updatedDoc.filename)}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          metadata: updatedDoc.metadata,
-        }),
-      });
+      const response = await fetch(
+        `/api/libraries/${currentLibrary}/documents/${encodeURIComponent(
+          updatedDoc.filename
+        )}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            metadata: updatedDoc.metadata,
+          }),
+        }
+      );
       if (response.ok) {
         const result = await response.json();
         setSelectedDocument(result.document);
         // Also refresh the library data
         await fetchLibraryData();
         // Trigger refresh of library counts
-        setRefreshTrigger(prev => prev + 1);
+        setRefreshTrigger((prev) => prev + 1);
       } else {
-        console.error('Error updating document');
+        console.error("Error updating document");
       }
     } catch (error) {
-      console.error('Error updating document:', error);
+      console.error("Error updating document:", error);
     }
   };
 
   const handleFavoriteToggle = async (document: LibraryDocument) => {
     try {
-      await fetch(`/api/libraries/${currentLibrary}/documents/${encodeURIComponent(document.filename)}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ favorite: !document.metadata.favorite }),
-      });
+      await fetch(
+        `/api/libraries/${currentLibrary}/documents/${encodeURIComponent(
+          document.filename
+        )}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ favorite: !document.metadata.favorite }),
+        }
+      );
     } catch (error) {
-      console.error('Error toggling favorite:', error);
+      console.error("Error toggling favorite:", error);
     }
     // Refresh the library data after favorite toggle
     await fetchLibraryData();
     // Trigger refresh of library counts (though count doesn't change for favorites)
-    setRefreshTrigger(prev => prev + 1);
+    setRefreshTrigger((prev) => prev + 1);
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const files = event.target.files;
 
     if (!files || files.length === 0) return;
 
     // Filter files to only include PDF, DJVU, EPUB formats
-    const allowedExtensions = ['pdf', 'djvu', 'epub'];
-    const filteredFiles = Array.from(files).filter(file => {
-      const extension = file.name.split('.').pop()?.toLowerCase();
-      return allowedExtensions.includes(extension || '');
+    const allowedExtensions = ["pdf", "djvu", "epub"];
+    const filteredFiles = Array.from(files).filter((file) => {
+      const extension = file.name.split(".").pop()?.toLowerCase();
+      return allowedExtensions.includes(extension || "");
     });
 
     if (filteredFiles.length === 0) {
-      toast.error("No valid files selected. Only PDF, DJVU, and EPUB files are allowed.");
+      toast.error(
+        "No valid files selected. Only PDF, DJVU, and EPUB files are allowed."
+      );
       return;
     }
 
     setUploading(true);
     setUploadProgressPercent(0);
-    setUploadProgress(`Uploading ${filteredFiles.length} file${filteredFiles.length > 1 ? 's' : ''}...`);
+    setUploadProgress(
+      `Uploading ${filteredFiles.length} file${
+        filteredFiles.length > 1 ? "s" : ""
+      }...`
+    );
 
     let successCount = 0;
     let errorCount = 0;
@@ -356,16 +396,21 @@ export default function LibraryPage() {
     // Process files sequentially to avoid overwhelming the server
     for (let i = 0; i < filteredFiles.length; i++) {
       const file = filteredFiles[i];
-      setUploadProgress(`Uploading ${file.name} (${i + 1}/${filteredFiles.length})...`);
+      setUploadProgress(
+        `Uploading ${file.name} (${i + 1}/${filteredFiles.length})...`
+      );
 
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append("file", file);
 
       try {
-        const response = await fetch(`/api/libraries/${currentLibrary}/documents`, {
-          method: 'POST',
-          body: formData,
-        });
+        const response = await fetch(
+          `/api/libraries/${currentLibrary}/documents`,
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
 
         if (response.ok) {
           successCount++;
@@ -386,14 +431,14 @@ export default function LibraryPage() {
     // Refresh the library data
     await fetchLibraryData();
     // Trigger refresh of library counts
-    setRefreshTrigger(prev => prev + 1);
+    setRefreshTrigger((prev) => prev + 1);
 
     // Reset the file input
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
     if (folderInputRef.current) {
-      folderInputRef.current.value = '';
+      folderInputRef.current.value = "";
     }
 
     setUploading(false);
@@ -401,11 +446,23 @@ export default function LibraryPage() {
 
     // Show toast notifications
     if (errorCount === 0) {
-      toast.success(`Successfully uploaded ${successCount} file${successCount > 1 ? 's' : ''}!`);
-      setUploadProgress(`${successCount} file${successCount > 1 ? 's' : ''} uploaded successfully!`);
+      toast.success(
+        `Successfully uploaded ${successCount} file${
+          successCount > 1 ? "s" : ""
+        }!`
+      );
+      setUploadProgress(
+        `${successCount} file${
+          successCount > 1 ? "s" : ""
+        } uploaded successfully!`
+      );
     } else if (successCount === 0) {
-      toast.error(`Failed to upload ${errorCount} file${errorCount > 1 ? 's' : ''}`);
-      setUploadProgress(`Failed to upload ${errorCount} file${errorCount > 1 ? 's' : ''}`);
+      toast.error(
+        `Failed to upload ${errorCount} file${errorCount > 1 ? "s" : ""}`
+      );
+      setUploadProgress(
+        `Failed to upload ${errorCount} file${errorCount > 1 ? "s" : ""}`
+      );
     } else {
       toast.warning(`${successCount} uploaded, ${errorCount} failed`);
       setUploadProgress(`${successCount} uploaded, ${errorCount} failed`);
@@ -439,7 +496,10 @@ export default function LibraryPage() {
               </p>
             </div>
             <div className="flex items-center gap-4">
-              <Dialog open={createLibraryOpen} onOpenChange={setCreateLibraryOpen}>
+              <Dialog
+                open={createLibraryOpen}
+                onOpenChange={setCreateLibraryOpen}
+              >
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Create New Library</DialogTitle>
@@ -463,8 +523,9 @@ export default function LibraryPage() {
                         placeholder="Enter full path to library directory (e.g., C:\Users\John\Documents\Library or /home/john/library)"
                       />
                       <p className="text-sm text-muted-foreground mt-1">
-                        Enter the full path to an empty directory where you want to store your library files.
-                        The directory will be created if it doesn't exist.
+                        Enter the full path to an empty directory where you want
+                        to store your library files. The directory will be
+                        created if it doesn't exist.
                       </p>
                     </div>
                     <div className="flex justify-end gap-2">
@@ -478,9 +539,7 @@ export default function LibraryPage() {
                       >
                         Cancel
                       </Button>
-                      <Button onClick={handleCreateLibrary}>
-                        Create
-                      </Button>
+                      <Button onClick={handleCreateLibrary}>Create</Button>
                     </div>
                   </div>
                 </DialogContent>
@@ -519,7 +578,9 @@ export default function LibraryPage() {
                   checked={showFavoritesOnly}
                   onCheckedChange={setShowFavoritesOnly}
                 />
-                <Label htmlFor="favorites" className="text-sm">Show only favorites</Label>
+                <Label htmlFor="favorites" className="text-sm">
+                  Show only favorites
+                </Label>
               </div>
             </div>
 
@@ -556,10 +617,18 @@ export default function LibraryPage() {
                     <SelectContent>
                       <SelectItem value="title-asc">Title A-Z</SelectItem>
                       <SelectItem value="title-desc">Title Z-A</SelectItem>
-                      <SelectItem value="publicationYear-desc">Publication Year Newest</SelectItem>
-                      <SelectItem value="publicationYear-asc">Publication Year Oldest</SelectItem>
-                      <SelectItem value="updatedAt-desc">Recently Updated</SelectItem>
-                      <SelectItem value="updatedAt-asc">Least Recently Updated</SelectItem>
+                      <SelectItem value="publicationYear-desc">
+                        Publication Year Newest
+                      </SelectItem>
+                      <SelectItem value="publicationYear-asc">
+                        Publication Year Oldest
+                      </SelectItem>
+                      <SelectItem value="updatedAt-desc">
+                        Recently Updated
+                      </SelectItem>
+                      <SelectItem value="updatedAt-asc">
+                        Least Recently Updated
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                   <Button
@@ -601,7 +670,7 @@ export default function LibraryPage() {
                     accept=".pdf,.epub,.djvu"
                     multiple
                     onChange={handleFileUpload}
-                    style={{ display: 'none' }}
+                    style={{ display: "none" }}
                   />
                   <input
                     ref={folderInputRef}
@@ -611,7 +680,7 @@ export default function LibraryPage() {
                     // @ts-expect-error - webkitdirectory is not in the standard types
                     webkitdirectory=""
                     onChange={handleFileUpload}
-                    style={{ display: 'none' }}
+                    style={{ display: "none" }}
                   />
                 </div>
               </div>
@@ -629,7 +698,10 @@ export default function LibraryPage() {
                     {!uploading && uploadProgress}
                   </div>
                   {uploading && uploadProgressPercent > 0 && (
-                    <Progress value={uploadProgressPercent} className="w-full" />
+                    <Progress
+                      value={uploadProgressPercent}
+                      className="w-full"
+                    />
                   )}
                 </div>
               )}
@@ -708,9 +780,7 @@ export default function LibraryPage() {
                 >
                   Cancel
                 </Button>
-                <Button onClick={handleRenameLibrary}>
-                  Rename
-                </Button>
+                <Button onClick={handleRenameLibrary}>Rename</Button>
               </div>
             </div>
           </DialogContent>
@@ -725,7 +795,8 @@ export default function LibraryPage() {
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
                 Are you sure you want to archive the library "{currentLibrary}"?
-                All documents and data in this library will be preserved on disk.
+                All documents and data in this library will be preserved on
+                disk.
               </p>
               <div className="flex justify-end gap-2">
                 <Button
@@ -734,10 +805,7 @@ export default function LibraryPage() {
                 >
                   Cancel
                 </Button>
-                <Button
-                  variant="destructive"
-                  onClick={handleArchiveLibrary}
-                >
+                <Button variant="destructive" onClick={handleArchiveLibrary}>
                   Archive Library
                 </Button>
               </div>

@@ -23,7 +23,11 @@ interface LLMSettings {
 export async function extractMetadataFromFile(
   filePath: string,
   llmSettings?: LLMSettings
-): Promise<{ metadata: Record<string, unknown>; cover: Uint8Array | null; numPages: number }> {
+): Promise<{
+  metadata: Record<string, unknown>;
+  cover: Uint8Array | null;
+  numPages: number;
+}> {
   const extension = filePath.split(".").pop()?.toLowerCase();
 
   let foreword: string = "";
@@ -132,7 +136,9 @@ export async function extractMetadataFromFile(
                 "Extract title, authors, publication year, publisher, and other metadata from the document. " +
                 "If any information is missing, leave it empty. " +
                 "Infer the document type (Article or Book or Others). " +
-                "Infer the unique TWO-level category of the document (e.g., 'Physics > Classical Mechanics', 'Computer Vision > Object Detection'). " +
+                "Infer the TWO-level category of the document (e.g., " +
+                "Good examples: 'Physics > Classical Mechanics', 'Computer Vision > Object Detection' " +
+                "Bad examples: one-level 'Physics'; three-level 'Science > Physics > Classical Mechanics'). " +
                 "Also infer the language (e.g., 'Chinese', 'English'), keywords and abstract of the document. " +
                 "Respond in JSON format with keys: doctype, title, authors, publication_year, publisher, category, language, keywords, abstract, metadata.",
             },
@@ -151,7 +157,31 @@ export async function extractMetadataFromFile(
       console.warn(`numPages=${numPages}, metadata=${responseString}`);
       const jsonMatch = responseString.match(/```json\n([\s\S]*?)\n```/);
       const jsonString = jsonMatch?.[1] || responseString;
-      metadata = JSON.parse(jsonString);
+      const parsed = JSON.parse(jsonString);
+      if (parsed.category) {
+        if (Array.isArray(parsed.category)) {
+          parsed.category = parsed.category[0];
+        }
+      }
+      if (parsed.keywords) {
+        if (typeof parsed.keywords === "string") {
+          parsed.keywords = [
+            parsed.keywords.split(",").map((kw: string) => kw.trim()),
+          ];
+        }
+        parsed.keywords = [
+          parsed.keywords.replace(/\b\w/g, (l: string) => l.toUpperCase()),
+        ];
+      }
+      if (parsed.authors && typeof parsed.authors === "string") {
+        parsed.authors = [
+          parsed.authors.split(",").map((a: string) => a.trim()),
+        ];
+      }
+      if (Array.isArray(parsed.category)) {
+        parsed.category = parsed.category[0];
+      }
+      metadata = parsed;
       break;
     } catch (error) {
       if (retry === 2) {

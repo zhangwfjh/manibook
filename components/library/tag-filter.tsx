@@ -1,10 +1,10 @@
-import { useState, useMemo } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { SearchIcon, XIcon } from 'lucide-react';
-import { LibraryDocument } from '@/lib/library';
+import { useState, useMemo } from "react";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { SearchIcon, XIcon } from "lucide-react";
+import { LibraryDocument } from "@/lib/library";
 
 interface TagFilterProps {
   documents: LibraryDocument[];
@@ -12,21 +12,23 @@ interface TagFilterProps {
   onTagsChange: (tags: string[]) => void;
 }
 
-export function TagFilter({ documents, selectedTags, onTagsChange }: TagFilterProps) {
+export function TagFilter({
+  documents,
+  selectedTags,
+  onTagsChange,
+}: TagFilterProps) {
   const [tagSearch, setTagSearch] = useState("");
-
-  const normalizeTag = (tag: string): string => {
-    return tag.trim().toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
-  };
 
   const availableTags = useMemo(() => {
     // Extract all unique keywords from documents
     const tagSet = new Set<string>();
-    documents.forEach(doc => {
+    documents.forEach((doc) => {
       if (doc.metadata.keywords) {
-        doc.metadata.keywords.forEach(keyword => {
+        doc.metadata.keywords.forEach((keyword) => {
           if (keyword && keyword.trim()) {
-            tagSet.add(normalizeTag(keyword));
+            tagSet.add(
+              keyword.replace(/\b\w/g, (l: string) => l.toUpperCase())
+            );
           }
         });
       }
@@ -35,19 +37,21 @@ export function TagFilter({ documents, selectedTags, onTagsChange }: TagFilterPr
   }, [documents]);
 
   const filteredTags = useMemo(() => {
-    return availableTags.filter(tag => tag.toLowerCase().includes(tagSearch.toLowerCase()));
+    return availableTags.filter((tag) =>
+      tag.toLowerCase().includes(tagSearch.toLowerCase())
+    );
   }, [availableTags, tagSearch]);
 
   const handleTagToggle = (tag: string) => {
     if (selectedTags.includes(tag)) {
-      onTagsChange(selectedTags.filter(t => t !== tag));
+      onTagsChange(selectedTags.filter((t) => t !== tag));
     } else {
       onTagsChange([...selectedTags, tag]);
     }
   };
 
   const handleTagRemove = (tagToRemove: string) => {
-    onTagsChange(selectedTags.filter(tag => tag !== tagToRemove));
+    onTagsChange(selectedTags.filter((tag) => tag !== tagToRemove));
   };
 
   const clearAllTags = () => {
@@ -77,7 +81,7 @@ export function TagFilter({ documents, selectedTags, onTagsChange }: TagFilterPr
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground">Active filters:</p>
           <div className="flex flex-wrap gap-1">
-            {selectedTags.map(tag => (
+            {selectedTags.map((tag) => (
               <Badge
                 key={tag}
                 variant="default"
@@ -106,10 +110,10 @@ export function TagFilter({ documents, selectedTags, onTagsChange }: TagFilterPr
           </div>
           <p className="text-xs text-muted-foreground">Click to filter:</p>
           <div className="flex flex-wrap gap-1">
-            {filteredTags.map(tag => {
+            {filteredTags.map((tag) => {
               const isSelected = selectedTags.includes(tag);
-              const count = documents.filter(doc =>
-                doc.metadata.keywords?.some(kw => normalizeTag(kw) === tag)
+              const count = documents.filter((doc) =>
+                doc.metadata.keywords?.some((kw) => kw === tag)
               ).length;
 
               return (
@@ -117,7 +121,7 @@ export function TagFilter({ documents, selectedTags, onTagsChange }: TagFilterPr
                   key={tag}
                   variant={isSelected ? "default" : "outline"}
                   className={`text-xs cursor-pointer hover:bg-primary/80 ${
-                    isSelected ? '' : 'hover:border-primary/50'
+                    isSelected ? "" : "hover:border-primary/50"
                   }`}
                   onClick={() => handleTagToggle(tag)}
                 >
