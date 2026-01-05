@@ -54,6 +54,9 @@ export function DocumentDetailDialog({
   const [isEditing, setIsEditing] = useState(false);
   const [editedMetadata, setEditedMetadata] = useState(document?.metadata);
   const [newKeyword, setNewKeyword] = useState("");
+  const [validationErrors, setValidationErrors] = useState<
+    Record<string, string>
+  >({});
 
   if (!document) return null;
 
@@ -79,10 +82,40 @@ export function DocumentDetailDialog({
   const handleSave = async () => {
     if (!editedMetadata) return;
 
+    // Validate required fields
+    const errors: Record<string, string> = {};
+    if (!editedMetadata.title?.trim()) {
+      errors.title = "Title is required";
+    }
+    if (!editedMetadata.doctype) {
+      errors.doctype = "Document type is required";
+    }
+    if (!editedMetadata.category?.split(" > ")[0]?.trim()) {
+      errors.category = "Category is required";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
+
+    // Clear any previous errors
+    setValidationErrors({});
+
+    // Ensure authors have a default value if empty
+    const metadataToSave = { ...editedMetadata };
+    if (
+      !metadataToSave.authors ||
+      metadataToSave.authors.length === 0 ||
+      metadataToSave.authors.every((author) => !author.trim())
+    ) {
+      metadataToSave.authors = ["Unknown Author"];
+    }
+
     // Create updated document with new metadata
     const updatedDocument: LibraryDocument = {
       ...document,
-      metadata: editedMetadata,
+      metadata: metadataToSave,
     };
 
     try {
@@ -169,19 +202,26 @@ export function DocumentDetailDialog({
                     htmlFor="title"
                     className="text-sm font-medium text-muted-foreground"
                   >
-                    TITLE
+                    TITLE *
                   </Label>
                   {isEditing ? (
-                    <Input
-                      id="title"
-                      value={editedMetadata?.title || ""}
-                      onChange={(e) =>
-                        setEditedMetadata((prev) =>
-                          prev ? { ...prev, title: e.target.value } : prev
-                        )
-                      }
-                      className="mt-1"
-                    />
+                    <>
+                      <Input
+                        id="title"
+                        value={editedMetadata?.title || ""}
+                        onChange={(e) =>
+                          setEditedMetadata((prev) =>
+                            prev ? { ...prev, title: e.target.value } : prev
+                          )
+                        }
+                        className="mt-1"
+                      />
+                      {validationErrors.title && (
+                        <p className="text-sm text-red-500 mt-1">
+                          {validationErrors.title}
+                        </p>
+                      )}
+                    </>
                   ) : (
                     <div className="mt-1 text-lg font-semibold">
                       {metadata.title}
@@ -367,31 +407,41 @@ export function DocumentDetailDialog({
                     htmlFor="doctype"
                     className="text-sm font-medium text-muted-foreground"
                   >
-                    DOCUMENT TYPE
+                    DOCUMENT TYPE *
                   </Label>
                   {isEditing ? (
-                    <Select
-                      value={editedMetadata?.doctype || ""}
-                      onValueChange={(value) =>
-                        setEditedMetadata((prev) =>
-                          prev
-                            ? {
-                                ...prev,
-                                doctype: value as "Article" | "Book" | "Others",
-                              }
-                            : prev
-                        )
-                      }
-                    >
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Article">Article</SelectItem>
-                        <SelectItem value="Book">Book</SelectItem>
-                        <SelectItem value="Others">Others</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <>
+                      <Select
+                        value={editedMetadata?.doctype || ""}
+                        onValueChange={(value) =>
+                          setEditedMetadata((prev) =>
+                            prev
+                              ? {
+                                  ...prev,
+                                  doctype: value as
+                                    | "Article"
+                                    | "Book"
+                                    | "Others",
+                                }
+                              : prev
+                          )
+                        }
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Article">Article</SelectItem>
+                          <SelectItem value="Book">Book</SelectItem>
+                          <SelectItem value="Others">Others</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {validationErrors.doctype && (
+                        <p className="text-sm text-red-500 mt-1">
+                          {validationErrors.doctype}
+                        </p>
+                      )}
+                    </>
                   ) : (
                     <div className="flex items-center gap-2 mt-1">
                       <Badge
@@ -411,67 +461,75 @@ export function DocumentDetailDialog({
                     htmlFor="category"
                     className="text-sm font-medium text-muted-foreground"
                   >
-                    CATEGORY
+                    CATEGORY *
                   </Label>
                   {isEditing ? (
-                    <div className="mt-1 space-y-2">
-                      <div>
-                        <Label
-                          htmlFor="main-category"
-                          className="text-xs text-muted-foreground"
-                        >
-                          Main Category
-                        </Label>
-                        <Input
-                          id="main-category"
-                          value={
-                            editedMetadata?.category?.split(" > ")[0] || ""
-                          }
-                          onChange={(e) => {
-                            const newMain = e.target.value;
-                            const currentParts =
-                              editedMetadata?.category?.split(" > ") || [];
-                            const currentSub =
-                              currentParts.slice(1).join(" > ") || "";
-                            const newCategory =
-                              newMain + (currentSub ? ` > ${currentSub}` : "");
-                            setEditedMetadata((prev) =>
-                              prev ? { ...prev, category: newCategory } : prev
-                            );
-                          }}
-                          placeholder="e.g., Science"
-                        />
+                    <>
+                      <div className="mt-1 space-y-2">
+                        <div>
+                          <Label
+                            htmlFor="main-category"
+                            className="text-xs text-muted-foreground"
+                          >
+                            Main Category
+                          </Label>
+                          <Input
+                            id="main-category"
+                            value={
+                              editedMetadata?.category?.split(" > ")[0] || ""
+                            }
+                            onChange={(e) => {
+                              const newMain = e.target.value;
+                              const currentParts =
+                                editedMetadata?.category?.split(" > ") || [];
+                              const currentSub =
+                                currentParts.slice(1).join(" > ") || "";
+                              const newCategory =
+                                newMain +
+                                (currentSub ? ` > ${currentSub}` : "");
+                              setEditedMetadata((prev) =>
+                                prev ? { ...prev, category: newCategory } : prev
+                              );
+                            }}
+                            placeholder="e.g., Science"
+                          />
+                        </div>
+                        <div>
+                          <Label
+                            htmlFor="sub-category"
+                            className="text-xs text-muted-foreground"
+                          >
+                            Sub Category
+                          </Label>
+                          <Input
+                            id="sub-category"
+                            value={
+                              editedMetadata?.category
+                                ?.split(" > ")
+                                .slice(1)
+                                .join(" > ") || ""
+                            }
+                            onChange={(e) => {
+                              const newSub = e.target.value;
+                              const currentParts =
+                                editedMetadata?.category?.split(" > ") || [];
+                              const currentMain = currentParts[0] || "";
+                              const newCategory =
+                                currentMain + (newSub ? ` > ${newSub}` : "");
+                              setEditedMetadata((prev) =>
+                                prev ? { ...prev, category: newCategory } : prev
+                              );
+                            }}
+                            placeholder="e.g., Physics"
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <Label
-                          htmlFor="sub-category"
-                          className="text-xs text-muted-foreground"
-                        >
-                          Sub Category
-                        </Label>
-                        <Input
-                          id="sub-category"
-                          value={
-                            editedMetadata?.category
-                              ?.split(" > ")
-                              .slice(1)
-                              .join(" > ") || ""
-                          }
-                          onChange={(e) => {
-                            const newSub = e.target.value;
-                            const currentParts =
-                              editedMetadata?.category?.split(" > ") || [];
-                            const currentMain = currentParts[0] || "";
-                            const newCategory =
-                              currentMain + (newSub ? ` > ${newSub}` : "");
-                            setEditedMetadata((prev) =>
-                              prev ? { ...prev, category: newCategory } : prev
-                            );
-                          }}
-                          placeholder="e.g., Physics"
-                        />
-                      </div>
-                    </div>
+                      {validationErrors.category && (
+                        <p className="text-sm text-red-500 mt-1">
+                          {validationErrors.category}
+                        </p>
+                      )}
+                    </>
                   ) : (
                     <div className="mt-1">
                       {metadata.category && (
