@@ -300,6 +300,68 @@ export function DocumentDetailDialog({
                     </div>
                   )}
                 </div>
+
+                <div>
+                  <Label
+                    htmlFor="language"
+                    className="text-sm font-medium text-muted-foreground"
+                  >
+                    LANGUAGE
+                  </Label>
+                  {isEditing ? (
+                    <Input
+                      id="language"
+                      value={editedMetadata?.language || ""}
+                      onChange={(e) =>
+                        setEditedMetadata((prev) =>
+                          prev ? { ...prev, language: e.target.value } : prev
+                        )
+                      }
+                      className="mt-1"
+                      placeholder="English"
+                    />
+                  ) : (
+                    <span className="mt-1 block text-sm">
+                      {metadata.language || "Not specified"}
+                    </span>
+                  )}
+                </div>
+
+                <div>
+                  <Label
+                    htmlFor="pages"
+                    className="text-sm font-medium text-muted-foreground"
+                  >
+                    PAGES
+                  </Label>
+                  {isEditing ? (
+                    <Input
+                      id="pages"
+                      value={editedMetadata?.numPages || ""}
+                      onChange={(e) =>
+                        setEditedMetadata((prev) =>
+                          prev
+                            ? {
+                                ...prev,
+                                numPages: parseInt(e.target.value) || 0,
+                              }
+                            : prev
+                        )
+                      }
+                      className="mt-1"
+                      placeholder="100"
+                    />
+                  ) : (
+                    <div className="flex items-center gap-2 mt-1">
+                      {metadata.numPages && (
+                        <>
+                          <FileTextIcon className="h-4 w-4 text-muted-foreground" />
+                          <span>{metadata.numPages}</span>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-3">
@@ -380,32 +442,6 @@ export function DocumentDetailDialog({
 
                 <div>
                   <Label
-                    htmlFor="language"
-                    className="text-sm font-medium text-muted-foreground"
-                  >
-                    LANGUAGE
-                  </Label>
-                  {isEditing ? (
-                    <Input
-                      id="language"
-                      value={editedMetadata?.language || ""}
-                      onChange={(e) =>
-                        setEditedMetadata((prev) =>
-                          prev ? { ...prev, language: e.target.value } : prev
-                        )
-                      }
-                      className="mt-1"
-                      placeholder="English"
-                    />
-                  ) : (
-                    <span className="mt-1 block text-sm">
-                      {metadata.language || "Not specified"}
-                    </span>
-                  )}
-                </div>
-
-                <div>
-                  <Label
                     htmlFor="keywords"
                     className="text-sm font-medium text-muted-foreground"
                   >
@@ -468,7 +504,7 @@ export function DocumentDetailDialog({
                       prev ? { ...prev, abstract: e.target.value } : prev
                     )
                   }
-                  className="mt-1 min-h-[100px]"
+                  className="mt-1 min-h-25"
                   placeholder="Document abstract or summary..."
                 />
               ) : (
