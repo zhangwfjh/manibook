@@ -59,10 +59,9 @@ function CategoryNode({ category, level, selectedCategory, onCategorySelect, exp
         size="sm"
         className={`w-full justify-start h-8 px-${level * 4 + 8} text-left`}
         onClick={() => {
+          onCategorySelect(pathKey);
           if (hasChildren) {
             onToggleExpanded(pathKey);
-          } else {
-            onCategorySelect(pathKey);
           }
         }}
       >

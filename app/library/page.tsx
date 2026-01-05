@@ -195,12 +195,13 @@ export default function LibraryPage() {
     if (selectedCategory) {
       // Handle the new category structure: selectedCategory includes doctype prefix
       const selectedParts = selectedCategory.split(" > ");
-      if (selectedParts.length >= 2) {
+      if (selectedParts.length >= 1) {
         const selectedDoctype = selectedParts[0];
-        const selectedCategoryPath = selectedParts.slice(1).join(" > ");
+        const selectedCategoryPath = selectedParts.length > 1 ? selectedParts.slice(1).join(" > ") : null;
 
-        // Check if doctype matches and category path matches
+        // Check if doctype matches
         const doctypeMatches = doc.metadata.doctype === selectedDoctype;
+        // Check if category path matches (if specified)
         const categoryMatches =
           !selectedCategoryPath ||
           (doc.metadata.category &&
