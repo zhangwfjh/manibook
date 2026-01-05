@@ -380,7 +380,7 @@ export function DocumentDetailDialog({
                           prev
                             ? {
                                 ...prev,
-                                doctype: value as "Book" | "Article" | "Others",
+                                doctype: value as "Article" | "Book" | "Others",
                               }
                             : prev
                         )
@@ -390,8 +390,8 @@ export function DocumentDetailDialog({
                         <SelectValue placeholder="Select type" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Book">Book</SelectItem>
                         <SelectItem value="Article">Article</SelectItem>
+                        <SelectItem value="Book">Book</SelectItem>
                         <SelectItem value="Others">Others</SelectItem>
                       </SelectContent>
                     </Select>

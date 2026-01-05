@@ -8,7 +8,7 @@ export function dbDocumentToLibraryDocument(dbDoc: Document, library: string): L
     path,
     filename: dbDoc.filename,
     metadata: {
-      doctype: dbDoc.doctype as 'Book' | 'Article' | 'Others',
+      doctype: dbDoc.doctype as 'Article' | 'Book' | 'Others',
       title: dbDoc.title,
       authors: JSON.parse(dbDoc.authors),
       publication_year: dbDoc.publicationYear || undefined,
@@ -42,7 +42,7 @@ export function buildCategoryTree(documents: LibraryDocument[]): LibraryCategory
     const categoryString = doc.metadata.category;
     if (!categoryString) return;
 
-    // First level: doctype (Book, Article, Others)
+    // First level: doctype (Article, Book, Others)
     let currentPath: string[] = [doctype];
     let currentCategory = root;
 
