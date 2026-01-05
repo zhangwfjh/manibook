@@ -54,11 +54,13 @@ export function DocumentDetailDialog({
 }: DocumentDetailDialogProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedMetadata, setEditedMetadata] = useState(document?.metadata);
+  const [newKeyword, setNewKeyword] = useState("");
 
   // Update edited metadata when document changes
   useEffect(() => {
     if (document?.metadata) {
       setEditedMetadata(document.metadata);
+      setNewKeyword("");
     }
   }, [document?.metadata]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -73,11 +75,13 @@ export function DocumentDetailDialog({
 
   const handleEdit = () => {
     setIsEditing(true);
+    setNewKeyword("");
   };
 
   const handleCancel = () => {
     setIsEditing(false);
     setEditedMetadata(metadata);
+    setNewKeyword("");
   };
 
   const handleSave = async () => {
@@ -92,6 +96,7 @@ export function DocumentDetailDialog({
     try {
       onUpdate?.(updatedDocument);
       setIsEditing(false);
+      setNewKeyword("");
     } catch (error) {
       console.error("Error updating document:", error);
       alert("Error updating document");
@@ -107,7 +112,7 @@ export function DocumentDetailDialog({
       try {
         // Extract library name from the document URL
         const urlParts = document.url.split("/");
-        const library = urlParts[3]; // /api/library/{library}/file/...
+        const library = urlParts[3]; // /api/library/{name}/file/...
 
         const response = await fetch(
           `/api/libraries/${library}/documents/${encodeURIComponent(
@@ -417,17 +422,46 @@ export function DocumentDetailDialog({
                     CATEGORY
                   </Label>
                   {isEditing ? (
-                    <Input
-                      id="category"
-                      value={editedMetadata?.category || ""}
-                      onChange={(e) =>
-                        setEditedMetadata((prev) =>
-                          prev ? { ...prev, category: e.target.value } : prev
-                        )
-                      }
-                      className="mt-1"
-                      placeholder="e.g., Science > Physics > Quantum"
-                    />
+                    <div className="mt-1 space-y-2">
+                      <div>
+                        <Label htmlFor="main-category" className="text-xs text-muted-foreground">
+                          Main Category
+                        </Label>
+                        <Input
+                          id="main-category"
+                          value={(editedMetadata?.category?.split(' > ')[0] || '')}
+                          onChange={(e) => {
+                            const newMain = e.target.value;
+                            const currentParts = editedMetadata?.category?.split(' > ') || [];
+                            const currentSub = currentParts.slice(1).join(' > ') || '';
+                            const newCategory = newMain + (currentSub ? ` > ${currentSub}` : '');
+                            setEditedMetadata((prev) =>
+                              prev ? { ...prev, category: newCategory } : prev
+                            );
+                          }}
+                          placeholder="e.g., Science"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="sub-category" className="text-xs text-muted-foreground">
+                          Sub Category
+                        </Label>
+                        <Input
+                          id="sub-category"
+                          value={(editedMetadata?.category?.split(' > ').slice(1).join(' > ') || '')}
+                          onChange={(e) => {
+                            const newSub = e.target.value;
+                            const currentParts = editedMetadata?.category?.split(' > ') || [];
+                            const currentMain = currentParts[0] || '';
+                            const newCategory = currentMain + (newSub ? ` > ${newSub}` : '');
+                            setEditedMetadata((prev) =>
+                              prev ? { ...prev, category: newCategory } : prev
+                            );
+                          }}
+                          placeholder="e.g., Physics"
+                        />
+                      </div>
+                    </div>
                   ) : (
                     <div className="mt-1">
                       {metadata.category && (
@@ -448,25 +482,63 @@ export function DocumentDetailDialog({
                     KEYWORDS
                   </Label>
                   {isEditing ? (
-                    <Input
-                      id="keywords"
-                      value={editedMetadata?.keywords?.join(", ") || ""}
-                      onChange={(e) =>
-                        setEditedMetadata((prev) =>
-                          prev
-                            ? {
-                                ...prev,
-                                keywords: e.target.value
-                                  .split(",")
-                                  .map((k) => k.trim())
-                                  .filter((k) => k),
+                    <div className="mt-1">
+                      <div className="flex flex-wrap gap-2 items-center">
+                        {editedMetadata?.keywords?.map((keyword, index) => (
+                          <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                            {keyword}
+                            <button
+                              type="button"
+                              className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditedMetadata((prev) =>
+                                  prev
+                                    ? {
+                                        ...prev,
+                                        keywords: prev.keywords?.filter((_, i) => i !== index) || [],
+                                      }
+                                    : prev
+                                );
+                              }}
+                            >
+                              <XIcon className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                        <Input
+                          value={newKeyword}
+                          onChange={(e) => setNewKeyword(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === ",") {
+                              e.preventDefault();
+                              if (newKeyword.trim()) {
+                                setEditedMetadata((prev) =>
+                                  prev
+                                    ? {
+                                        ...prev,
+                                        keywords: [...(prev.keywords || []), newKeyword.trim()],
+                                      }
+                                    : prev
+                                );
+                                setNewKeyword("");
                               }
-                            : prev
-                        )
-                      }
-                      className="mt-1"
-                      placeholder="keyword1, keyword2, keyword3"
-                    />
+                            } else if (e.key === "Backspace" && !newKeyword) {
+                              setEditedMetadata((prev) =>
+                                prev
+                                  ? {
+                                      ...prev,
+                                      keywords: prev.keywords?.slice(0, -1) || [],
+                                    }
+                                  : prev
+                              );
+                            }
+                          }}
+                          placeholder="Add keyword..."
+                          className="flex-1 min-w-20 border-0 p-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-auto"
+                        />
+                      </div>
+                    </div>
                   ) : (
                     <div className="mt-1">
                       {metadata.keywords && metadata.keywords.length > 0 ? (
