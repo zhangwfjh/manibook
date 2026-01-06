@@ -20,181 +20,229 @@ interface LLMSettings {
   };
 }
 
+interface DocumentMetadata {
+  doctype?: string;
+  title?: string;
+  authors: string[];
+  publication_year?: number;
+  publisher?: string;
+  category?: string;
+  language?: string;
+  keywords: string[];
+  abstract?: string;
+  [key: string]: unknown;
+}
+
+const MAX_FOREWORD_PAGES = 5;
+const MAX_FOREWORD_LENGTH = 2000;
+
+async function extractFromDjvu(buffer: Buffer): Promise<{ foreword: string; cover: Uint8Array | null; numPages: number }> {
+  let tempFilePath: string | null = null;
+  let tmpCoverName: string | null = null;
+  try {
+    tempFilePath = `temp_djvu_${Date.now()}.djvu`;
+    fs.writeFileSync(tempFilePath, buffer);
+
+    const foreword = execSync(`djvutxt --page=1-${MAX_FOREWORD_PAGES} "${tempFilePath}"`)
+      .toString()
+      .slice(0, MAX_FOREWORD_LENGTH);
+    tmpCoverName = tempFilePath.replace(/\.(djvu)$/i, "_cover.jpg");
+    execSync(`ddjvu -format=tiff -page=1 -quality=80 "${tempFilePath}" "${tmpCoverName}"`);
+    const cover = fs.readFileSync(tmpCoverName);
+    const numPages = parseInt(execSync(`djvused -e n "${tempFilePath}"`).toString());
+    return { foreword, cover, numPages };
+  } catch (error) {
+    throw new Error(`Failed to extract from DJVU: ${error}`);
+  } finally {
+    if (tempFilePath && fs.existsSync(tempFilePath)) {
+      fs.unlinkSync(tempFilePath);
+    }
+    if (tmpCoverName && fs.existsSync(tmpCoverName)) {
+      fs.unlinkSync(tmpCoverName);
+    }
+  }
+}
+
+async function extractFromEpub(buffer: Buffer): Promise<{ foreword: string; cover: Uint8Array | null; numPages: number }> {
+  try {
+    const epub = await parseEPUB(buffer);
+    const cover = epub.coverImage ? new Uint8Array(await epub.coverImage.arrayBuffer()) : null;
+    const foreword = (await Promise.all(
+      Array.from({ length: Math.min(MAX_FOREWORD_PAGES, epub.pages.length) }, (_, i) => epub.pages[i]?.content || "")
+    )).join("\n\n").slice(0, MAX_FOREWORD_LENGTH);
+    const numPages = epub.pages.length;
+    return { foreword, cover, numPages };
+  } catch (error) {
+    throw new Error(`Failed to extract from EPUB: ${error}`);
+  }
+}
+
+async function extractFromPdf(buffer: Buffer): Promise<{ foreword: string; cover: Uint8Array | null; numPages: number }> {
+  try {
+    const document = mupdf.Document.openDocument(buffer);
+    const numPages = document.countPages();
+    const page = document.loadPage(0);
+    const cover = page.toPixmap(mupdf.Matrix.identity, mupdf.ColorSpace.DeviceRGB).asJPEG(80);
+    const foreword = (await Promise.all(
+      Array.from({ length: Math.min(MAX_FOREWORD_PAGES, numPages) }, (_, i) => document.loadPage(i).toStructuredText().asText())
+    )).join("\n\n").slice(0, MAX_FOREWORD_LENGTH);
+    return { foreword, cover, numPages };
+  } catch (error) {
+    throw new Error(`Failed to extract from PDF: ${error}`);
+  }
+}
+
+async function callLLMForImageText(cover: Uint8Array, provider: LLMProvider): Promise<string> {
+  const response = await vllmCall(
+    [
+      {
+        role: "system",
+        content:
+          "Extract all readable text from this image. " +
+          "Pay special attention to titles, author names, publication information, " +
+          "and other metadata that would help identify this document.",
+      },
+      {
+        role: "user",
+        content: [
+          {
+            type: "image_url",
+            image_url: {
+              url: "data:image;base64," + Buffer.from(cover).toString("base64"),
+            },
+          },
+        ],
+      },
+    ],
+    {
+      model: provider.model,
+      baseURL: provider.baseURL,
+      apiKey: provider.apiKey,
+    }
+  );
+  return response.choices[0].message.content || "";
+}
+
+async function callLLMForMetadata(foreword: string, provider: LLMProvider): Promise<DocumentMetadata> {
+  const response = await vllmCall(
+    [
+      {
+        role: "system",
+        content:
+          "Extract title, authors, publication year, publisher, and other metadata from the document. " +
+          "If any information is missing, leave it empty. " +
+          "Infer the document type (Article or Book or Others). " +
+          "Infer the TWO-level category of the document (e.g., " +
+          "Good examples: 'Physics > Classical Mechanics', 'Computer Vision > Object Detection' " +
+          "Bad examples: one-level 'Physics'; three-level 'Science > Physics > Classical Mechanics'). " +
+          "Also infer the language (e.g., 'Chinese', 'English'), keywords and abstract of the document. " +
+          "Respond in JSON format with keys: doctype, title, authors, publication_year, publisher, category, language, keywords, abstract, metadata.",
+      },
+      {
+        role: "user",
+        content: foreword,
+      },
+    ],
+    {
+      model: provider.model,
+      baseURL: provider.baseURL,
+      apiKey: provider.apiKey,
+    }
+  );
+  return parseMetadataResponse(response.choices[0].message.content || "");
+}
+
+function parseMetadataResponse(responseString: string): DocumentMetadata {
+  const jsonMatch = responseString.match(/```json\n([\s\S]*?)\n```/);
+  const jsonString = jsonMatch?.[1] || responseString;
+  const parsed = JSON.parse(jsonString);
+
+  // Normalize category
+  if (parsed.category && Array.isArray(parsed.category)) {
+    parsed.category = parsed.category[0];
+  }
+
+  // Normalize keywords
+  if (parsed.keywords) {
+    if (typeof parsed.keywords === "string") {
+      parsed.keywords = parsed.keywords.split(",").map((kw: string) => kw.trim());
+    }
+    parsed.keywords = parsed.keywords.map((kw: string) =>
+      kw.replace(/\b\w/g, (l: string) => l.toUpperCase())
+    );
+  } else {
+    parsed.keywords = [];
+  }
+
+  // Normalize authors
+  if (parsed.authors) {
+    if (typeof parsed.authors === "string") {
+      parsed.authors = parsed.authors.split(",").map((a: string) => a.trim());
+    }
+  } else {
+    parsed.authors = ["Unknown Author"];
+  }
+
+  return parsed as DocumentMetadata;
+}
+
 export async function extractMetadataFromFile(
-  filePath: string,
+  buffer: Buffer,
+  extension: string,
   llmSettings?: LLMSettings
 ): Promise<{
-  metadata: Record<string, unknown>;
+  metadata: DocumentMetadata;
   cover: Uint8Array | null;
   numPages: number;
 }> {
-  const extension = filePath.split(".").pop()?.toLowerCase();
+  let extractor: (buffer: Buffer) => Promise<{ foreword: string; cover: Uint8Array | null; numPages: number }>;
+  switch (extension) {
+    case "djvu":
+      extractor = extractFromDjvu;
+      break;
+    case "epub":
+      extractor = extractFromEpub;
+      break;
+    case "pdf":
+      extractor = extractFromPdf;
+      break;
+    default:
+      throw new Error(`Unsupported file extension: ${extension}`);
+  }
 
-  let foreword: string = "";
-  let cover: Uint8Array | null = null;
-  let numPages: number = 0;
-  let metadata: Record<string, unknown> = {};
-  const maxForewordPages = 5;
-  const maxForewordLength = 2000;
-
-  if (extension === "djvu") {
-    foreword = execSync(`djvutxt --page=1-${maxForewordPages} "${filePath}"`)
-      .toString()
-      .slice(0, maxForewordLength);
-    const tmpCoverName = filePath.replace(/\.(djvu)$/i, "_cover.jpg");
-    console.log(tmpCoverName);
-    execSync(
-      `ddjvu -format=tiff -page=1 -quality=80 "${filePath}" "${tmpCoverName}"`
-    );
-    cover = fs.readFileSync(tmpCoverName);
-    fs.unlinkSync(tmpCoverName);
-    numPages = parseInt(execSync(`djvused -e n "${filePath}"`).toString());
-  }
-  if (extension === "epub") {
-    const epub = await parseEPUB(fs.readFileSync(filePath));
-    if (epub.coverImage) {
-      cover = new Uint8Array(await epub.coverImage.arrayBuffer());
-    }
-    foreword = (
-      await Promise.all(
-        Array.from(
-          { length: maxForewordPages },
-          (_, i) => epub.pages[i]?.content || ""
-        )
-      )
-    )
-      .join("\n\n")
-      .slice(0, maxForewordLength);
-    numPages = epub.pages.length;
-  }
-  if (extension === "pdf") {
-    const document = mupdf.Document.openDocument(fs.readFileSync(filePath));
-    numPages = document.countPages();
-    const page = document.loadPage(0);
-    cover = page
-      .toPixmap(mupdf.Matrix.identity, mupdf.ColorSpace.DeviceRGB)
-      .asJPEG(80);
-    foreword = (
-      await Promise.all(
-        Array.from({ length: Math.min(maxForewordPages, numPages) }, (_, i) =>
-          document.loadPage(i).toStructuredText().asText()
-        )
-      )
-    ).join("\n\n");
-  }
+  const { foreword: initialForeword, cover, numPages } = await extractor(buffer);
+  let foreword = initialForeword;
 
   if (cover && foreword.length < 100) {
-    const metadataProvider = llmSettings?.providers.find(
+    const imageProvider = llmSettings?.providers.find(
       (p) => p.name === llmSettings.jobs.imageTextExtraction
     );
-
-    foreword = (
-      await vllmCall(
-        [
-          {
-            role: "system",
-            content:
-              "Extract all readable text from this image. " +
-              "Pay special attention to titles, author names, publication information, " +
-              "and other metadata that would help identify this document.",
-          },
-          {
-            role: "user",
-            content: [
-              {
-                type: "image_url",
-                image_url: {
-                  url:
-                    "data:image;base64," +
-                    Buffer.from(cover).toString("base64"),
-                },
-              },
-            ],
-          },
-        ],
-        {
-          model: metadataProvider!.model,
-          baseURL: metadataProvider!.baseURL,
-          apiKey: metadataProvider!.apiKey,
-        }
-      )
-    ).choices[0].message.content;
+    if (imageProvider) {
+      foreword = await callLLMForImageText(cover, imageProvider);
+    }
   }
 
   const metadataProvider = llmSettings?.providers.find(
     (p) => p.name === llmSettings.jobs.metadataExtraction
   );
 
+  if (!metadataProvider) {
+    throw new Error("Metadata extraction provider not found");
+  }
+
+  let metadata: DocumentMetadata;
   for (let retry = 0; retry < 3; retry++) {
     try {
-      const responseString = (
-        await vllmCall(
-          [
-            {
-              role: "system",
-              content:
-                "Extract title, authors, publication year, publisher, and other metadata from the document. " +
-                "If any information is missing, leave it empty. " +
-                "Infer the document type (Article or Book or Others). " +
-                "Infer the TWO-level category of the document (e.g., " +
-                "Good examples: 'Physics > Classical Mechanics', 'Computer Vision > Object Detection' " +
-                "Bad examples: one-level 'Physics'; three-level 'Science > Physics > Classical Mechanics'). " +
-                "Also infer the language (e.g., 'Chinese', 'English'), keywords and abstract of the document. " +
-                "Respond in JSON format with keys: doctype, title, authors, publication_year, publisher, category, language, keywords, abstract, metadata.",
-            },
-            {
-              role: "user",
-              content: foreword,
-            },
-          ],
-          {
-            model: metadataProvider!.model,
-            baseURL: metadataProvider!.baseURL,
-            apiKey: metadataProvider!.apiKey,
-          }
-        )
-      ).choices[0].message.content;
-      console.warn(`metadata=${responseString}`);
-      const jsonMatch = responseString.match(/```json\n([\s\S]*?)\n```/);
-      const jsonString = jsonMatch?.[1] || responseString;
-      const parsed = JSON.parse(jsonString);
-      if (parsed.category) {
-        if (Array.isArray(parsed.category)) {
-          parsed.category = parsed.category[0];
-        }
-      }
-      if (parsed.keywords) {
-        if (typeof parsed.keywords === "string") {
-          parsed.keywords = [
-            parsed.keywords.split(",").map((kw: string) => kw.trim()),
-          ];
-        }
-        parsed.keywords = parsed.keywords.map((kw: string) =>
-          kw.replace(/\b\w/g, (l: string) => l.toUpperCase())
-        );
-      }
-      if (parsed.authors) {
-        if (typeof parsed.authors === "string") {
-          parsed.authors = [
-            parsed.authors.split(",").map((a: string) => a.trim()),
-          ];
-        }
-      } else {
-        parsed.authors = ["Unknown Author"];
-      }
-      if (Array.isArray(parsed.category)) {
-        parsed.category = parsed.category[0];
-      }
-      metadata = parsed;
+      metadata = await callLLMForMetadata(foreword, metadataProvider);
       break;
     } catch (error) {
       if (retry === 2) {
         throw error;
       }
-      console.warn(`Error parsing metadata, retrying...`);
+      console.warn(`Error extracting metadata, retrying...`);
       console.error(error);
     }
   }
 
-  return { metadata, cover, numPages };
+  return { metadata: metadata!, cover, numPages };
 }

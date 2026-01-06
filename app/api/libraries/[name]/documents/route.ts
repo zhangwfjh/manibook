@@ -98,18 +98,13 @@ export async function POST(
     // Use library root directory
     const libraryDir = libraryInfo.path;
 
-    // Save file temporarily
-    const tempFilename = `temp_${Date.now()}${fileExtension}`;
-    const tempFilePath = path.join(libraryDir, tempFilename);
-    fs.writeFileSync(tempFilePath, buffer);
-
     // Generate AI-powered metadata
     let metadata: DocumentMetadata;
     let cover: Uint8Array | null = null;
     let numPages = 0;
     try {
       // Use AI extraction for supported formats
-      const result = await extractMetadataFromFile(tempFilePath, llmSettings);
+      const result = await extractMetadataFromFile(buffer, fileExtension.slice(1), llmSettings);
       const { metadata: extractedMetadata, cover: extractedCover, numPages: extractedNumPages } = result;
       cover = extractedCover;
       numPages = extractedNumPages;
@@ -155,9 +150,9 @@ export async function POST(
       counter++;
     }
 
-    // Move file to final location
+    // Save file to final location
     const finalFilePath = path.join(categoryDir, newFilename);
-    fs.renameSync(tempFilePath, finalFilePath);
+    fs.writeFileSync(finalFilePath, buffer);
 
     // Save cover image if available (now that we have the final filename and directory)
     if (cover) {

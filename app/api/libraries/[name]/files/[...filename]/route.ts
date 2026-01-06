@@ -10,33 +10,19 @@ export async function GET(
   try {
     const { name, filename } = await params;
     const filenamePath = filename.map(segment => decodeURIComponent(segment)).join('/');
-
-    // Validate library access
     const validation = validateLibraryAccess(name);
     if (validation.error) {
       return NextResponse.json({ error: validation.error }, { status: validation.status });
     }
     const libraryInfo = validation.libraryInfo!;
-
-    // Construct file path
     const filePath = path.join(libraryInfo.path, filenamePath);
-
-    // Check if file exists
     if (!fs.existsSync(filePath)) {
       return NextResponse.json({ error: 'File not found' }, { status: 404 });
     }
-
-    // Get file stats
     const stat = fs.statSync(filePath);
-
-    // Read file
     const fileBuffer = fs.readFileSync(filePath);
-
-    // Determine content type based on extension
     const ext = path.extname(filePath).toLowerCase();
     const contentType = getContentType(ext);
-
-    // Return file with appropriate headers
     return new NextResponse(fileBuffer, {
       headers: {
         'Content-Type': contentType,

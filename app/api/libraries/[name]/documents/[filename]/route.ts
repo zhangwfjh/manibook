@@ -96,41 +96,24 @@ export async function PUT(
       const categoryParts = newCategory.split('>').map((part: string) => part.trim()).filter((part: string) => part);
       const folderPath = [metadata.doctype, ...categoryParts.slice(0, 2)].join('/'); // doctype + 2-level category folders
       const categoryDir = path.join(libraryInfo.path, folderPath);
-
-      // Ensure category directory exists
       fs.mkdirSync(categoryDir, { recursive: true });
-
-      // Generate new filename from title
       const safeTitle = newTitle.replace(/[\/\\?%*:|"<>]/g, '_');
       let newFilename = `${safeTitle}${fileExtension}`;
-
-      // Ensure filename uniqueness
       let counter = 1;
       while (fs.existsSync(path.join(categoryDir, newFilename))) {
         newFilename = `${safeTitle}_${counter}${fileExtension}`;
         counter++;
       }
 
-      // Derive old file path from url
-      console.warn(existingDoc.url);
-      const oldFileRelativePath = existingDoc.url.substring(6);   // Skip lib://
-      console.warn(libraryInfo.path);
-      const oldFilePath = path.join(libraryInfo.path, oldFileRelativePath);
-
+      const oldFilePath = path.join(libraryInfo.path, existingDoc.url.substring(6));  // Skip lib://
       const newFilePath = path.join(categoryDir, newFilename);
-      const newUrl =`lib://` + `${folderPath}/${newFilename}`.replace(/\/+/g, '/');
-
-      // Move file to new location
+      const newUrl = `lib://` + `${folderPath}/${newFilename}`.replace(/\/+/g, '/');
       fs.renameSync(oldFilePath, newFilePath);
-
-      // Move cover if exists (cover filename is based on original filename)
       const oldCoverFilename = `[Cover] ${existingDoc.filename.replace(/\.(pdf|epub|djvu)$/i, '.jpg')}`;
       const oldCoverPath = path.join(path.dirname(oldFilePath), oldCoverFilename);
       const newCoverFilename = `[Cover] ${newFilename.replace(/\.(pdf|epub|djvu)$/i, '.jpg')}`;
       const newCoverPath = path.join(categoryDir, newCoverFilename);
-      if (fs.existsSync(oldCoverPath)) {
-        fs.renameSync(oldCoverPath, newCoverPath);
-      }
+      fs.renameSync(oldCoverPath, newCoverPath);
 
       // Update path-related fields
       updateData.filename = newFilename;
@@ -221,24 +204,15 @@ export async function DELETE(
       return NextResponse.json({ error: 'Document not found in database' }, { status: 404 });
     }
 
-    // Derive file path from url
-    const urlParts = document.url.split('/').slice(5); // Skip /api/libraries/library/files/
-    const fileRelativePath = urlParts.join('/');
-    const filePath = path.join(libraryInfo.path, fileRelativePath);
-
-    // Delete the cover file if it exists
+    const filePath = path.join(libraryInfo.path, document.url.substring(6)); // Skip lib://
     const coverFilename = `[Cover] ${document.filename.replace(/\.(pdf|epub|djvu)$/i, '.jpg')}`;
     const coverPath = path.join(path.dirname(filePath), coverFilename);
     if (fs.existsSync(coverPath)) {
       fs.unlinkSync(coverPath);
     }
-
-    // Delete from database
     await prisma.document.delete({
       where: { filename },
     });
-
-    // Delete the physical file
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }

@@ -240,7 +240,7 @@ export function LibraryManager({
           const data = await response.json();
           counts[library.name] = data.documents?.length || 0;
         } catch (error) {
-          console.warn(`Failed to fetch document count for library ${library.name}:`, error);
+          console.error(`Failed to fetch document count for library ${library.name}:`, error);
           counts[library.name] = 0;
         }
       }
