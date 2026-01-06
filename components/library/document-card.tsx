@@ -15,6 +15,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
+import {
   BookOpenIcon,
   DownloadIcon,
   UsersIcon,
@@ -36,20 +41,20 @@ interface DocumentCardProps {
 }
 
 function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 B';
+  if (bytes === 0) return "0 B";
   const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
 }
 
 function getFormatIcon(format: string) {
   switch (format.toLowerCase()) {
-    case 'pdf':
+    case "pdf":
       return FileTextIcon;
-    case 'epub':
+    case "epub":
       return BookIcon;
-    case 'djvu':
+    case "djvu":
       return ImageIcon;
     default:
       return FileIcon;
@@ -64,6 +69,13 @@ export function DocumentCard({
   onFavoriteToggle,
 }: DocumentCardProps) {
   const { metadata } = document;
+
+  const coverUrl = `/api/libraries/${library}/files/${document.url
+    .substring(6)
+    .replace(
+      document.filename,
+      `[Cover] ${document.filename.replace(/\.(pdf|epub|djvu)$/i, ".jpg")}`
+    )}`;
 
   const handleCardClick = () => {
     onClick?.(document);
@@ -132,7 +144,9 @@ export function DocumentCard({
 
             {metadata.filesize && metadata.format && (
               <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                {React.createElement(getFormatIcon(metadata.format), { className: "h-4 w-4" })}
+                {React.createElement(getFormatIcon(metadata.format), {
+                  className: "h-4 w-4",
+                })}
                 <span>{formatFileSize(metadata.filesize)}</span>
               </div>
             )}
@@ -205,24 +219,38 @@ export function DocumentCard({
           </div>
 
           <div className="shrink-0">
-            <Image
-              src={`/api/libraries/${library}/files/${document.url
-                .substring(6)
-                .replace(
-                  document.filename,
-                  `[Cover] ${document.filename.replace(
-                    /\.(pdf|epub|djvu)$/i,
-                    ".jpg"
-                  )}`
-                )}`}
-              alt={`${metadata.title} cover`}
-              width={150}
-              height={200}
-              className="object-cover rounded border shadow-sm"
-              onError={(e) => {
-                e.currentTarget.style.display = "none";
-              }}
-            />
+            <HoverCard>
+              <HoverCardTrigger asChild>
+                <div className="cursor-pointer">
+                  <Image
+                    src={coverUrl}
+                    alt={`${metadata.title} cover`}
+                    width={150}
+                    height={200}
+                    className="object-cover rounded border shadow-sm hover:shadow-md transition-shadow"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                </div>
+              </HoverCardTrigger>
+              <HoverCardContent
+                className="w-auto p-0 border-0 shadow-2xl"
+                side="right"
+                align="start"
+              >
+                <Image
+                  src={coverUrl}
+                  alt={`${metadata.title} cover`}
+                  width={450}
+                  height={600}
+                  className="object-cover rounded border shadow-lg"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                  }}
+                />
+              </HoverCardContent>
+            </HoverCard>
           </div>
         </CardContent>
       </div>
