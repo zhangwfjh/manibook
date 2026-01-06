@@ -122,7 +122,16 @@ export default function LibraryPage() {
 
   useEffect(() => {
     if (currentLibrary) {
+      // Clear documents immediately when switching libraries to prevent stale cover requests
+      setDocuments([]);
       fetchLibraryData();
+      // Reset filters and close dialogs when switching libraries
+      setSelectedCategory("");
+      setSelectedTags([]);
+      setSelectedFormats([]);
+      setSearchQuery("");
+      setSelectedDocument(null);
+      setDialogOpen(false);
     }
   }, [currentLibrary, fetchLibraryData]); // Only run when currentLibrary changes
 
@@ -867,9 +876,9 @@ export default function LibraryPage() {
               </div>
             ) : viewMode === "card" ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {sortedDocuments.map((document, index) => (
+                {sortedDocuments.map((document) => (
                   <DocumentCard
-                    key={index}
+                    key={`${currentLibrary}-${document.filename}`}
                     library={currentLibrary}
                     document={document}
                     onClick={handleDocumentClick}
