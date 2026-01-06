@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { PrismaClient } from '@prisma/client';
+import { PrismaLibSql } from '@prisma/adapter-libsql';
+import { PrismaClient } from '../generated/prisma/client';
 
 export interface DocumentMetadata {
   doctype: 'Article' | 'Book' | 'Others';
@@ -129,13 +130,8 @@ export async function ensureLibraryStructure(libraryPath: string): Promise<void>
 
     // Initialize database schema
     const databaseUrl = `file:${dbPath}`;
-    const prisma = new PrismaClient({
-      datasources: {
-        db: {
-          url: databaseUrl,
-        },
-      },
-    });
+    const adapter = new PrismaLibSql({ url: databaseUrl });
+    const prisma = new PrismaClient({ adapter });
 
     try {
       // Create the documents table

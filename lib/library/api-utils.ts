@@ -1,4 +1,4 @@
-import { Document } from '@prisma/client';
+import { Document } from '../generated/prisma/client';
 import { LibraryDocument, LibraryCategory, getLibrary } from './index';
 import { getPrismaClient } from '../db';
 
