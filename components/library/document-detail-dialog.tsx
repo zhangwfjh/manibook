@@ -39,20 +39,20 @@ import { useState } from "react";
 import React from "react";
 
 function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 B';
+  if (bytes === 0) return "0 B";
   const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
 }
 
 function getFormatIcon(format: string) {
   switch (format.toLowerCase()) {
-    case 'pdf':
+    case "pdf":
       return FileTextIcon;
-    case 'epub':
+    case "epub":
       return BookIcon;
-    case 'djvu':
+    case "djvu":
       return ImageIcon;
     default:
       return FileIcon;
@@ -161,26 +161,8 @@ export function DocumentDetailDialog({
         "Are you sure you want to delete this document? This action cannot be undone."
       )
     ) {
-      try {
-        const response = await fetch(
-          `/api/libraries/${library}/documents/${encodeURIComponent(
-            document.filename
-          )}`,
-          {
-            method: "DELETE",
-          }
-        );
-
-        if (response.ok) {
-          onDelete?.(document);
-          onOpenChange(false);
-        } else {
-          alert("Failed to delete document");
-        }
-      } catch (error) {
-        console.error("Error deleting document:", error);
-        alert("Error deleting document");
-      }
+      onDelete?.(document);
+      onOpenChange(false);
     }
   };
 
@@ -836,7 +818,9 @@ export function DocumentDetailDialog({
                   <div className="flex items-center gap-2 mt-1">
                     {metadata.filesize && metadata.format && (
                       <>
-                        {React.createElement(getFormatIcon(metadata.format), { className: "h-4 w-4 text-muted-foreground" })}
+                        {React.createElement(getFormatIcon(metadata.format), {
+                          className: "h-4 w-4 text-muted-foreground",
+                        })}
                         <span>{formatFileSize(metadata.filesize)}</span>
                       </>
                     )}
@@ -847,7 +831,9 @@ export function DocumentDetailDialog({
                   <div className="flex items-center gap-2 mt-1">
                     {metadata.format && (
                       <>
-                        {React.createElement(getFormatIcon(metadata.format), { className: "h-4 w-4 text-muted-foreground" })}
+                        {React.createElement(getFormatIcon(metadata.format), {
+                          className: "h-4 w-4 text-muted-foreground",
+                        })}
                         <span className="uppercase">{metadata.format}</span>
                       </>
                     )}
