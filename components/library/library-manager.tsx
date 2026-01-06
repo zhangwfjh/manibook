@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -31,7 +31,6 @@ interface LibraryManagerProps {
   onCreateLibrary: () => void;
   onRenameLibrary: (libraryName: string) => void;
   onArchiveLibrary: (libraryName: string) => void;
-  refreshTrigger?: number;
 }
 
 interface LibraryNodeProps {
@@ -40,11 +39,14 @@ interface LibraryNodeProps {
   isExpanded: boolean;
   categories: LibraryCategory[];
   selectedCategory: string;
-  documentCount: number;
   onToggleExpanded: (libraryName: string) => void;
   onCategorySelect: (categoryPath: string) => void;
   onRenameLibrary: (libraryName: string) => void;
   onArchiveLibrary: (libraryName: string) => void;
+}
+
+interface LibraryCounts {
+  [libraryName: string]: number;
 }
 
 interface CategoryNodeProps {
@@ -125,7 +127,6 @@ function LibraryNode({
   isExpanded,
   categories,
   selectedCategory,
-  documentCount,
   onToggleExpanded,
   onCategorySelect,
   onRenameLibrary,
@@ -164,9 +165,6 @@ function LibraryNode({
           )}
           <LibraryIcon className="h-4 w-4 mr-2" />
           <span className="truncate flex-1">{library.name}</span>
-          <span className="text-xs text-muted-foreground ml-2">
-            ({documentCount})
-          </span>
         </Button>
 
         <DropdownMenu>
@@ -221,36 +219,10 @@ export function LibraryManager({
   onCreateLibrary,
   onRenameLibrary,
   onArchiveLibrary: onArchiveLibrary,
-  refreshTrigger,
 }: LibraryManagerProps) {
   const [expandedLibraries, setExpandedLibraries] = useState<Set<string>>(
     new Set([currentLibrary])
   );
-  const [libraryDocumentCounts, setLibraryDocumentCounts] = useState<
-    Record<string, number>
-  >({});
-
-  // Fetch document counts for all libraries
-  useEffect(() => {
-    const fetchCounts = async () => {
-      const counts: Record<string, number> = {};
-      for (const library of libraries) {
-        try {
-          const response = await fetch(`/api/libraries/${library.name}/documents`);
-          const data = await response.json();
-          counts[library.name] = data.documents?.length || 0;
-        } catch (error) {
-          console.error(`Failed to fetch document count for library ${library.name}:`, error);
-          counts[library.name] = 0;
-        }
-      }
-      setLibraryDocumentCounts(counts);
-    };
-
-    if (libraries.length > 0) {
-      fetchCounts();
-    }
-  }, [libraries, refreshTrigger]);
 
   const handleLibraryToggle = (libraryName: string) => {
     // Switch to the clicked library
@@ -288,7 +260,6 @@ export function LibraryManager({
               selectedCategory={
                 library.name === currentLibrary ? selectedCategory : ""
               }
-              documentCount={libraryDocumentCounts[library.name] || 0}
               onToggleExpanded={handleLibraryToggle}
               onCategorySelect={onCategorySelect}
               onRenameLibrary={onRenameLibrary}

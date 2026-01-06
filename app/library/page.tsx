@@ -83,8 +83,8 @@ export default function LibraryPage() {
   const [renameLibraryOpen, setRenameLibraryOpen] = useState(false);
   const [archiveLibraryOpen, setArchiveLibraryOpen] = useState(false);
   const [renameLibraryName, setRenameLibraryName] = useState("");
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const fetchLibraries = useCallback(async () => {
     try {
       const response = await fetch("/api/libraries");
@@ -97,9 +97,11 @@ export default function LibraryPage() {
     } catch (error) {
       console.error("Error fetching libraries:", error);
     }
-  }, [currentLibrary]);
+  }, []); // Remove currentLibrary dependency to avoid cycles
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const fetchLibraryData = useCallback(async () => {
+    if (!currentLibrary) return;
     try {
       const response = await fetch(
         `/api/libraries/${currentLibrary}/documents`
@@ -116,8 +118,13 @@ export default function LibraryPage() {
 
   useEffect(() => {
     fetchLibraries();
-    fetchLibraryData();
-  }, [currentLibrary, fetchLibraries, fetchLibraryData]);
+  }, []); // Only run once on mount
+
+  useEffect(() => {
+    if (currentLibrary) {
+      fetchLibraryData();
+    }
+  }, [currentLibrary, fetchLibraryData]); // Only run when currentLibrary changes
 
   const handleCreateLibrary = async () => {
     if (!newLibraryName || !newLibraryPath) {
@@ -366,8 +373,6 @@ export default function LibraryPage() {
     }
     // Refresh the library data after deletion
     await fetchLibraryData();
-    // Trigger refresh of library counts
-    setRefreshTrigger((prev) => prev + 1);
   };
 
   const handleDocumentUpdate = async (updatedDoc: LibraryDocument) => {
@@ -389,8 +394,6 @@ export default function LibraryPage() {
         setSelectedDocument(result.document);
         // Also refresh the library data
         await fetchLibraryData();
-        // Trigger refresh of library counts
-        setRefreshTrigger((prev) => prev + 1);
       } else {
         console.error("Error updating document");
       }
@@ -416,8 +419,6 @@ export default function LibraryPage() {
     }
     // Refresh the library data after favorite toggle
     await fetchLibraryData();
-    // Trigger refresh of library counts (though count doesn't change for favorites)
-    setRefreshTrigger((prev) => prev + 1);
   };
 
   const handleFileUpload = async (
@@ -489,8 +490,6 @@ export default function LibraryPage() {
 
     // Refresh the library data
     await fetchLibraryData();
-    // Trigger refresh of library counts
-    setRefreshTrigger((prev) => prev + 1);
 
     // Reset the file input
     if (fileInputRef.current) {
@@ -621,7 +620,6 @@ export default function LibraryPage() {
               onCreateLibrary={() => setCreateLibraryOpen(true)}
               onRenameLibrary={handleOpenRenameDialog}
               onArchiveLibrary={handleOpenArchiveDialog}
-              refreshTrigger={refreshTrigger}
             />
 
             <Separator />
