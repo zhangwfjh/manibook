@@ -9,13 +9,7 @@ export function getPrismaClient(libraryPath: string): PrismaClient {
   const databaseUrl = `file:${dbPath}`;
 
   if (!prismaClients.has(databaseUrl)) {
-    const client = new PrismaClient({
-      datasources: {
-        db: {
-          url: databaseUrl,
-        },
-      },
-    });
+    const client = new PrismaClient();
     prismaClients.set(databaseUrl, client);
   }
 
@@ -74,10 +68,10 @@ export const dbUtils = {
     return {
       total,
       favorites,
-      byDoctype: byDoctype.reduce((acc, curr) => {
+      byDoctype: byDoctype.reduce((acc: Record<string, number>, curr: { doctype: string; _count: { doctype: number } }) => {
         acc[curr.doctype] = curr._count.doctype
         return acc
-      }, {} as Record<string, number>),
+      }, {}),
     }
   },
 }
