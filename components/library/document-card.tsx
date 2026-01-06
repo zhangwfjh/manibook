@@ -24,7 +24,7 @@ import {
   DownloadIcon,
   UsersIcon,
   CalendarIcon,
-  StarIcon,
+  HeartIcon,
   FileIcon,
   FileTextIcon,
   BookIcon,
@@ -116,12 +116,10 @@ export function DocumentCard({
                   onFavoriteToggle?.(document);
                 }}
                 className={`h-6 w-6 p-0 ${
-                  metadata.favorite
-                    ? "text-yellow-500 hover:text-yellow-600"
-                    : "text-gray-400 hover:text-yellow-500"
+                  metadata.favorite ? "text-red-500" : "text-muted-foreground hover:text-red-500"
                 }`}
               >
-                <StarIcon
+                <HeartIcon
                   className={`h-4 w-4 ${
                     metadata.favorite ? "fill-current" : ""
                   }`}
