@@ -3,6 +3,7 @@ import { parseEPUB } from "@/lib/parser";
 import { vllmCall } from "@/lib/llm";
 import fs from "fs";
 import { execSync } from "child_process";
+import { METADATA_EXTRACTION_PROMPT, OCR_PROMPT } from "./prompts";
 
 interface LLMProvider {
   name: string;
@@ -36,20 +37,28 @@ interface DocumentMetadata {
 const MAX_FOREWORD_PAGES = 5;
 const MAX_FOREWORD_LENGTH = 2000;
 
-async function extractFromDjvu(buffer: Buffer): Promise<{ foreword: string; cover: Uint8Array | null; numPages: number }> {
+async function extractFromDjvu(
+  buffer: Buffer
+): Promise<{ foreword: string; cover: Uint8Array | null; numPages: number }> {
   let tempFilePath: string | null = null;
   let tmpCoverName: string | null = null;
   try {
     tempFilePath = `temp_djvu_${Date.now()}.djvu`;
     fs.writeFileSync(tempFilePath, buffer);
 
-    const foreword = execSync(`djvutxt --page=1-${MAX_FOREWORD_PAGES} "${tempFilePath}"`)
+    const foreword = execSync(
+      `djvutxt --page=1-${MAX_FOREWORD_PAGES} "${tempFilePath}"`
+    )
       .toString()
       .slice(0, MAX_FOREWORD_LENGTH);
     tmpCoverName = tempFilePath.replace(/\.(djvu)$/i, "_cover.jpg");
-    execSync(`ddjvu -format=tiff -page=1 -quality=80 "${tempFilePath}" "${tmpCoverName}"`);
+    execSync(
+      `ddjvu -format=tiff -page=1 -quality=80 "${tempFilePath}" "${tmpCoverName}"`
+    );
     const cover = fs.readFileSync(tmpCoverName);
-    const numPages = parseInt(execSync(`djvused -e n "${tempFilePath}"`).toString());
+    const numPages = parseInt(
+      execSync(`djvused -e n "${tempFilePath}"`).toString()
+    );
     return { foreword, cover, numPages };
   } catch (error) {
     throw new Error(`Failed to extract from DJVU: ${error}`);
@@ -63,13 +72,24 @@ async function extractFromDjvu(buffer: Buffer): Promise<{ foreword: string; cove
   }
 }
 
-async function extractFromEpub(buffer: Buffer): Promise<{ foreword: string; cover: Uint8Array | null; numPages: number }> {
+async function extractFromEpub(
+  buffer: Buffer
+): Promise<{ foreword: string; cover: Uint8Array | null; numPages: number }> {
   try {
     const epub = await parseEPUB(buffer);
-    const cover = epub.coverImage ? new Uint8Array(await epub.coverImage.arrayBuffer()) : null;
-    const foreword = (await Promise.all(
-      Array.from({ length: Math.min(MAX_FOREWORD_PAGES, epub.pages.length) }, (_, i) => epub.pages[i]?.content || "")
-    )).join("\n\n").slice(0, MAX_FOREWORD_LENGTH);
+    const cover = epub.coverImage
+      ? new Uint8Array(await epub.coverImage.arrayBuffer())
+      : null;
+    const foreword = (
+      await Promise.all(
+        Array.from(
+          { length: Math.min(MAX_FOREWORD_PAGES, epub.pages.length) },
+          (_, i) => epub.pages[i]?.content || ""
+        )
+      )
+    )
+      .join("\n\n")
+      .slice(0, MAX_FOREWORD_LENGTH);
     const numPages = epub.pages.length;
     return { foreword, cover, numPages };
   } catch (error) {
@@ -77,30 +97,40 @@ async function extractFromEpub(buffer: Buffer): Promise<{ foreword: string; cove
   }
 }
 
-async function extractFromPdf(buffer: Buffer): Promise<{ foreword: string; cover: Uint8Array | null; numPages: number }> {
+async function extractFromPdf(
+  buffer: Buffer
+): Promise<{ foreword: string; cover: Uint8Array | null; numPages: number }> {
   try {
     const document = mupdf.Document.openDocument(buffer);
     const numPages = document.countPages();
     const page = document.loadPage(0);
-    const cover = page.toPixmap(mupdf.Matrix.identity, mupdf.ColorSpace.DeviceRGB).asJPEG(80);
-    const foreword = (await Promise.all(
-      Array.from({ length: Math.min(MAX_FOREWORD_PAGES, numPages) }, (_, i) => document.loadPage(i).toStructuredText().asText())
-    )).join("\n\n").slice(0, MAX_FOREWORD_LENGTH);
+    const cover = page
+      .toPixmap(mupdf.Matrix.identity, mupdf.ColorSpace.DeviceRGB)
+      .asJPEG(80);
+    const foreword = (
+      await Promise.all(
+        Array.from({ length: Math.min(MAX_FOREWORD_PAGES, numPages) }, (_, i) =>
+          document.loadPage(i).toStructuredText().asText()
+        )
+      )
+    )
+      .join("\n\n")
+      .slice(0, MAX_FOREWORD_LENGTH);
     return { foreword, cover, numPages };
   } catch (error) {
     throw new Error(`Failed to extract from PDF: ${error}`);
   }
 }
 
-async function callLLMForImageText(cover: Uint8Array, provider: LLMProvider): Promise<string> {
+async function callLLMForImageText(
+  cover: Uint8Array,
+  provider: LLMProvider
+): Promise<string> {
   const response = await vllmCall(
     [
       {
         role: "system",
-        content:
-          "Extract all readable text from this image. " +
-          "Pay special attention to titles, author names, publication information, " +
-          "and other metadata that would help identify this document.",
+        content: OCR_PROMPT,
       },
       {
         role: "user",
@@ -118,25 +148,21 @@ async function callLLMForImageText(cover: Uint8Array, provider: LLMProvider): Pr
       model: provider.model,
       baseURL: provider.baseURL,
       apiKey: provider.apiKey,
+      temperature: 0,
     }
   );
   return response.choices[0].message.content || "";
 }
 
-async function callLLMForMetadata(foreword: string, provider: LLMProvider): Promise<DocumentMetadata> {
+async function callLLMForMetadata(
+  foreword: string,
+  provider: LLMProvider
+): Promise<DocumentMetadata> {
   const response = await vllmCall(
     [
       {
         role: "system",
-        content:
-          "Extract title, authors, publication year, publisher, and other metadata from the document. " +
-          "If any information is missing, leave it empty. " +
-          "Infer the document type (Article or Book or Others). " +
-          "Infer the TWO-level category of the document (e.g., " +
-          "Good examples: 'Physics > Classical Mechanics', 'Computer Vision > Object Detection' " +
-          "Bad examples: one-level 'Physics'; three-level 'Science > Physics > Classical Mechanics'). " +
-          "Also infer the language (e.g., 'Chinese', 'English'), keywords and abstract of the document. " +
-          "Respond in JSON format with keys: doctype, title, authors, publication_year, publisher, category, language, keywords, abstract, metadata.",
+        content: METADATA_EXTRACTION_PROMPT,
       },
       {
         role: "user",
@@ -147,6 +173,7 @@ async function callLLMForMetadata(foreword: string, provider: LLMProvider): Prom
       model: provider.model,
       baseURL: provider.baseURL,
       apiKey: provider.apiKey,
+      temperature: 0,
     }
   );
   return parseMetadataResponse(response.choices[0].message.content || "");
@@ -165,7 +192,9 @@ function parseMetadataResponse(responseString: string): DocumentMetadata {
   // Normalize keywords
   if (parsed.keywords) {
     if (typeof parsed.keywords === "string") {
-      parsed.keywords = parsed.keywords.split(",").map((kw: string) => kw.trim());
+      parsed.keywords = parsed.keywords
+        .split(",")
+        .map((kw: string) => kw.trim());
     }
     parsed.keywords = parsed.keywords.map((kw: string) =>
       kw.replace(/\b\w/g, (l: string) => l.toUpperCase())
@@ -195,7 +224,11 @@ export async function extractMetadataFromFile(
   cover: Uint8Array | null;
   numPages: number;
 }> {
-  let extractor: (buffer: Buffer) => Promise<{ foreword: string; cover: Uint8Array | null; numPages: number }>;
+  let extractor: (buffer: Buffer) => Promise<{
+    foreword: string;
+    cover: Uint8Array | null;
+    numPages: number;
+  }>;
   switch (extension) {
     case "djvu":
       extractor = extractFromDjvu;
@@ -210,7 +243,11 @@ export async function extractMetadataFromFile(
       throw new Error(`Unsupported file extension: ${extension}`);
   }
 
-  const { foreword: initialForeword, cover, numPages } = await extractor(buffer);
+  const {
+    foreword: initialForeword,
+    cover,
+    numPages,
+  } = await extractor(buffer);
   let foreword = initialForeword;
 
   if (cover && foreword.length < 100) {

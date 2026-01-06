@@ -11,10 +11,11 @@ interface ChatRequestOption {
     stream?: boolean;
     think?: boolean;
     response_format?: 'text' | 'json_object';
+    temperature?: number;
 };
 
 export async function ollamaCall(messages: Array<Message>, options?: ChatRequestOption) {
-    const { model, baseURL, stream, think } = options || {};
+    const { model, baseURL, stream, think, temperature } = options || {};
     const url = `${baseURL ? baseURL : 'http://localhost:11434'}/api/chat`;
     const response = await fetch(url, {
         method: 'POST',
@@ -23,14 +24,14 @@ export async function ollamaCall(messages: Array<Message>, options?: ChatRequest
             messages: messages,
             think: think || true,
             stream: stream || false,
-            // temperature: 1,
+            temperature: temperature || 1,
         })
     });
     return await response.json();
 }
 
 export async function vllmCall(messages: Array<Message>, options?: ChatRequestOption) {
-    const { model, apiKey, baseURL, stream, response_format } = options || {};
+    const { model, apiKey, baseURL, stream, response_format, temperature } = options || {};
     const url = `${baseURL ? baseURL : 'http://localhost:8000/v1'}/chat/completions`;
     const response = await fetch(url, {
         method: 'POST',
@@ -42,7 +43,8 @@ export async function vllmCall(messages: Array<Message>, options?: ChatRequestOp
             model: model,
             messages: messages,
             response_format: { type: response_format || 'text' },
-            stream: stream || false
+            stream: stream || false,
+            temperature: temperature || 1,
         })
     });
     return await response.json();
