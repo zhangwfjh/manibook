@@ -46,7 +46,6 @@ export default function LibraryPage() {
     showFavoritesOnly,
     setShowFavoritesOnly,
     filteredDocuments,
-    resetFilters,
   } = useDocumentFilters(documents);
 
   const {
@@ -214,7 +213,7 @@ export default function LibraryPage() {
             categories={categories}
             selectedCategory={selectedCategory}
             documents={documents}
-            selectedTags={selectedTags}
+            selectedKeywords={selectedTags}
             selectedFormats={selectedFormats}
             showFavoritesOnly={showFavoritesOnly}
             onLibrarySelect={setCurrentLibrary}
@@ -222,7 +221,7 @@ export default function LibraryPage() {
             onCreateLibrary={() => setCreateLibraryOpen(true)}
             onRenameLibrary={handleOpenRenameDialog}
             onArchiveLibrary={handleOpenArchiveDialog}
-            onTagsChange={setSelectedTags}
+            onKeywordsChange={setSelectedTags}
             onFormatsChange={setSelectedFormats}
             onShowFavoritesOnlyChange={setShowFavoritesOnly}
           />

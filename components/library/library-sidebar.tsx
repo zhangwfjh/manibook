@@ -3,8 +3,7 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { LibraryManager } from "@/components/library/library-manager";
-import { TagFilter } from "@/components/library/tag-filter";
-import { FormatFilter } from "@/components/library/format-filter";
+import { GenericFilter } from "@/components/library/generic-filter";
 import { LibraryDocument, LibraryCategory, Library } from "@/lib/library";
 
 interface LibrarySidebarProps {
@@ -13,16 +12,20 @@ interface LibrarySidebarProps {
   categories: LibraryCategory[];
   selectedCategory: string;
   documents: LibraryDocument[];
-  selectedTags: string[];
-  selectedFormats: string[];
+  selectedKeywords?: string[];
+  selectedFormats?: string[];
+  selectedAuthors?: string[];
+  selectedPublishers?: string[];
   showFavoritesOnly: boolean;
   onLibrarySelect: (library: string) => void;
   onCategorySelect: (category: string) => void;
   onCreateLibrary: () => void;
   onRenameLibrary: (libraryName: string) => void;
   onArchiveLibrary: (libraryName: string) => void;
-  onTagsChange: (tags: string[]) => void;
+  onKeywordsChange: (keywords: string[]) => void;
   onFormatsChange: (formats: string[]) => void;
+  onAuthorsChange?: (authors: string[]) => void;
+  onPublishersChange?: (publishers: string[]) => void;
   onShowFavoritesOnlyChange: (show: boolean) => void;
 }
 
@@ -32,16 +35,20 @@ export function LibrarySidebar({
   categories,
   selectedCategory,
   documents,
-  selectedTags,
-  selectedFormats,
+  selectedKeywords: selectedKeywords = [],
+  selectedFormats = [],
+  selectedAuthors = [],
+  selectedPublishers = [],
   showFavoritesOnly,
   onLibrarySelect,
   onCategorySelect,
   onCreateLibrary,
   onRenameLibrary,
   onArchiveLibrary,
-  onTagsChange,
+  onKeywordsChange,
   onFormatsChange,
+  onAuthorsChange = () => {},
+  onPublishersChange = () => {},
   onShowFavoritesOnlyChange,
 }: LibrarySidebarProps) {
   return (
@@ -64,36 +71,62 @@ export function LibrarySidebar({
       {/* Favorites Filter */}
       <div className="space-y-2">
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-          Favorites
+          Filters
         </h3>
-        <div className="flex items-center space-x-2">
-          <Switch
-            id="favorites"
-            checked={showFavoritesOnly}
-            onCheckedChange={onShowFavoritesOnlyChange}
-          />
-          <Label htmlFor="favorites" className="text-sm">
-            Show only favorites
-          </Label>
-        </div>
+      </div>
+      <div className="flex items-center space-x-2">
+        <Switch
+          id="favorites"
+          checked={showFavoritesOnly}
+          onCheckedChange={onShowFavoritesOnlyChange}
+        />
+        <Label htmlFor="favorites" className="text-sm">
+          Show only favorites
+        </Label>
       </div>
 
-      <Separator />
-
-      {/* Format Filter */}
-      <FormatFilter
+      <GenericFilter
+        title="Formats"
+        selectedItems={selectedFormats}
+        onItemsChange={onFormatsChange}
         documents={documents}
-        selectedFormats={selectedFormats}
-        onFormatsChange={onFormatsChange}
+        getItemValues={(doc) =>
+          doc.metadata.format ? [doc.metadata.format.toUpperCase()] : []
+        }
       />
 
-      <Separator />
-
-      {/* Tag Filter */}
-      <TagFilter
+      <GenericFilter
+        title="Keywords"
+        selectedItems={selectedKeywords}
+        onItemsChange={onKeywordsChange}
         documents={documents}
-        selectedTags={selectedTags}
-        onTagsChange={onTagsChange}
+        getItemValues={(doc) =>
+          doc.metadata.keywords?.map((kw) =>
+            kw.replace(/\b\w/g, (l: string) => l.toUpperCase())
+          ) || []
+        }
+      />
+
+      <GenericFilter
+        title="Authors"
+        selectedItems={selectedAuthors}
+        onItemsChange={onAuthorsChange}
+        documents={documents}
+        getItemValues={(doc) =>
+          doc.metadata.authors?.map((author) =>
+            author.replace(/\b\w/g, (l: string) => l.toUpperCase())
+          ) || []
+        }
+      />
+
+      <GenericFilter
+        title="Publishers"
+        selectedItems={selectedPublishers}
+        onItemsChange={onPublishersChange}
+        documents={documents}
+        getItemValues={(doc) =>
+          doc.metadata.publisher ? [doc.metadata.publisher] : []
+        }
       />
     </div>
   );
