@@ -1,9 +1,8 @@
-import React from "react";
+import React, { useMemo } from "react";
 import Image from "next/image";
 import {
   Card,
   CardContent,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -19,18 +18,13 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
-import {
-  BookOpenIcon,
-  DownloadIcon,
-  UsersIcon,
-  CalendarIcon,
-  HeartIcon,
-  FileIcon,
-  FileTextIcon,
-  BookIcon,
-  ImageIcon,
-} from "lucide-react";
+import { UsersIcon, CalendarIcon, HeartIcon } from "lucide-react";
 import { LibraryDocument } from "@/lib/library";
+import {
+  formatFileSize,
+  getFormatIcon,
+  getCoverUrl,
+} from "@/lib/library/document-utils";
 
 interface DocumentCardProps {
   library: string;
@@ -40,50 +34,21 @@ interface DocumentCardProps {
   onFavoriteToggle?: (document: LibraryDocument) => void;
 }
 
-function formatFileSize(bytes: number): string {
-  if (bytes === 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
-}
-
-function getFormatIcon(format: string) {
-  switch (format.toLowerCase()) {
-    case "pdf":
-      return FileTextIcon;
-    case "epub":
-      return BookIcon;
-    case "djvu":
-      return ImageIcon;
-    default:
-      return FileIcon;
-  }
-}
-
 export function DocumentCard({
   library,
   document,
   onClick,
-  onDownload,
   onFavoriteToggle,
 }: DocumentCardProps) {
   const { metadata } = document;
 
-  const coverUrl = `/api/libraries/${library}/files/${document.url
-    .substring(6)
-    .replace(
-      document.filename,
-      `[Cover] ${document.filename.replace(/\.(pdf|epub|djvu)$/i, ".jpg")}`
-    )}`;
+  const coverUrl = useMemo(
+    () => getCoverUrl(library, document),
+    [library, document]
+  );
 
   const handleCardClick = () => {
     onClick?.(document);
-  };
-
-  const handleDownloadClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent card click
-    onDownload?.(document);
   };
 
   return (
@@ -116,7 +81,9 @@ export function DocumentCard({
                   onFavoriteToggle?.(document);
                 }}
                 className={`h-6 w-6 p-0 ${
-                  metadata.favorite ? "text-red-500" : "text-muted-foreground hover:text-red-500"
+                  metadata.favorite
+                    ? "text-red-500"
+                    : "text-muted-foreground hover:text-red-500"
                 }`}
               >
                 <HeartIcon

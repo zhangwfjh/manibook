@@ -30,34 +30,14 @@ import {
   EditIcon,
   SaveIcon,
   XIcon,
-  FileIcon,
-  BookIcon,
-  ImageIcon,
 } from "lucide-react";
 import { LibraryDocument } from "@/lib/library";
-import { useState } from "react";
-import React from "react";
-
-function formatFileSize(bytes: number): string {
-  if (bytes === 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
-}
-
-function getFormatIcon(format: string) {
-  switch (format.toLowerCase()) {
-    case "pdf":
-      return FileTextIcon;
-    case "epub":
-      return BookIcon;
-    case "djvu":
-      return ImageIcon;
-    default:
-      return FileIcon;
-  }
-}
+import React, { useState, useMemo } from "react";
+import {
+  formatFileSize,
+  getFormatIcon,
+  getCoverUrl,
+} from "@/lib/library/document-utils";
 
 interface DocumentDetailDialogProps {
   library: string;
@@ -84,6 +64,11 @@ export function DocumentDetailDialog({
   const [validationErrors, setValidationErrors] = useState<
     Record<string, string>
   >({});
+
+  const coverUrl = useMemo(
+    () => (document ? getCoverUrl(library, document) : ""),
+    [library, document]
+  );
 
   if (!document) return null;
 
@@ -173,15 +158,7 @@ export function DocumentDetailDialog({
           <div className="flex items-start gap-4">
             <div className="shrink-0">
               <Image
-                src={`/api/libraries/${library}/files/${document.url
-                  .substring(6)
-                  .replace(
-                    document.filename,
-                    `[Cover] ${document.filename.replace(
-                      /\.(pdf|epub|djvu)$/i,
-                      ".jpg"
-                    )}`
-                  )}`}
+                src={coverUrl}
                 alt={`${metadata.title} cover`}
                 width={150}
                 height={200}
