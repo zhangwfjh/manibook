@@ -1,16 +1,17 @@
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import React, { memo } from "react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DownloadIcon, HeartIcon } from "lucide-react";
 import { LibraryDocument } from "@/lib/library";
-
-function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-}
+import { formatFileSize } from "@/lib/library/document-utils";
 
 interface DocumentListProps {
   documents: LibraryDocument[];
@@ -19,17 +20,28 @@ interface DocumentListProps {
   onFavoriteToggle?: (document: LibraryDocument) => void;
 }
 
-export function DocumentList({ documents, onClick, onDownload, onFavoriteToggle }: DocumentListProps) {
+const DocumentListComponent = ({
+  documents,
+  onClick,
+  onDownload,
+  onFavoriteToggle,
+}: DocumentListProps) => {
   const handleRowClick = (document: LibraryDocument) => {
     onClick?.(document);
   };
 
-  const handleDownloadClick = (e: React.MouseEvent, document: LibraryDocument) => {
+  const handleDownloadClick = (
+    e: React.MouseEvent,
+    document: LibraryDocument
+  ) => {
     e.stopPropagation(); // Prevent row click
     onDownload?.(document);
   };
 
-  const handleFavoriteToggleClick = (e: React.MouseEvent, document: LibraryDocument) => {
+  const handleFavoriteToggleClick = (
+    e: React.MouseEvent,
+    document: LibraryDocument
+  ) => {
     e.stopPropagation(); // Prevent row click
     onFavoriteToggle?.(document);
   };
@@ -66,63 +78,57 @@ export function DocumentList({ documents, onClick, onDownload, onFavoriteToggle 
                 </div>
               </TableCell>
               <TableCell className="max-w-xs">
-                <div className="truncate" title={document.metadata.authors?.join(', ')}>
-                  {document.metadata.authors?.join(', ') || '-'}
+                <div
+                  className="truncate"
+                  title={document.metadata.authors?.join(", ")}
+                >
+                  {document.metadata.authors?.join(", ") || "-"}
                 </div>
               </TableCell>
+              <TableCell>{document.metadata.publicationYear || "-"}</TableCell>
               <TableCell>
-                {document.metadata.publication_year || '-'}
-              </TableCell>
-              <TableCell>
-                <Badge variant={document.metadata.doctype === 'Book' ? 'default' : 'secondary'}>
+                <Badge
+                  variant={
+                    document.metadata.doctype === "Book"
+                      ? "default"
+                      : "secondary"
+                  }
+                >
                   {document.metadata.doctype}
                 </Badge>
               </TableCell>
               <TableCell className="max-w-xs">
                 <div className="truncate" title={document.metadata.publisher}>
-                  {document.metadata.publisher || '-'}
+                  {document.metadata.publisher || "-"}
                 </div>
               </TableCell>
+              <TableCell>{document.metadata.language || "-"}</TableCell>
+              <TableCell>{document.metadata.numPages || "-"}</TableCell>
               <TableCell>
-                {document.metadata.language || '-'}
-              </TableCell>
-              <TableCell>
-                {document.metadata.numPages || '-'}
-              </TableCell>
-              <TableCell>
-                {document.metadata.format?.toUpperCase() || '-'}
+                {document.metadata.format?.toUpperCase() || "-"}
               </TableCell>
               <TableCell>
-                {document.metadata.filesize ? formatFileSize(document.metadata.filesize) : '-'}
+                {document.metadata.filesize
+                  ? formatFileSize(document.metadata.filesize)
+                  : "-"}
               </TableCell>
-              {/* <TableCell className="max-w-xs">
-                <div className="flex flex-wrap gap-1">
-                  {document.metadata.keywords?.slice(0, 1).map((keyword, idx) => (
-                    <Badge key={idx} variant="outline" className="text-xs">
-                      {keyword}
-                    </Badge>
-                  ))}
-                  {document.metadata.keywords && document.metadata.keywords.length > 1 && (
-                    <Badge variant="outline" className="text-xs">
-                      +{document.metadata.keywords.length - 1}
-                    </Badge>
-                  )}
-                </div>
-              </TableCell>
-              <TableCell className="max-w-xs">
-                <div className="truncate" title={document.metadata.category}>
-                  {document.metadata.category || '-'}
-                </div>
-              </TableCell> */}
               <TableCell>
                 <div className="flex items-center gap-1">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={(e) => handleFavoriteToggleClick(e, document)}
-                    className={document.metadata.favorite ? "text-red-500" : "text-muted-foreground hover:text-red-500"}
+                    className={
+                      document.metadata.favorite
+                        ? "text-red-500"
+                        : "text-muted-foreground hover:text-red-500"
+                    }
                   >
-                    <HeartIcon className={`h-4 w-4 ${document.metadata.favorite ? "fill-current" : ""}`} />
+                    <HeartIcon
+                      className={`h-4 w-4 ${
+                        document.metadata.favorite ? "fill-current" : ""
+                      }`}
+                    />
                   </Button>
                   <Button
                     variant="ghost"
@@ -139,4 +145,6 @@ export function DocumentList({ documents, onClick, onDownload, onFavoriteToggle 
       </Table>
     </div>
   );
-}
+};
+
+export const DocumentList = memo(DocumentListComponent);

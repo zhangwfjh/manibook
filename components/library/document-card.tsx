@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, memo } from "react";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,12 +29,12 @@ interface DocumentCardProps {
   onFavoriteToggle?: (document: LibraryDocument) => void;
 }
 
-export function DocumentCard({
+const DocumentCardComponent = ({
   library,
   document,
   onClick,
   onFavoriteToggle,
-}: DocumentCardProps) {
+}: DocumentCardProps) => {
   const { metadata } = document;
 
   const coverUrl = useMemo(
@@ -216,4 +216,6 @@ export function DocumentCard({
       </div>
     </Card>
   );
-}
+};
+
+export const DocumentCard = memo(DocumentCardComponent);

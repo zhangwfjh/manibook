@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/empty";
 import { DocumentCard } from "@/components/library/document-card";
 import { DocumentList } from "@/components/library/document-list";
+import { PaginationControls } from "@/components/library/pagination-controls";
+import { usePagination } from "@/hooks/use-pagination";
 import { LibraryDocument } from "@/lib/library";
 import { BookOpenIcon } from "lucide-react";
 
@@ -42,6 +44,27 @@ export function LibraryContent({
   onFavoriteToggle,
   onBreadcrumbClick,
 }: LibraryContentProps) {
+  // Use pagination for both views to improve performance with large document sets
+  const itemsPerPage = viewMode === "card" ? 20 : 50; // Show 20 cards per page, 50 rows per page for list view
+  const {
+    currentPage,
+    totalPages,
+    paginatedItems,
+    goToPage,
+    nextPage,
+    prevPage,
+    hasNextPage,
+    hasPrevPage,
+  } = usePagination({
+    items: sortedDocuments,
+    itemsPerPage,
+  });
+
+  // Reset to first page when filters/sort change
+  useEffect(() => {
+    goToPage(1);
+  }, [selectedCategory, sortedDocuments.length]);
+
   return (
     <div className="flex-1 min-w-0 space-y-6">
       {/* Breadcrumb and Document Count */}
@@ -116,30 +139,58 @@ export function LibraryContent({
           </EmptyHeader>
         </Empty>
       ) : viewMode === "card" ? (
-        <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-2 gap-6 animate-in fade-in-0 duration-500">
-          {sortedDocuments.map((document, index) => (
-            <div
-              key={`${currentLibrary}-${document.filename}`}
-              className="animate-in slide-in-from-bottom-4 duration-300"
-              style={{ animationDelay: `${index * 50}ms` }}
-            >
-              <DocumentCard
-                library={currentLibrary}
-                document={document}
-                onClick={onDocumentClick}
-                onDownload={onDownload}
-                onFavoriteToggle={onFavoriteToggle}
-              />
-            </div>
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-2 gap-6 animate-in fade-in-0 duration-500">
+            {paginatedItems.map((document, index) => (
+              <div
+                key={`${currentLibrary}-${document.filename}`}
+                className="animate-in slide-in-from-bottom-4 duration-300"
+                style={{ animationDelay: `${index * 25}ms` }} // Reduced delay for better performance
+              >
+                <DocumentCard
+                  library={currentLibrary}
+                  document={document}
+                  onClick={onDocumentClick}
+                  onDownload={onDownload}
+                  onFavoriteToggle={onFavoriteToggle}
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Pagination controls for card view */}
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={totalPages}
+            hasNextPage={hasNextPage}
+            hasPrevPage={hasPrevPage}
+            onNextPage={nextPage}
+            onPrevPage={prevPage}
+            onGoToPage={goToPage}
+            className="mt-8"
+          />
+        </>
       ) : (
-        <DocumentList
-          documents={sortedDocuments}
-          onClick={onDocumentClick}
-          onDownload={onDownload}
-          onFavoriteToggle={onFavoriteToggle}
-        />
+        <>
+          <DocumentList
+            documents={paginatedItems}
+            onClick={onDocumentClick}
+            onDownload={onDownload}
+            onFavoriteToggle={onFavoriteToggle}
+          />
+
+          {/* Pagination controls for list view */}
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={totalPages}
+            hasNextPage={hasNextPage}
+            hasPrevPage={hasPrevPage}
+            onNextPage={nextPage}
+            onPrevPage={prevPage}
+            onGoToPage={goToPage}
+            className="mt-8"
+          />
+        </>
       )}
     </div>
   );
