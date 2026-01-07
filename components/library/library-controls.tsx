@@ -62,7 +62,7 @@ export function LibraryControls({
         <div className="relative flex-1 max-w-md">
           <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
-            placeholder="Search by title, author, or keywords..."
+            placeholder="Search by title, author, publisher, or keywords..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             className="pl-10"

@@ -37,10 +37,14 @@ export default function LibraryPage() {
   const {
     selectedCategory,
     setSelectedCategory,
-    selectedTags,
-    setSelectedTags,
+    selectedKeywords,
+    setSelectedKeywords,
     selectedFormats,
     setSelectedFormats,
+    selectedAuthors,
+    setSelectedAuthors,
+    selectedPublishers,
+    setSelectedPublishers,
     searchQuery,
     setSearchQuery,
     showFavoritesOnly,
@@ -213,16 +217,20 @@ export default function LibraryPage() {
             categories={categories}
             selectedCategory={selectedCategory}
             documents={documents}
-            selectedKeywords={selectedTags}
+            selectedKeywords={selectedKeywords}
             selectedFormats={selectedFormats}
+            selectedAuthors={selectedAuthors}
+            selectedPublishers={selectedPublishers}
             showFavoritesOnly={showFavoritesOnly}
             onLibrarySelect={setCurrentLibrary}
             onCategorySelect={setSelectedCategory}
             onCreateLibrary={() => setCreateLibraryOpen(true)}
             onRenameLibrary={handleOpenRenameDialog}
             onArchiveLibrary={handleOpenArchiveDialog}
-            onKeywordsChange={setSelectedTags}
+            onKeywordsChange={setSelectedKeywords}
             onFormatsChange={setSelectedFormats}
+            onAuthorsChange={setSelectedAuthors}
+            onPublishersChange={setSelectedPublishers}
             onShowFavoritesOnlyChange={setShowFavoritesOnly}
           />
 

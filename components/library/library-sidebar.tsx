@@ -16,7 +16,7 @@ interface LibrarySidebarProps {
   selectedFormats?: string[];
   selectedAuthors?: string[];
   selectedPublishers?: string[];
-  showFavoritesOnly: boolean;
+  showFavoritesOnly?: boolean;
   onLibrarySelect: (library: string) => void;
   onCategorySelect: (category: string) => void;
   onCreateLibrary: () => void;
@@ -24,8 +24,8 @@ interface LibrarySidebarProps {
   onArchiveLibrary: (libraryName: string) => void;
   onKeywordsChange: (keywords: string[]) => void;
   onFormatsChange: (formats: string[]) => void;
-  onAuthorsChange?: (authors: string[]) => void;
-  onPublishersChange?: (publishers: string[]) => void;
+  onAuthorsChange: (authors: string[]) => void;
+  onPublishersChange: (publishers: string[]) => void;
   onShowFavoritesOnlyChange: (show: boolean) => void;
 }
 
@@ -35,11 +35,11 @@ export function LibrarySidebar({
   categories,
   selectedCategory,
   documents,
-  selectedKeywords: selectedKeywords = [],
+  selectedKeywords = [],
   selectedFormats = [],
   selectedAuthors = [],
   selectedPublishers = [],
-  showFavoritesOnly,
+  showFavoritesOnly = false,
   onLibrarySelect,
   onCategorySelect,
   onCreateLibrary,
@@ -47,8 +47,8 @@ export function LibrarySidebar({
   onArchiveLibrary,
   onKeywordsChange,
   onFormatsChange,
-  onAuthorsChange = () => {},
-  onPublishersChange = () => {},
+  onAuthorsChange,
+  onPublishersChange,
   onShowFavoritesOnlyChange,
 }: LibrarySidebarProps) {
   return (

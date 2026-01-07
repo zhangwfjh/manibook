@@ -3,8 +3,10 @@ import { LibraryDocument } from "@/lib/library";
 
 export function useDocumentFilters(documents: LibraryDocument[]) {
   const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedKeywords, setSelectedKeywords] = useState<string[]>([]);
   const [selectedFormats, setSelectedFormats] = useState<string[]>([]);
+  const [selectedAuthors, setSelectedAuthors] = useState<string[]>([]);
+  const [selectedPublishers, setSelectedPublishers] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
@@ -31,15 +33,25 @@ export function useDocumentFilters(documents: LibraryDocument[]) {
         }
       }
 
-      const matchesTags =
-        selectedTags.length === 0 ||
-        selectedTags.some((tag) =>
-          doc.metadata.keywords?.some((kw) => kw === tag)
+      const matchesKeywords =
+        selectedKeywords.length === 0 ||
+        selectedKeywords.some((keyword) =>
+          doc.metadata.keywords?.some((kw) => kw === keyword)
         );
 
       const matchesFormats =
         selectedFormats.length === 0 ||
         selectedFormats.includes(doc.metadata.format?.toUpperCase() || "");
+
+      const matchesAuthors =
+        selectedAuthors.length === 0 ||
+        selectedAuthors.some((author) =>
+          doc.metadata.authors?.some((docAuthor) => docAuthor === author)
+        );
+
+      const matchesPublishers =
+        selectedPublishers.length === 0 ||
+        selectedPublishers.includes(doc.metadata.publisher || "");
 
       const matchesSearch =
         !searchQuery ||
@@ -49,24 +61,29 @@ export function useDocumentFilters(documents: LibraryDocument[]) {
         ) ||
         doc.metadata.keywords?.some((keyword) =>
           keyword.toLowerCase().includes(searchQuery.toLowerCase())
-        );
+        ) ||
+        doc.metadata.publisher?.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesFavorites = !showFavoritesOnly || doc.metadata.favorite;
 
       return (
         matchesCategory &&
-        matchesTags &&
+        matchesKeywords &&
         matchesFormats &&
+        matchesAuthors &&
+        matchesPublishers &&
         matchesSearch &&
         matchesFavorites
       );
     });
-  }, [documents, selectedCategory, selectedTags, selectedFormats, searchQuery, showFavoritesOnly]);
+  }, [documents, selectedCategory, selectedKeywords, selectedFormats, selectedAuthors, selectedPublishers, searchQuery, showFavoritesOnly]);
 
   const resetFilters = () => {
     setSelectedCategory("");
-    setSelectedTags([]);
+    setSelectedKeywords([]);
     setSelectedFormats([]);
+    setSelectedAuthors([]);
+    setSelectedPublishers([]);
     setSearchQuery("");
     setShowFavoritesOnly(false);
   };
@@ -74,10 +91,14 @@ export function useDocumentFilters(documents: LibraryDocument[]) {
   return {
     selectedCategory,
     setSelectedCategory,
-    selectedTags,
-    setSelectedTags,
+    selectedKeywords,
+    setSelectedKeywords,
     selectedFormats,
     setSelectedFormats,
+    selectedAuthors,
+    setSelectedAuthors,
+    selectedPublishers,
+    setSelectedPublishers,
     searchQuery,
     setSearchQuery,
     showFavoritesOnly,
