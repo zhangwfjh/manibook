@@ -11,7 +11,7 @@ export function dbDocumentToLibraryDocument(dbDoc: Document, library: string): L
       doctype: dbDoc.doctype as 'Article' | 'Book' | 'Others',
       title: dbDoc.title,
       authors: JSON.parse(dbDoc.authors),
-      publication_year: dbDoc.publicationYear || undefined,
+      publicationYear: dbDoc.publicationYear || undefined,
       publisher: dbDoc.publisher || undefined,
       category: dbDoc.category,
       language: dbDoc.language,
@@ -88,16 +88,16 @@ export function buildCategoryTree(documents: LibraryDocument[]): LibraryCategory
   return root.children;
 }
 
-export function validateLibraryAccess(libraryName: string) {
-  const libraryInfo = getLibrary(libraryName);
+export async function validateLibraryAccess(libraryName: string) {
+  const libraryInfo = await getLibrary(libraryName);
   if (!libraryInfo) {
     return { error: 'Library not found', status: 404 };
   }
   return { libraryInfo };
 }
 
-export function getLibraryPrisma(libraryName: string) {
-  const validation = validateLibraryAccess(libraryName);
+export async function getLibraryPrisma(libraryName: string) {
+  const validation = await validateLibraryAccess(libraryName);
   if (validation.error) {
     throw new Error(validation.error);
   }

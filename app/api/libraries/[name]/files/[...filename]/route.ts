@@ -10,7 +10,7 @@ export async function GET(
   try {
     const { name, filename } = await params;
     const filenamePath = filename.map(segment => decodeURIComponent(segment)).join('/');
-    const validation = validateLibraryAccess(name);
+    const validation = await validateLibraryAccess(name);
     if (validation.error) {
       return NextResponse.json({ error: validation.error }, { status: validation.status });
     }

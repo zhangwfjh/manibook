@@ -3,7 +3,7 @@ import { readLibraries, addLibrary, ensureLibraryStructure } from '@/lib/library
 
 export async function GET() {
   try {
-    const libraries = readLibraries();
+    const libraries = await readLibraries();
     return NextResponse.json({ libraries });
   } catch (error) {
     console.error('Error fetching libraries:', error);

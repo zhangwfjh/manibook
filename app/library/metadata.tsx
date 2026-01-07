@@ -25,7 +25,7 @@ interface DocumentMetadata {
   doctype?: string;
   title?: string;
   authors: string[];
-  publication_year?: number;
+  publicationYear?: number;
   publisher?: string;
   category?: string;
   language?: string;

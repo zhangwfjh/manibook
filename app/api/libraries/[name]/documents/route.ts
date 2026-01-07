@@ -40,7 +40,7 @@ async function processFileUpload(
   // Compute SHA256 hash
   const hash = crypto.createHash('sha256').update(buffer).digest('hex');
 
-  const prisma = getLibraryPrisma(libraryName);
+  const prisma = await getLibraryPrisma(libraryName);
 
   // Check if file already exists
   const existingDoc = await prisma.document.findFirst({
@@ -68,7 +68,7 @@ async function processFileUpload(
       doctype: doctype as 'Article' | 'Book' | 'Others',
       title: extractedMetadata.title as string,
       authors: extractedMetadata.authors as string[],
-      publication_year: extractedMetadata.publication_year as number || undefined,
+      publicationYear: extractedMetadata.publication_year as number || undefined,
       publisher: extractedMetadata.publisher as string || undefined,
       category: extractedMetadata.category as string,
       language: extractedMetadata.language as string,
@@ -125,7 +125,7 @@ async function processFileUpload(
       doctype: metadata.doctype,
       title: metadata.title,
       authors: JSON.stringify(metadata.authors),
-      publicationYear: metadata.publication_year,
+      publicationYear: metadata.publicationYear,
       publisher: metadata.publisher,
       category: metadata.category,
       language: metadata.language,
@@ -231,12 +231,12 @@ export async function GET(
     const category = searchParams.get('category');
 
     // Validate library access
-    const validation = validateLibraryAccess(name);
+    const validation = await validateLibraryAccess(name);
     if (validation.error) {
       return NextResponse.json({ error: validation.error }, { status: validation.status });
     }
 
-    const prisma = getLibraryPrisma(name);
+    const prisma = await getLibraryPrisma(name);
 
     // Fetch all documents from database
     const dbDocuments = await prisma.document.findMany({
@@ -270,7 +270,7 @@ export async function POST(
     const { name } = await params;
 
     // Validate library access
-    const validation = validateLibraryAccess(name);
+    const validation = await validateLibraryAccess(name);
     if (validation.error) {
       return NextResponse.json({ error: validation.error }, { status: validation.status });
     }
