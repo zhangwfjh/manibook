@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { DocumentDetailDialog } from "@/components/library/document-detail-dialog";
 import { LibraryHeader } from "@/components/library/library-header";
 import { LibrarySidebar } from "@/components/library/library-sidebar";
@@ -31,6 +31,9 @@ export default function LibraryPage() {
     documents,
     categories,
     loading,
+    pagination,
+    loadPage,
+    loadFilteredData,
     refreshLibraries,
     refreshLibraryData,
   } = useLibraryData();
@@ -51,9 +54,10 @@ export default function LibraryPage() {
     showFavoritesOnly,
     setShowFavoritesOnly,
     filteredDocuments,
+    filterParams,
   } = useDocumentFilters(documents);
 
-  const { sortBy, setSortBy, sortedDocuments } =
+  const { sortBy, setSortBy, sortedDocuments, sortParams } =
     useDocumentSorting(filteredDocuments);
 
   const {
@@ -182,6 +186,22 @@ export default function LibraryPage() {
     [setSelectedCategory]
   );
 
+  // Reload data when filters change
+  useEffect(() => {
+    if (currentLibrary) {
+      // Combine filter and sort parameters
+      const combinedParams = new URLSearchParams();
+      filterParams.forEach((value, key) => {
+        combinedParams.set(key, value);
+      });
+      sortParams.forEach((value, key) => {
+        combinedParams.set(key, value);
+      });
+
+      loadFilteredData(combinedParams);
+    }
+  }, [filterParams, sortParams, currentLibrary, loadFilteredData]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-background to-muted/20">
@@ -255,10 +275,12 @@ export default function LibraryPage() {
               selectedCategory={selectedCategory}
               sortedDocuments={sortedDocuments}
               viewMode={viewMode}
+              pagination={pagination}
               onDocumentClick={handleDocumentClick}
               onDownload={handleDownload}
               onFavoriteToggle={handleFavoriteToggle}
               onBreadcrumbClick={handleBreadcrumbClick}
+              onPageChange={loadPage}
             />
           </div>
         </div>

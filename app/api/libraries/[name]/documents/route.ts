@@ -5,7 +5,7 @@ import { DocumentMetadata, Library } from '@/lib/library';
 import { extractMetadataFromFile } from '@/app/library/metadata';
 import crypto from 'crypto';
 import { loadLLMSettings } from '@/lib/library/llm-settings';
-import { validateLibraryAccess, dbDocumentToLibraryDocument, buildCategoryTree, getLibraryPrisma } from '@/lib/library/api-utils';
+import { validateLibraryAccess, dbDocumentToLibraryDocument, getLibraryPrisma } from '@/lib/library/api-utils';
 
 interface LLMSettings {
   providers: Array<{
@@ -228,7 +228,24 @@ export async function GET(
   try {
     const { name } = await params;
     const { searchParams } = new URL(request.url);
+
+    // Pagination parameters
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 200); // Max 200 per page
+    const offset = (page - 1) * limit;
+
+    // Filter parameters
     const category = searchParams.get('category');
+    const searchQuery = searchParams.get('search');
+    const keywords = searchParams.get('keywords')?.split(',').filter(Boolean) || [];
+    const formats = searchParams.get('formats')?.split(',').filter(Boolean) || [];
+    const authors = searchParams.get('authors')?.split(',').filter(Boolean) || [];
+    const publishers = searchParams.get('publishers')?.split(',').filter(Boolean) || [];
+    const showFavoritesOnly = searchParams.get('favoritesOnly') === 'true';
+
+    // Sorting parameters
+    const sortBy = searchParams.get('sortBy') || 'createdAt-desc';
+    const [sortField, sortOrder] = sortBy.split('-');
 
     // Validate library access
     const validation = await validateLibraryAccess(name);
@@ -238,24 +255,155 @@ export async function GET(
 
     const prisma = await getLibraryPrisma(name);
 
-    // Fetch all documents from database
+    // Build WHERE conditions for filtering
+    const whereConditions: Record<string, any> = {};
+
+    // Category filtering
+    if (category) {
+      // Handle the new category structure: category includes doctype prefix
+      const categoryParts = category.split(" > ");
+      if (categoryParts.length >= 1) {
+        const selectedDoctype = categoryParts[0];
+        whereConditions.doctype = selectedDoctype;
+
+        if (categoryParts.length > 1) {
+          const selectedCategoryPath = categoryParts.slice(1).join(" > ");
+          whereConditions.category = {
+            startsWith: selectedCategoryPath
+          };
+        }
+      }
+    }
+
+    // Keywords filtering (JSON array contains any of the selected keywords)
+    if (keywords.length > 0) {
+      whereConditions.OR = keywords.map(keyword => ({
+        keywords: {
+          contains: keyword
+        }
+      }));
+    }
+
+    // Format filtering
+    if (formats.length > 0) {
+      whereConditions.format = {
+        in: formats.map(f => f.toLowerCase())
+      };
+    }
+
+    // Authors filtering (JSON array contains any of the selected authors)
+    if (authors.length > 0) {
+      whereConditions.OR = whereConditions.OR || [];
+      authors.forEach(author => {
+        whereConditions.OR.push({
+          authors: {
+            contains: author
+          }
+        });
+      });
+    }
+
+    // Publishers filtering
+    if (publishers.length > 0) {
+      whereConditions.publisher = {
+        in: publishers
+      };
+    }
+
+    // Favorites filtering
+    if (showFavoritesOnly) {
+      whereConditions.favorite = true;
+    }
+
+    // Search query filtering (full-text search across title, authors, keywords, publisher)
+    if (searchQuery) {
+      const searchCondition = {
+        OR: [
+          { title: { contains: searchQuery, mode: 'insensitive' } },
+          { authors: { contains: searchQuery, mode: 'insensitive' } },
+          { keywords: { contains: searchQuery, mode: 'insensitive' } },
+          { publisher: { contains: searchQuery, mode: 'insensitive' } },
+        ]
+      };
+
+      if (whereConditions.OR) {
+        // Combine with existing OR conditions
+        whereConditions.AND = [searchCondition];
+      } else {
+        Object.assign(whereConditions, searchCondition);
+      }
+    }
+
+    // Build ORDER BY clause
+    let orderBy: Record<string, 'asc' | 'desc'> | Record<string, 'asc' | 'desc'>[] = { createdAt: 'desc' }; // default
+    const sortOrderTyped = sortOrder as 'asc' | 'desc';
+    switch (sortField) {
+      case 'title':
+        orderBy = { title: sortOrderTyped };
+        break;
+      case 'author':
+        orderBy = { authors: sortOrderTyped };
+        break;
+      case 'publisher':
+        orderBy = { publisher: sortOrderTyped };
+        break;
+      case 'publicationYear':
+        orderBy = [{ publicationYear: sortOrderTyped }, { title: 'asc' }];
+        break;
+      case 'language':
+        orderBy = [{ language: sortOrderTyped }, { title: 'asc' }];
+        break;
+      case 'doctype':
+        orderBy = [{ doctype: sortOrderTyped }, { title: 'asc' }];
+        break;
+      case 'numPages':
+        orderBy = [{ numPages: sortOrderTyped }, { title: 'asc' }];
+        break;
+      case 'favorite':
+        orderBy = [{ favorite: sortOrderTyped }, { title: 'asc' }];
+        break;
+      case 'updatedAt':
+        orderBy = { updatedAt: sortOrderTyped };
+        break;
+      case 'filesize':
+        orderBy = [{ filesize: sortOrderTyped }, { title: 'asc' }];
+        break;
+      case 'createdAt':
+      default:
+        orderBy = { createdAt: sortOrderTyped };
+        break;
+    }
+
+    // Get total count for pagination
+    const totalCount = await prisma.document.count({ where: whereConditions });
+
+    // Fetch paginated documents from database
     const dbDocuments = await prisma.document.findMany({
-      orderBy: { createdAt: 'desc' },
+      where: whereConditions,
+      orderBy,
+      skip: offset,
+      take: limit,
     });
 
     const documents = dbDocuments.map(dbDoc => dbDocumentToLibraryDocument(dbDoc, name));
 
-    if (category) {
-      // Filter documents by category
-      const filteredDocuments = documents.filter(doc =>
-        doc.metadata.category.startsWith(category)
-      );
-      return NextResponse.json({ documents: filteredDocuments });
-    } else {
-      // Return categories and all documents
-      const categories = buildCategoryTree(documents);
-      return NextResponse.json({ categories, documents });
-    }
+    // Calculate pagination info
+    const totalPages = Math.ceil(totalCount / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
+    // Return paginated documents
+    return NextResponse.json({
+      documents,
+      pagination: {
+        page,
+        limit,
+        totalCount,
+        totalPages,
+        hasNextPage,
+        hasPrevPage
+      }
+    });
   } catch (error) {
     console.error('Error in documents API:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

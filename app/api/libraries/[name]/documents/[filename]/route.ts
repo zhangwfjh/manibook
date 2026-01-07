@@ -12,12 +12,12 @@ export async function GET(
     const filename = decodeURIComponent(encodedFilename);
 
     // Validate library access
-    const validation = validateLibraryAccess(name);
+    const validation = await validateLibraryAccess(name);
     if (validation.error) {
       return NextResponse.json({ error: validation.error }, { status: validation.status });
     }
 
-    const prisma = getLibraryPrisma(name);
+    const prisma = await getLibraryPrisma(name);
 
     // Find the document
     const dbDoc = await prisma.document.findUnique({
@@ -45,7 +45,7 @@ export async function PUT(
     const filename = decodeURIComponent(encodedFilename);
 
     // Validate library access
-    const validation = validateLibraryAccess(name);
+    const validation = await validateLibraryAccess(name);
     if (validation.error) {
       return NextResponse.json({ error: validation.error }, { status: validation.status });
     }
@@ -57,7 +57,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Metadata is required' }, { status: 400 });
     }
 
-    const prisma = getLibraryPrisma(name);
+    const prisma = await getLibraryPrisma(name);
 
     // Find the existing document
     const existingDoc = await prisma.document.findUnique({
@@ -141,7 +141,7 @@ export async function PATCH(
     const filename = decodeURIComponent(encodedFilename);
 
     // Validate library access
-    const validation = validateLibraryAccess(name);
+    const validation = await validateLibraryAccess(name);
     if (validation.error) {
       return NextResponse.json({ error: validation.error }, { status: validation.status });
     }
@@ -152,7 +152,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Favorite must be a boolean' }, { status: 400 });
     }
 
-    const prisma = getLibraryPrisma(name);
+    const prisma = await getLibraryPrisma(name);
 
     // Update favorite status in database
     const updatedDocument = await prisma.document.updateMany({
@@ -185,13 +185,13 @@ export async function DELETE(
     const filename = decodeURIComponent(encodedFilename);
 
     // Validate library access
-    const validation = validateLibraryAccess(name);
+    const validation = await validateLibraryAccess(name);
     if (validation.error) {
       return NextResponse.json({ error: validation.error }, { status: validation.status });
     }
     const libraryInfo = validation.libraryInfo!;
 
-    const prisma = getLibraryPrisma(name);
+    const prisma = await getLibraryPrisma(name);
 
     // Find the document first to get cover info and file path
     const document = await prisma.document.findUnique({

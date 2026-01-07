@@ -17,21 +17,31 @@ import {
 import { DocumentCard } from "@/components/library/document-card";
 import { DocumentList } from "@/components/library/document-list";
 import { PaginationControls } from "@/components/library/pagination-controls";
-import { usePagination } from "@/hooks/use-pagination";
 import { LibraryDocument } from "@/lib/library";
 import { BookOpenIcon } from "lucide-react";
 
 type ViewMode = "card" | "list";
+
+interface PaginationInfo {
+  page: number;
+  limit: number;
+  totalCount: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
 
 interface LibraryContentProps {
   currentLibrary: string;
   selectedCategory: string;
   sortedDocuments: LibraryDocument[];
   viewMode: ViewMode;
+  pagination?: PaginationInfo | null;
   onDocumentClick: (document: LibraryDocument) => void;
   onDownload: (doc: LibraryDocument) => void;
   onFavoriteToggle: (document: LibraryDocument) => void;
   onBreadcrumbClick: (category: string) => void;
+  onPageChange?: (page: number) => void;
 }
 
 export function LibraryContent({
@@ -39,31 +49,38 @@ export function LibraryContent({
   selectedCategory,
   sortedDocuments,
   viewMode,
+  pagination,
   onDocumentClick,
   onDownload,
   onFavoriteToggle,
   onBreadcrumbClick,
+  onPageChange,
 }: LibraryContentProps) {
-  // Use pagination for both views to improve performance with large document sets
-  const itemsPerPage = viewMode === "card" ? 20 : 50; // Show 20 cards per page, 50 rows per page for list view
-  const {
-    currentPage,
-    totalPages,
-    paginatedItems,
-    goToPage,
-    nextPage,
-    prevPage,
-    hasNextPage,
-    hasPrevPage,
-  } = usePagination({
-    items: sortedDocuments,
-    itemsPerPage,
-  });
+  // Use server-side pagination data
+  const currentPage = pagination?.page || 1;
+  const totalPages = pagination?.totalPages || 1;
+  const hasNextPage = pagination?.hasNextPage || false;
+  const hasPrevPage = pagination?.hasPrevPage || false;
+  const totalCount = pagination?.totalCount || 0;
 
-  // Reset to first page when filters/sort change
-  useEffect(() => {
-    goToPage(1);
-  }, [goToPage, selectedCategory, sortedDocuments.length]);
+  // Since we're using server-side pagination, all documents are already paginated
+  const paginatedItems = sortedDocuments;
+
+  const goToPage = (page: number) => {
+    onPageChange?.(page);
+  };
+
+  const nextPage = () => {
+    if (hasNextPage) {
+      goToPage(currentPage + 1);
+    }
+  };
+
+  const prevPage = () => {
+    if (hasPrevPage) {
+      goToPage(currentPage - 1);
+    }
+  };
 
   return (
     <div className="flex-1 min-w-0 space-y-6">
@@ -119,9 +136,9 @@ export function LibraryContent({
         {/* Document count */}
         <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
           <span className="font-medium text-foreground">
-            {sortedDocuments.length}
+            {totalCount || sortedDocuments.length}
           </span>
-          <span>document{sortedDocuments.length !== 1 ? "s" : ""} found</span>
+          <span>document{(totalCount || sortedDocuments.length) !== 1 ? "s" : ""} found</span>
         </div>
       </div>
 
