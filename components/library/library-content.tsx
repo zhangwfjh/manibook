@@ -63,7 +63,7 @@ export function LibraryContent({
   // Reset to first page when filters/sort change
   useEffect(() => {
     goToPage(1);
-  }, [selectedCategory, sortedDocuments.length]);
+  }, [goToPage, selectedCategory, sortedDocuments.length]);
 
   return (
     <div className="flex-1 min-w-0 space-y-6">

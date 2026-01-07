@@ -1,4 +1,3 @@
-import React from "react";
 import {
   Pagination,
   PaginationContent,
@@ -103,11 +102,7 @@ export function PaginationControls({
   };
 
   return (
-    <div className={`flex items-center justify-between gap-4 ${className}`}>
-      <span className="text-sm text-muted-foreground whitespace-nowrap">
-        Page {currentPage} of {totalPages}
-      </span>
-
+    <div className={`${className}`}>
       <Pagination>
         <PaginationContent>
           <PaginationItem>

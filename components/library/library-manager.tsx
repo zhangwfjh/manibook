@@ -45,10 +45,6 @@ interface LibraryNodeProps {
   onArchiveLibrary: (libraryName: string) => void;
 }
 
-interface LibraryCounts {
-  [libraryName: string]: number;
-}
-
 interface CategoryNodeProps {
   category: LibraryCategory;
   level: number;
