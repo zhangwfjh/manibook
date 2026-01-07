@@ -10,7 +10,6 @@ import { LibraryDialogs } from "@/components/library/library-dialogs";
 import { useLibraryData } from "@/hooks/use-library-data";
 import { useDocumentFilters } from "@/hooks/use-document-filters";
 import { useDocumentSorting } from "@/hooks/use-document-sorting";
-import { useFileUpload } from "@/hooks/use-file-upload";
 import { useLibraryOperations } from "@/hooks/use-library-operations";
 import { LibraryDocument } from "@/lib/library";
 
@@ -21,6 +20,7 @@ export default function LibraryPage() {
   const [selectedDocument, setSelectedDocument] =
     useState<LibraryDocument | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
 
   // Custom hooks
   const {
@@ -52,25 +52,8 @@ export default function LibraryPage() {
     filteredDocuments,
   } = useDocumentFilters(documents);
 
-  const {
-    sortBy,
-    setSortBy,
-    sortedDocuments,
-  } = useDocumentSorting(filteredDocuments);
-
-  const {
-    uploading,
-    uploadProgress,
-    uploadProgressPercent,
-    fileInputRef,
-    folderInputRef,
-    handleFileUpload,
-    triggerFileUpload,
-    triggerFolderUpload,
-  } = useFileUpload({
-    currentLibrary,
-    onUploadComplete: refreshLibraryData,
-  });
+  const { sortBy, setSortBy, sortedDocuments } =
+    useDocumentSorting(filteredDocuments);
 
   const {
     createLibraryOpen,
@@ -100,88 +83,103 @@ export default function LibraryPage() {
   });
 
   // Event handlers
-  const handleDownload = useCallback((doc: LibraryDocument) => {
-    const link = window.document.createElement("a");
-    link.href = doc.url.startsWith("lib://")
-      ? `/api/libraries/${currentLibrary}/files/${doc.url.substring(6)}`
-      : doc.url;
-    link.download = doc.filename;
-    window.document.body.appendChild(link);
-    link.click();
-    window.document.body.removeChild(link);
-  }, [currentLibrary]);
+  const handleDownload = useCallback(
+    (doc: LibraryDocument) => {
+      const link = window.document.createElement("a");
+      link.href = doc.url.startsWith("lib://")
+        ? `/api/libraries/${currentLibrary}/files/${doc.url.substring(6)}`
+        : doc.url;
+      link.download = doc.filename;
+      window.document.body.appendChild(link);
+      link.click();
+      window.document.body.removeChild(link);
+    },
+    [currentLibrary]
+  );
 
   const handleDocumentClick = useCallback((document: LibraryDocument) => {
     setSelectedDocument(document);
     setDialogOpen(true);
   }, []);
 
-  const handleDocumentDelete = useCallback(async (document: LibraryDocument) => {
-    try {
-      await fetch(
-        `/api/libraries/${currentLibrary}/documents/${encodeURIComponent(
-          document.filename
-        )}`,
-        {
-          method: "DELETE",
-        }
-      );
-    } catch (error) {
-      console.error("Error deleting document:", error);
-    }
-    // Refresh the library data after deletion
-    refreshLibraryData();
-  }, [currentLibrary, refreshLibraryData]);
-
-  const handleDocumentUpdate = useCallback(async (updatedDoc: LibraryDocument) => {
-    try {
-      const response = await fetch(
-        `/api/libraries/${currentLibrary}/documents/${encodeURIComponent(
-          updatedDoc.filename
-        )}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            metadata: updatedDoc.metadata,
-          }),
-        }
-      );
-      if (response.ok) {
-        const result = await response.json();
-        setSelectedDocument(result.document);
-        // Also refresh the library data
-        refreshLibraryData();
-      } else {
-        console.error("Error updating document");
+  const handleDocumentDelete = useCallback(
+    async (document: LibraryDocument) => {
+      try {
+        await fetch(
+          `/api/libraries/${currentLibrary}/documents/${encodeURIComponent(
+            document.filename
+          )}`,
+          {
+            method: "DELETE",
+          }
+        );
+      } catch (error) {
+        console.error("Error deleting document:", error);
       }
-    } catch (error) {
-      console.error("Error updating document:", error);
-    }
-  }, [currentLibrary, refreshLibraryData]);
+      // Refresh the library data after deletion
+      refreshLibraryData();
+    },
+    [currentLibrary, refreshLibraryData]
+  );
 
-  const handleFavoriteToggle = useCallback(async (document: LibraryDocument) => {
-    try {
-      await fetch(
-        `/api/libraries/${currentLibrary}/documents/${encodeURIComponent(
-          document.filename
-        )}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ favorite: !document.metadata.favorite }),
+  const handleDocumentUpdate = useCallback(
+    async (updatedDoc: LibraryDocument) => {
+      try {
+        const response = await fetch(
+          `/api/libraries/${currentLibrary}/documents/${encodeURIComponent(
+            updatedDoc.filename
+          )}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              metadata: updatedDoc.metadata,
+            }),
+          }
+        );
+        if (response.ok) {
+          const result = await response.json();
+          setSelectedDocument(result.document);
+          // Also refresh the library data
+          refreshLibraryData();
+        } else {
+          console.error("Error updating document");
         }
-      );
-    } catch (error) {
-      console.error("Error toggling favorite:", error);
-    }
-    // Refresh the library data after favorite toggle
-    refreshLibraryData();
-  }, [currentLibrary, refreshLibraryData]);
+      } catch (error) {
+        console.error("Error updating document:", error);
+      }
+    },
+    [currentLibrary, refreshLibraryData]
+  );
 
-  const handleBreadcrumbClick = useCallback((category: string) => {
-    setSelectedCategory(category);
-  }, [setSelectedCategory]);
+  const handleFavoriteToggle = useCallback(
+    async (document: LibraryDocument) => {
+      try {
+        await fetch(
+          `/api/libraries/${currentLibrary}/documents/${encodeURIComponent(
+            document.filename
+          )}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ favorite: !document.metadata.favorite }),
+          }
+        );
+      } catch (error) {
+        console.error("Error toggling favorite:", error);
+      }
+      // Refresh the library data after favorite toggle
+      refreshLibraryData();
+    },
+    [currentLibrary, refreshLibraryData]
+  );
+
+  const handleBreadcrumbClick = useCallback(
+    (category: string) => {
+      setSelectedCategory(category);
+    },
+    [setSelectedCategory]
+  );
 
   if (loading) {
     return (
@@ -245,14 +243,7 @@ export default function LibraryPage() {
               viewMode={viewMode}
               onViewModeChange={setViewMode}
               librariesLength={libraries.length}
-              uploading={uploading}
-              uploadProgress={uploadProgress}
-              uploadProgressPercent={uploadProgressPercent}
-              onUploadFiles={triggerFileUpload}
-              onUploadFolder={triggerFolderUpload}
-              fileInputRef={fileInputRef}
-              folderInputRef={folderInputRef}
-              onFileUpload={handleFileUpload}
+              onOpenUploadDialog={() => setUploadDialogOpen(true)}
             />
 
             {/* Content */}
@@ -292,6 +283,9 @@ export default function LibraryPage() {
           setArchiveLibraryOpen={setArchiveLibraryOpen}
           currentLibrary={currentLibrary}
           handleArchiveLibrary={handleArchiveLibrary}
+          uploadDialogOpen={uploadDialogOpen}
+          setUploadDialogOpen={setUploadDialogOpen}
+          onUploadComplete={refreshLibraryData}
         />
       </div>
     </div>
