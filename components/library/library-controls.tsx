@@ -37,17 +37,17 @@ export function LibraryControls({
   return (
     <div className="mb-6 space-y-4">
       {/* Search and Actions */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+        <div className="relative flex-1 max-w-md w-full lg:w-auto">
           <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
             placeholder="Search by title, author, publisher, or keywords..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-10"
+            className="pl-10 transition-all duration-200 focus:ring-2 focus:ring-ring focus:ring-offset-2"
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Select value={sortBy} onValueChange={onSortChange}>
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Sort by..." />

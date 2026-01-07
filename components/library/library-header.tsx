@@ -31,19 +31,19 @@ export function LibraryHeader({
   resetCreateDialog,
 }: LibraryHeaderProps) {
   return (
-    <div className="mb-8">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Library</h1>
-          <p className="text-muted-foreground">
-            Organize and browse your collection of books and articles
+    <div className="mb-8 space-y-6">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+        <div className="space-y-2">
+          <h1 className="text-4xl font-bold tracking-tight bg-linear-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+            Library
+          </h1>
+          <p className="text-muted-foreground text-lg max-w-md">
+            Organize and browse your collection of books and articles with
+            powerful search and filtering
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <Dialog
-            open={createLibraryOpen}
-            onOpenChange={setCreateLibraryOpen}
-          >
+          <Dialog open={createLibraryOpen} onOpenChange={setCreateLibraryOpen}>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Create New Library</DialogTitle>
@@ -67,16 +67,13 @@ export function LibraryHeader({
                     placeholder="Enter full path to library directory (e.g., C:\Users\John\Documents\Library or /home/john/library)"
                   />
                   <p className="text-sm text-muted-foreground mt-1">
-                    Enter the full path to an empty directory where you want
-                    to store your library files. The directory will be
-                    created if it does not exist.
+                    Enter the full path to an empty directory where you want to
+                    store your library files. The directory will be created if
+                    it does not exist.
                   </p>
                 </div>
                 <div className="flex justify-end gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={resetCreateDialog}
-                  >
+                  <Button variant="outline" onClick={resetCreateDialog}>
                     Cancel
                   </Button>
                   <Button onClick={handleCreateLibrary}>Create</Button>

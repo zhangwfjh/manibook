@@ -1,11 +1,6 @@
 import React, { useMemo } from "react";
 import Image from "next/image";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -53,7 +48,7 @@ export function DocumentCard({
 
   return (
     <Card
-      className="w-full flex flex-row hover:shadow-lg transition-shadow cursor-pointer"
+      className="group w-full h-full flex flex-row hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 cursor-pointer border-border/50 hover:border-border"
       onClick={handleCardClick}
     >
       <div className="flex-1 flex flex-col min-w-0">
@@ -100,10 +95,10 @@ export function DocumentCard({
             </div>
           </div>
           <div className="flex gap-5">
-            {metadata.publication_year && (
+            {metadata.publicationYear && (
               <div className="flex items-center gap-1 text-sm text-muted-foreground">
                 <CalendarIcon className="h-4 w-4" />
-                <span>{metadata.publication_year}</span>
+                <span>{metadata.publicationYear}</span>
               </div>
             )}
 
