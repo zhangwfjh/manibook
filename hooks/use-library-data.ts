@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { LibraryDocument, LibraryCategory } from "@/lib/library";
 import { Library } from "@/lib/library";
 
@@ -11,15 +11,26 @@ interface PaginationInfo {
   hasPrevPage: boolean;
 }
 
+interface CacheEntry {
+  documents: LibraryDocument[];
+  pagination: PaginationInfo | null;
+  timestamp: number;
+}
+
 export function useLibraryData() {
   const [currentLibrary, setCurrentLibrary] = useState<string>("");
   const [libraries, setLibraries] = useState<Library[]>([]);
   const [documents, setDocuments] = useState<LibraryDocument[]>([]);
   const [categories, setCategories] = useState<LibraryCategory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(50); // Default page size
+
+  // Cache for API responses (5 minute TTL)
+  const cacheRef = useRef<Map<string, CacheEntry>>(new Map());
+  const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   const fetchLibraries = useCallback(async () => {
     try {
@@ -46,30 +57,68 @@ export function useLibraryData() {
 
   const fetchLibraryData = useCallback(async (page: number = 1, additionalParams?: URLSearchParams) => {
     if (!currentLibrary) return;
+
+    // Create cache key
+    const params = new URLSearchParams();
+    params.set('page', page.toString());
+    params.set('limit', pageSize.toString());
+
+    if (additionalParams) {
+      additionalParams.forEach((value, key) => {
+        params.set(key, value);
+      });
+    }
+
+    const cacheKey = `${currentLibrary}:${params.toString()}`;
+
+    // Check cache first
+    const cached = cacheRef.current.get(cacheKey);
+    const now = Date.now();
+    if (cached && (now - cached.timestamp) < CACHE_TTL) {
+      // Use cached data
+      setDocuments(cached.documents);
+      setPagination(cached.pagination);
+      setLoading(false);
+      setIsFetching(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      const params = new URLSearchParams();
-      params.set('page', page.toString());
-      params.set('limit', pageSize.toString());
-
-      if (additionalParams) {
-        additionalParams.forEach((value, key) => {
-          params.set(key, value);
-        });
-      }
-
+      setIsFetching(true);
       const response = await fetch(
         `/api/libraries/${currentLibrary}/documents?${params.toString()}`
       );
       const data = await response.json();
-      setDocuments(data.documents || []);
-      setPagination(data.pagination || null);
+      const documents = data.documents || [];
+      const pagination = data.pagination || null;
+
+      // Cache the result
+      cacheRef.current.set(cacheKey, {
+        documents,
+        pagination,
+        timestamp: now
+      });
+
+      // Clean up old cache entries (keep only last 20)
+      if (cacheRef.current.size > 20) {
+        const entries = Array.from(cacheRef.current.entries());
+        entries.sort((a, b) => b[1].timestamp - a[1].timestamp);
+        cacheRef.current.clear();
+        entries.slice(0, 15).forEach(([key, value]) => {
+          cacheRef.current.set(key, value);
+        });
+      }
+
+      setDocuments(documents);
+      setPagination(pagination);
     } catch (error) {
       console.error("Error fetching library data:", error);
     } finally {
       setLoading(false);
+      setIsFetching(false);
     }
-  }, [currentLibrary, pageSize]);
+  }, [currentLibrary, pageSize, CACHE_TTL]);
 
   useEffect(() => {
     fetchLibraries();
@@ -118,6 +167,8 @@ export function useLibraryData() {
   }, [fetchLibraries]);
 
   const refreshLibraryData = useCallback(async () => {
+    // Clear cache when refreshing data
+    cacheRef.current.clear();
     await Promise.all([
       fetchLibraryData(currentPage),
       fetchCategories()
@@ -132,6 +183,7 @@ export function useLibraryData() {
     setDocuments,
     categories,
     loading,
+    isFetching,
     pagination,
     currentPage,
     pageSize,

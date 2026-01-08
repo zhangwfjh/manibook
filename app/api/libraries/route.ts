@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Add to registry
-    const success = addLibrary(name, libraryPath);
+    const success = await addLibrary(name, libraryPath);
     if (!success) {
       return NextResponse.json({ error: 'Library name already exists' }, { status: 400 });
     }

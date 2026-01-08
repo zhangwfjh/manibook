@@ -35,5 +35,18 @@ model Document {
   filesize          BigInt   // File size in bytes
   format            String   // File format: 'pdf' | 'epub' | 'djvu'
 
+  @@index([title])
+  @@index([authors])
+  @@index([publisher])
+  @@index([category])
+  @@index([favorite])
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([publicationYear])
+  @@index([numPages])
+  @@index([filesize])
+  @@index([format])
+  @@index([doctype])
+
   @@map("documents")
 }

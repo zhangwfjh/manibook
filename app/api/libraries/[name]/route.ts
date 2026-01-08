@@ -7,7 +7,7 @@ export async function GET(
 ) {
   try {
     const { name } = await params;
-    const libraryInfo = getLibrary(name);
+    const libraryInfo = await getLibrary(name);
 
     if (!libraryInfo) {
       return NextResponse.json({ error: 'Library not found' }, { status: 404 });
@@ -37,7 +37,7 @@ export async function PATCH(
     }
 
     // Rename library
-    const success = renameLibrary(name, newName);
+    const success = await renameLibrary(name, newName);
     if (!success) {
       return NextResponse.json({ error: 'Library not found or new name already exists' }, { status: 400 });
     }
@@ -57,7 +57,7 @@ export async function DELETE(
     const { name } = await params;
 
     // Archive library
-    const success = archiveLibrary(name);
+    const success = await archiveLibrary(name);
     if (!success) {
       return NextResponse.json({ error: 'Library not found' }, { status: 404 });
     }

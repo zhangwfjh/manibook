@@ -7,7 +7,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LayoutGridIcon, ListIcon, SearchIcon, UploadIcon } from "lucide-react";
+import {
+  LayoutGridIcon,
+  ListIcon,
+  SearchIcon,
+  UploadIcon,
+  Loader2Icon,
+} from "lucide-react";
 import { SettingsDialog } from "@/components/library/settings-dialog";
 
 type ViewMode = "card" | "list";
@@ -21,6 +27,7 @@ interface LibraryControlsProps {
   onViewModeChange: (mode: ViewMode) => void;
   librariesLength: number;
   onOpenUploadDialog: () => void;
+  isSearching?: boolean;
 }
 
 export function LibraryControls({
@@ -32,13 +39,18 @@ export function LibraryControls({
   onViewModeChange,
   librariesLength,
   onOpenUploadDialog,
+  isSearching = false,
 }: LibraryControlsProps) {
   return (
     <div className="mb-6 space-y-4">
       {/* Search and Actions */}
       <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
         <div className="relative flex-1 max-w-md w-full lg:w-auto">
-          <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          {isSearching ? (
+            <Loader2Icon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4 animate-spin" />
+          ) : (
+            <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          )}
           <Input
             placeholder="Search by title, author, publisher, or keywords..."
             value={searchQuery}

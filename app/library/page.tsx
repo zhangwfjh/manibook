@@ -53,6 +53,7 @@ export default function LibraryPage() {
     showFavoritesOnly,
     setShowFavoritesOnly,
     filterParams,
+    isSearching,
   } = useDocumentFilters();
 
   const { sortBy, setSortBy, sortParams } = useDocumentSorting();
@@ -251,6 +252,7 @@ export default function LibraryPage() {
               onViewModeChange={setViewMode}
               librariesLength={libraries.length}
               onOpenUploadDialog={() => setUploadDialogOpen(true)}
+              isSearching={isSearching}
             />
 
             {/* Content */}

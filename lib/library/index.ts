@@ -118,11 +118,6 @@ export async function getLibrary(name: string): Promise<Library | null> {
   return libraries.find(lib => lib.name === name) || null;
 }
 
-export async function getLibraryNames(): Promise<string[]> {
-  const libraries = await readLibraries();
-  return libraries.map(lib => lib.name);
-}
-
 export async function ensureLibraryStructure(libraryPath: string): Promise<void> {
   if (!libraryPath.trim()) {
     throw new Error('Library path cannot be empty');

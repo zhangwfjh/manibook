@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
+import { useDebouncedSearch } from "./use-debounced-search";
 
 export function useDocumentFilters() {
   const [selectedCategory, setSelectedCategory] = useState<string>("");
@@ -6,10 +7,17 @@ export function useDocumentFilters() {
   const [selectedFormats, setSelectedFormats] = useState<string[]>([]);
   const [selectedAuthors, setSelectedAuthors] = useState<string[]>([]);
   const [selectedPublishers, setSelectedPublishers] = useState<string[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
-  // Build filter parameters for API calls
+  // Use debounced search for the search query
+  const {
+    searchValue: searchQuery,
+    debouncedSearchValue: debouncedSearchQuery,
+    updateSearch: setSearchQuery,
+    isSearching,
+  } = useDebouncedSearch("", 300);
+
+  // Build filter parameters for API calls (using debounced search value)
   const filterParams = useMemo(() => {
     const params = new URLSearchParams();
 
@@ -33,8 +41,8 @@ export function useDocumentFilters() {
       params.set('publishers', selectedPublishers.join(','));
     }
 
-    if (searchQuery) {
-      params.set('search', searchQuery);
+    if (debouncedSearchQuery) {
+      params.set('search', debouncedSearchQuery);
     }
 
     if (showFavoritesOnly) {
@@ -42,7 +50,7 @@ export function useDocumentFilters() {
     }
 
     return params;
-  }, [selectedCategory, selectedKeywords, selectedFormats, selectedAuthors, selectedPublishers, searchQuery, showFavoritesOnly]);
+  }, [selectedCategory, selectedKeywords, selectedFormats, selectedAuthors, selectedPublishers, debouncedSearchQuery, showFavoritesOnly]);
 
   const resetFilters = useCallback(() => {
     setSelectedCategory("");
@@ -52,12 +60,12 @@ export function useDocumentFilters() {
     setSelectedPublishers([]);
     setSearchQuery("");
     setShowFavoritesOnly(false);
-  }, []);
+  }, [setSearchQuery]);
 
   // Check if any filters are active
   const hasActiveFilters = useMemo(() => {
     return !!(selectedCategory || selectedKeywords.length || selectedFormats.length ||
-             selectedAuthors.length || selectedPublishers.length || searchQuery || showFavoritesOnly);
+      selectedAuthors.length || selectedPublishers.length || searchQuery || showFavoritesOnly);
   }, [selectedCategory, selectedKeywords, selectedFormats, selectedAuthors, selectedPublishers, searchQuery, showFavoritesOnly]);
 
   return {
@@ -78,5 +86,6 @@ export function useDocumentFilters() {
     filterParams,
     hasActiveFilters,
     resetFilters,
+    isSearching,
   };
 }
