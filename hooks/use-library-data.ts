@@ -32,6 +32,18 @@ export function useLibraryData() {
     }
   }, []);
 
+  const fetchCategories = useCallback(async () => {
+    if (!currentLibrary) return;
+    try {
+      const response = await fetch(`/api/libraries/${currentLibrary}/categories`);
+      const data = await response.json();
+      setCategories(data.categories || []);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      setCategories([]);
+    }
+  }, [currentLibrary]);
+
   const fetchLibraryData = useCallback(async (page: number = 1, additionalParams?: URLSearchParams) => {
     if (!currentLibrary) return;
     try {
@@ -52,8 +64,6 @@ export function useLibraryData() {
       const data = await response.json();
       setDocuments(data.documents || []);
       setPagination(data.pagination || null);
-      // Note: categories are no longer returned from the paginated API
-      // They will need to be fetched separately if needed
     } catch (error) {
       console.error("Error fetching library data:", error);
     } finally {
@@ -70,6 +80,12 @@ export function useLibraryData() {
       setCurrentLibrary(libraries[0].name);
     }
   }, [libraries, currentLibrary]);
+
+  useEffect(() => {
+    if (currentLibrary) {
+      fetchCategories();
+    }
+  }, [currentLibrary, fetchCategories]);
 
   // Load specific page
   const loadPage = useCallback(async (page: number, filters?: URLSearchParams) => {
@@ -102,8 +118,11 @@ export function useLibraryData() {
   }, [fetchLibraries]);
 
   const refreshLibraryData = useCallback(async () => {
-    await fetchLibraryData(currentPage);
-  }, [fetchLibraryData, currentPage]);
+    await Promise.all([
+      fetchLibraryData(currentPage),
+      fetchCategories()
+    ]);
+  }, [fetchLibraryData, fetchCategories, currentPage]);
 
   return {
     currentLibrary,

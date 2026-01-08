@@ -96,6 +96,69 @@ export async function validateLibraryAccess(libraryName: string) {
   return { libraryInfo };
 }
 
+export function buildCategoryTreeFromAggregatedData(categoryData: Array<{
+  doctype: string;
+  category: string;
+  count: number;
+}>): LibraryCategory[] {
+  const root: LibraryCategory = {
+    name: 'All',
+    path: [],
+    children: [],
+    documents: []
+  };
+
+  const categoryMap = new Map<string, LibraryCategory>();
+
+  categoryData.forEach(({ doctype, category, count }) => {
+    // First level: doctype (Article, Book, Others)
+    let currentPath: string[] = [doctype];
+    let currentCategory = root;
+
+    // Create or get doctype category
+    const doctypeKey = doctype;
+    if (!categoryMap.has(doctypeKey)) {
+      const doctypeCategory: LibraryCategory = {
+        name: doctype,
+        path: [doctype],
+        children: [],
+        documents: []
+      };
+      categoryMap.set(doctypeKey, doctypeCategory);
+      currentCategory.children.push(doctypeCategory);
+    }
+    currentCategory = categoryMap.get(doctypeKey)!;
+
+    // Then build the category hierarchy under the doctype
+    const categoryParts = category.split('>').map(part => part.trim());
+
+    categoryParts.forEach((part, index) => {
+      currentPath = [...currentPath, part];
+      const pathKey = currentPath.join(' > ');
+
+      if (!categoryMap.has(pathKey)) {
+        const newCategory: LibraryCategory = {
+          name: part,
+          path: [...currentPath],
+          children: [],
+          documents: []
+        };
+        categoryMap.set(pathKey, newCategory);
+        currentCategory.children.push(newCategory);
+      }
+      currentCategory = categoryMap.get(pathKey)!;
+
+      // Add count to the deepest category level
+      if (index === categoryParts.length - 1) {
+        // Create dummy documents to represent the count
+        currentCategory.documents = Array(count).fill(null);
+      }
+    });
+  });
+
+  return root.children;
+}
+
 export async function getLibraryPrisma(libraryName: string) {
   const validation = await validateLibraryAccess(libraryName);
   if (validation.error) {

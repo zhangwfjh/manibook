@@ -53,12 +53,10 @@ export default function LibraryPage() {
     setSearchQuery,
     showFavoritesOnly,
     setShowFavoritesOnly,
-    filteredDocuments,
     filterParams,
-  } = useDocumentFilters(documents);
+  } = useDocumentFilters();
 
-  const { sortBy, setSortBy, sortedDocuments, sortParams } =
-    useDocumentSorting(filteredDocuments);
+  const { sortBy, setSortBy, sortParams } = useDocumentSorting();
 
   const {
     createLibraryOpen,
@@ -273,7 +271,7 @@ export default function LibraryPage() {
             <LibraryContent
               currentLibrary={currentLibrary}
               selectedCategory={selectedCategory}
-              sortedDocuments={sortedDocuments}
+              documents={documents}
               viewMode={viewMode}
               pagination={pagination}
               onDocumentClick={handleDocumentClick}

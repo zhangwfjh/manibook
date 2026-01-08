@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -34,7 +34,7 @@ interface PaginationInfo {
 interface LibraryContentProps {
   currentLibrary: string;
   selectedCategory: string;
-  sortedDocuments: LibraryDocument[];
+  documents: LibraryDocument[];
   viewMode: ViewMode;
   pagination?: PaginationInfo | null;
   onDocumentClick: (document: LibraryDocument) => void;
@@ -47,7 +47,7 @@ interface LibraryContentProps {
 export function LibraryContent({
   currentLibrary,
   selectedCategory,
-  sortedDocuments,
+  documents,
   viewMode,
   pagination,
   onDocumentClick,
@@ -64,7 +64,7 @@ export function LibraryContent({
   const totalCount = pagination?.totalCount || 0;
 
   // Since we're using server-side pagination, all documents are already paginated
-  const paginatedItems = sortedDocuments;
+  const paginatedItems = documents;
 
   const goToPage = (page: number) => {
     onPageChange?.(page);
@@ -136,13 +136,13 @@ export function LibraryContent({
         {/* Document count */}
         <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
           <span className="font-medium text-foreground">
-            {totalCount || sortedDocuments.length}
+            {totalCount || documents.length}
           </span>
-          <span>document{(totalCount || sortedDocuments.length) !== 1 ? "s" : ""} found</span>
+          <span>document{(totalCount || documents.length) !== 1 ? "s" : ""} found</span>
         </div>
       </div>
 
-      {sortedDocuments.length === 0 ? (
+      {documents.length === 0 ? (
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant="icon">
