@@ -1,7 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
-import { LibraryDocument } from "@/lib/library";
 
-export function useDocumentFilters(documents: LibraryDocument[]) {
+export function useDocumentFilters() {
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedKeywords, setSelectedKeywords] = useState<string[]>([]);
   const [selectedFormats, setSelectedFormats] = useState<string[]>([]);
@@ -45,42 +44,6 @@ export function useDocumentFilters(documents: LibraryDocument[]) {
     return params;
   }, [selectedCategory, selectedKeywords, selectedFormats, selectedAuthors, selectedPublishers, searchQuery, showFavoritesOnly]);
 
-  // For backward compatibility, still provide filtered documents for components that need it
-  // This will now only filter the current page's documents for display purposes
-  const filteredDocuments = useMemo(() => {
-    if (!documents.length) return [];
-
-    return documents.filter((doc) => {
-      // Since server-side filtering is now used, we mainly need to handle any remaining
-      // client-side filtering that might be needed for the current page
-      // Most filtering is now done server-side, so this is minimal
-
-      let matchesCategory = !selectedCategory;
-      if (selectedCategory) {
-        const selectedParts = selectedCategory.split(" > ");
-        if (selectedParts.length >= 1) {
-          const selectedDoctype = selectedParts[0];
-          const selectedCategoryPath =
-            selectedParts.length > 1 ? selectedParts.slice(1).join(" > ") : null;
-
-          const doctypeMatches = doc.metadata.doctype === selectedDoctype;
-          const categoryMatches =
-            !selectedCategoryPath ||
-            (doc.metadata.category &&
-              doc.metadata.category.startsWith(selectedCategoryPath));
-
-          matchesCategory = doctypeMatches && Boolean(categoryMatches);
-        }
-      }
-
-      // Most other filters are now handled server-side
-      // Only check favorites here as it might need client-side filtering for current page
-      const matchesFavorites = !showFavoritesOnly || doc.metadata.favorite;
-
-      return matchesCategory && matchesFavorites;
-    });
-  }, [documents, selectedCategory, showFavoritesOnly]);
-
   const resetFilters = useCallback(() => {
     setSelectedCategory("");
     setSelectedKeywords([]);
@@ -112,7 +75,6 @@ export function useDocumentFilters(documents: LibraryDocument[]) {
     setSearchQuery,
     showFavoritesOnly,
     setShowFavoritesOnly,
-    filteredDocuments,
     filterParams,
     hasActiveFilters,
     resetFilters,

@@ -71,14 +71,6 @@ export function useLibraryData() {
     }
   }, [libraries, currentLibrary]);
 
-  useEffect(() => {
-    if (currentLibrary) {
-      setDocuments([]);
-      setCurrentPage(1);
-      fetchLibraryData(1);
-    }
-  }, [currentLibrary, fetchLibraryData]);
-
   // Load specific page
   const loadPage = useCallback(async (page: number, filters?: URLSearchParams) => {
     setCurrentPage(page);
