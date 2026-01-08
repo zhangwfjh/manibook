@@ -173,21 +173,16 @@ export function LibraryContent({
         </Empty>
       ) : viewMode === "card" ? (
         <>
-          <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-2 gap-6 animate-in fade-in-0 duration-500">
+          <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-2 gap-6">
             {paginatedItems.map((document, index) => (
-              <div
+              <DocumentCard
                 key={`${currentLibrary}-${document.filename}`}
-                className="animate-in slide-in-from-bottom-4 duration-300"
-                style={{ animationDelay: `${index * 25}ms` }} // Reduced delay for better performance
-              >
-                <DocumentCard
-                  library={currentLibrary}
-                  document={document}
-                  onClick={onDocumentClick}
-                  onDownload={onDownload}
-                  onFavoriteToggle={onFavoriteToggle}
-                />
-              </div>
+                library={currentLibrary}
+                document={document}
+                onClick={onDocumentClick}
+                onDownload={onDownload}
+                onFavoriteToggle={onFavoriteToggle}
+              />
             ))}
           </div>
 

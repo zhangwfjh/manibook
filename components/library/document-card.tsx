@@ -1,4 +1,4 @@
-import React, { useMemo, memo } from "react";
+import React, { useMemo, memo, useState, useCallback } from "react";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -37,18 +37,41 @@ const DocumentCardComponent = ({
 }: DocumentCardProps) => {
   const { metadata } = document;
 
+  // Memoize expensive computations
   const coverUrl = useMemo(
     () => getCoverUrl(library, document),
     [library, document]
   );
 
-  const handleCardClick = () => {
+  const formattedFileSize = useMemo(
+    () => (metadata.filesize ? formatFileSize(metadata.filesize) : null),
+    [metadata.filesize]
+  );
+
+  const formatIcon = useMemo(
+    () => (metadata.format ? getFormatIcon(metadata.format) : null),
+    [metadata.format]
+  );
+
+  const handleCardClick = useCallback(() => {
     onClick?.(document);
-  };
+  }, [onClick, document]);
+
+  const handleFavoriteClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onFavoriteToggle?.(document);
+    },
+    [onFavoriteToggle, document]
+  );
+
+  // Lazy load images
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const handleImageLoad = useCallback(() => setImageLoaded(true), []);
 
   return (
     <Card
-      className="group w-full h-full flex flex-row hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 cursor-pointer border-border/50 hover:border-border"
+      className="group w-full h-full flex flex-row hover:shadow-lg transition-shadow duration-200 cursor-pointer border-border/50 hover:border-border"
       onClick={handleCardClick}
     >
       <div className="flex-1 flex flex-col min-w-0">
@@ -71,10 +94,7 @@ const DocumentCardComponent = ({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={async (e: React.MouseEvent) => {
-                  e.stopPropagation();
-                  onFavoriteToggle?.(document);
-                }}
+                onClick={handleFavoriteClick}
                 className={`h-6 w-6 p-0 ${
                   metadata.favorite
                     ? "text-red-500"
@@ -102,12 +122,12 @@ const DocumentCardComponent = ({
               </div>
             )}
 
-            {metadata.filesize && metadata.format && (
+            {formattedFileSize && formatIcon && (
               <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                {React.createElement(getFormatIcon(metadata.format), {
+                {React.createElement(formatIcon, {
                   className: "h-4 w-4",
                 })}
-                <span>{formatFileSize(metadata.filesize)}</span>
+                <span>{formattedFileSize}</span>
               </div>
             )}
 
@@ -187,7 +207,11 @@ const DocumentCardComponent = ({
                     alt={`${metadata.title} cover`}
                     width={150}
                     height={200}
-                    className="object-cover rounded border shadow-sm hover:shadow-md transition-shadow"
+                    className={`object-cover rounded border shadow-sm hover:shadow-md transition-shadow ${
+                      imageLoaded ? "opacity-100" : "opacity-0"
+                    } transition-opacity duration-200`}
+                    loading="lazy"
+                    onLoad={handleImageLoad}
                     onError={(e) => {
                       e.currentTarget.style.display = "none";
                     }}
