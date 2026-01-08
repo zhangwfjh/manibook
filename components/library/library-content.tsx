@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/empty";
 import { DocumentCard } from "@/components/library/document-card";
 import { DocumentList } from "@/components/library/document-list";
+import { DocumentCardSkeleton } from "@/components/library/document-card-skeleton";
+import { DocumentListSkeleton } from "@/components/library/document-list-skeleton";
 import { PaginationControls } from "@/components/library/pagination-controls";
 import { LibraryDocument } from "@/lib/library";
 import { BookOpenIcon } from "lucide-react";
@@ -36,6 +38,7 @@ interface LibraryContentProps {
   selectedCategory: string;
   documents: LibraryDocument[];
   viewMode: ViewMode;
+  loading?: boolean;
   pagination?: PaginationInfo | null;
   onDocumentClick: (document: LibraryDocument) => void;
   onDownload: (doc: LibraryDocument) => void;
@@ -49,6 +52,7 @@ export function LibraryContent({
   selectedCategory,
   documents,
   viewMode,
+  loading = false,
   pagination,
   onDocumentClick,
   onDownload,
@@ -138,11 +142,23 @@ export function LibraryContent({
           <span className="font-medium text-foreground">
             {totalCount || documents.length}
           </span>
-          <span>document{(totalCount || documents.length) !== 1 ? "s" : ""} found</span>
+          <span>
+            document{(totalCount || documents.length) !== 1 ? "s" : ""} found
+          </span>
         </div>
       </div>
 
-      {documents.length === 0 ? (
+      {loading ? (
+        viewMode === "card" ? (
+          <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-2 gap-6">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <DocumentCardSkeleton key={index} />
+            ))}
+          </div>
+        ) : (
+          <DocumentListSkeleton rows={10} />
+        )
+      ) : documents.length === 0 ? (
         <Empty>
           <EmptyHeader>
             <EmptyMedia variant="icon">

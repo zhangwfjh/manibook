@@ -7,7 +7,6 @@ import { LibrarySidebar } from "@/components/library/library-sidebar";
 import { LibraryControls } from "@/components/library/library-controls";
 import { LibraryContent } from "@/components/library/library-content";
 import { LibraryDialogs } from "@/components/library/library-dialogs";
-import { Spinner } from "@/components/ui/spinner";
 import { useLibraryData } from "@/hooks/use-library-data";
 import { useDocumentFilters } from "@/hooks/use-document-filters";
 import { useDocumentSorting } from "@/hooks/use-document-sorting";
@@ -200,19 +199,6 @@ export default function LibraryPage() {
     }
   }, [filterParams, sortParams, currentLibrary, loadFilteredData]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-background to-muted/20">
-        <div className="text-center space-y-4">
-          <Spinner className="h-8 w-8 mx-auto" />
-          <p className="text-muted-foreground text-lg">
-            Loading your library...
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-linear-to-br from-background via-background to-muted/10">
       <div className="container mx-auto px-6 py-8">
@@ -273,6 +259,7 @@ export default function LibraryPage() {
               selectedCategory={selectedCategory}
               documents={documents}
               viewMode={viewMode}
+              loading={loading}
               pagination={pagination}
               onDocumentClick={handleDocumentClick}
               onDownload={handleDownload}
