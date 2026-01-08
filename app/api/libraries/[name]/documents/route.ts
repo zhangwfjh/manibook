@@ -256,7 +256,13 @@ export async function GET(
     const prisma = await getLibraryPrisma(name);
 
     // Build WHERE conditions for filtering
-    const whereConditions: Record<string, any> = {};
+    type WhereCondition = Record<string, any>;
+    type WhereConditions = {
+      AND?: WhereCondition[];
+      OR?: WhereCondition[];
+      [key: string]: any;
+    };
+    const whereConditions: WhereConditions = {};
 
     // Category filtering
     if (category) {
@@ -293,14 +299,17 @@ export async function GET(
 
     // Authors filtering (JSON array contains any of the selected authors)
     if (authors.length > 0) {
-      whereConditions.OR = whereConditions.OR || [];
-      authors.forEach(author => {
-        whereConditions.OR.push({
-          authors: {
-            contains: author
-          }
-        });
-      });
+      const authorConditions = authors.map(author => ({
+        authors: {
+          contains: author
+        }
+      }));
+
+      if (whereConditions.OR) {
+        whereConditions.OR.push(...authorConditions);
+      } else {
+        whereConditions.OR = authorConditions;
+      }
     }
 
     // Publishers filtering
@@ -319,19 +328,18 @@ export async function GET(
     if (searchQuery) {
       const searchCondition = {
         OR: [
-          { title: { contains: searchQuery, mode: 'insensitive' } },
-          { authors: { contains: searchQuery, mode: 'insensitive' } },
-          { keywords: { contains: searchQuery, mode: 'insensitive' } },
-          { publisher: { contains: searchQuery, mode: 'insensitive' } },
+          { title: { contains: searchQuery } },
+          { authors: { contains: searchQuery } },
+          { keywords: { contains: searchQuery } },
+          { publisher: { contains: searchQuery } },
         ]
       };
 
-      if (whereConditions.OR) {
-        // Combine with existing OR conditions
-        whereConditions.AND = [searchCondition];
-      } else {
-        Object.assign(whereConditions, searchCondition);
+      // Always combine search with other conditions using AND
+      if (!whereConditions.AND) {
+        whereConditions.AND = [];
       }
+      whereConditions.AND.push(searchCondition);
     }
 
     // Build ORDER BY clause
