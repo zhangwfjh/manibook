@@ -393,14 +393,71 @@ export async function GET(
       take: limit,
     });
 
+    // Fetch ALL matching documents for filter aggregation
+    const allDbDocuments = await prisma.document.findMany({
+      where: whereConditions,
+      select: {
+        format: true,
+        keywords: true,
+        authors: true,
+        publisher: true,
+      },
+    });
+
     const documents = dbDocuments.map(dbDoc => dbDocumentToLibraryDocument(dbDoc, name));
+
+    const formatCounts: Record<string, number> = {};
+    const keywordCounts: Record<string, number> = {};
+    const authorCounts: Record<string, number> = {};
+    const publisherCounts: Record<string, number> = {};
+
+    for (const doc of allDbDocuments) {
+      if (doc.format) {
+        const format = doc.format.toUpperCase();
+        formatCounts[format] = (formatCounts[format] || 0) + 1;
+      }
+
+      if (doc.keywords) {
+        try {
+          const keywordArray = JSON.parse(doc.keywords as string) as string[];
+          for (const kw of keywordArray) {
+            const titleCaseKw = kw.replace(/\b\w/g, (l: string) => l.toUpperCase());
+            keywordCounts[titleCaseKw] = (keywordCounts[titleCaseKw] || 0) + 1;
+          }
+        } catch {
+          continue;
+        }
+      }
+
+      if (doc.authors) {
+        try {
+          const authorArray = JSON.parse(doc.authors as string) as string[];
+          for (const author of authorArray) {
+            const titleCaseAuthor = author.replace(/\b\w/g, (l: string) => l.toUpperCase());
+            authorCounts[titleCaseAuthor] = (authorCounts[titleCaseAuthor] || 0) + 1;
+          }
+        } catch {
+          continue;
+        }
+      }
+
+      if (doc.publisher) {
+        publisherCounts[doc.publisher] = (publisherCounts[doc.publisher] || 0) + 1;
+      }
+    }
+
+    const filterOptions = {
+      formats: formatCounts,
+      keywords: keywordCounts,
+      authors: authorCounts,
+      publishers: publisherCounts,
+    };
 
     // Calculate pagination info
     const totalPages = Math.ceil(totalCount / limit);
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
 
-    // Return paginated documents
     return NextResponse.json({
       documents,
       pagination: {
@@ -410,7 +467,8 @@ export async function GET(
         totalPages,
         hasNextPage,
         hasPrevPage
-      }
+      },
+      filterOptions
     });
   } catch (error) {
     console.error('Error in documents API:', error);

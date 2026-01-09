@@ -29,6 +29,7 @@ export function useLibraryData() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(50); // Default page size
   const [filterOptions, setFilterOptions] = useState<Record<string, Record<string, number>>>({});
+  const lastFetchParamsRef = useRef<string>("");
 
   // Cache for API responses (5 minute TTL)
   const cacheRef = useRef<Map<string, CacheEntry>>(new Map());
@@ -57,28 +58,9 @@ export function useLibraryData() {
     }
   }, [currentLibrary]);
 
-  const fetchFilterOptions = useCallback(async (params: URLSearchParams) => {
-    if (!currentLibrary) return {};
-
-    try {
-      const response = await fetch(
-        `/api/libraries/${currentLibrary}/documents/filter-options?${params.toString()}`
-      );
-      if (!response.ok) {
-        return {};
-      }
-      const data = await response.json();
-      return data as Record<string, Record<string, number>>;
-    } catch (error) {
-      console.error("Error fetching filter options:", error);
-      return {};
-    }
-  }, [currentLibrary]);
-
   const fetchLibraryData = useCallback(async (page: number = 1, additionalParams?: URLSearchParams) => {
     if (!currentLibrary) return;
 
-    // Create cache key
     const params = new URLSearchParams();
     params.set('page', page.toString());
     params.set('limit', pageSize.toString());
@@ -89,7 +71,14 @@ export function useLibraryData() {
       });
     }
 
-    const cacheKey = `${currentLibrary}:${params.toString()}`;
+    const paramsString = params.toString();
+
+    if (lastFetchParamsRef.current === paramsString) {
+      return;
+    }
+    lastFetchParamsRef.current = paramsString;
+
+    const cacheKey = `${currentLibrary}:${paramsString}`;
 
     // Check cache first
     const cached = cacheRef.current.get(cacheKey);
@@ -113,21 +102,21 @@ export function useLibraryData() {
       setLoading(true);
       setIsFetching(true);
 
-      // Fetch documents and filter options in parallel
-      const [documentsResponse, filterOptionsData] = await Promise.all([
-        fetch(`/api/libraries/${currentLibrary}/documents?${params.toString()}`),
-        fetchFilterOptions(params)
-      ]);
+      // Single request for documents and filter options
+      const response = await fetch(
+        `/api/libraries/${currentLibrary}/documents?${params.toString()}`
+      );
 
-      const data = await documentsResponse.json();
+      const data = await response.json();
       const documents = data.documents || [];
       const pagination = data.pagination || null;
+      const filterOptionsData = data.filterOptions || {};
 
       // Cache the result
       cacheRef.current.set(cacheKey, {
         documents,
         pagination,
-        filterOptions: filterOptionsData || {},
+        filterOptions: filterOptionsData,
         timestamp: now
       });
 
@@ -143,14 +132,14 @@ export function useLibraryData() {
 
       setDocuments(documents);
       setPagination(pagination);
-      setFilterOptions(filterOptionsData || {});
+      setFilterOptions(filterOptionsData);
     } catch (error) {
       console.error("Error fetching library data:", error);
     } finally {
       setLoading(false);
       setIsFetching(false);
     }
-  }, [currentLibrary, pageSize, CACHE_TTL, fetchFilterOptions]);
+  }, [currentLibrary, pageSize, CACHE_TTL]);
 
   useEffect(() => {
     fetchLibraries();
@@ -165,6 +154,7 @@ export function useLibraryData() {
   useEffect(() => {
     if (currentLibrary) {
       fetchCategories();
+      lastFetchParamsRef.current = "";
     }
   }, [currentLibrary, fetchCategories]);
 
