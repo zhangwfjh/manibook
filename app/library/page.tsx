@@ -36,6 +36,7 @@ export default function LibraryPage() {
     loadFilteredData,
     refreshLibraries,
     refreshLibraryData,
+    filterOptions,
   } = useLibraryData();
 
   const {
@@ -225,12 +226,12 @@ export default function LibraryPage() {
             currentLibrary={currentLibrary}
             categories={categories}
             selectedCategory={selectedCategory}
-            documents={documents}
             selectedKeywords={selectedKeywords}
             selectedFormats={selectedFormats}
             selectedAuthors={selectedAuthors}
             selectedPublishers={selectedPublishers}
             showFavoritesOnly={showFavoritesOnly}
+            filterOptions={filterOptions}
             onLibrarySelect={setCurrentLibrary}
             onCategorySelect={setSelectedCategory}
             onCreateLibrary={() => setCreateLibraryOpen(true)}

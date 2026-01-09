@@ -3,19 +3,19 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { LibraryManager } from "@/components/library/library-manager";
 import { GenericFilter } from "@/components/library/generic-filter";
-import { LibraryDocument, LibraryCategory, Library } from "@/lib/library";
+import { LibraryCategory, Library } from "@/lib/library";
 
 interface LibrarySidebarProps {
   libraries: Library[];
   currentLibrary: string;
   categories: LibraryCategory[];
   selectedCategory: string;
-  documents: LibraryDocument[];
   selectedKeywords?: string[];
   selectedFormats?: string[];
   selectedAuthors?: string[];
   selectedPublishers?: string[];
   showFavoritesOnly?: boolean;
+  filterOptions?: Record<string, Record<string, number>>;
   onLibrarySelect: (library: string) => void;
   onCategorySelect: (category: string) => void;
   onCreateLibrary: () => void;
@@ -33,12 +33,12 @@ export function LibrarySidebar({
   currentLibrary,
   categories,
   selectedCategory,
-  documents,
   selectedKeywords = [],
   selectedFormats = [],
   selectedAuthors = [],
   selectedPublishers = [],
   showFavoritesOnly = false,
+  filterOptions = {},
   onLibrarySelect,
   onCategorySelect,
   onCreateLibrary,
@@ -88,44 +88,28 @@ export function LibrarySidebar({
         title="Formats"
         selectedItems={selectedFormats}
         onItemsChange={onFormatsChange}
-        documents={documents}
-        getItemValues={(doc) =>
-          doc.metadata.format ? [doc.metadata.format.toUpperCase()] : []
-        }
+        filterOptions={filterOptions.formats}
       />
 
       <GenericFilter
         title="Keywords"
         selectedItems={selectedKeywords}
         onItemsChange={onKeywordsChange}
-        documents={documents}
-        getItemValues={(doc) =>
-          doc.metadata.keywords?.map((kw) =>
-            kw.replace(/\b\w/g, (l: string) => l.toUpperCase())
-          ) || []
-        }
+        filterOptions={filterOptions.keywords}
       />
 
       <GenericFilter
         title="Authors"
         selectedItems={selectedAuthors}
         onItemsChange={onAuthorsChange}
-        documents={documents}
-        getItemValues={(doc) =>
-          doc.metadata.authors?.map((author) =>
-            author.replace(/\b\w/g, (l: string) => l.toUpperCase())
-          ) || []
-        }
+        filterOptions={filterOptions.authors}
       />
 
       <GenericFilter
         title="Publishers"
         selectedItems={selectedPublishers}
         onItemsChange={onPublishersChange}
-        documents={documents}
-        getItemValues={(doc) =>
-          doc.metadata.publisher ? [doc.metadata.publisher] : []
-        }
+        filterOptions={filterOptions.publishers}
       />
     </div>
   );

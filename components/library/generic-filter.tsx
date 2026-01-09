@@ -9,46 +9,32 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { LibraryDocument } from "@/lib/library";
 
 interface GenericFilterProps {
   title: string;
   selectedItems?: string[];
   onItemsChange: (items: string[]) => void;
-  documents: LibraryDocument[];
-  getItemValues: (document: LibraryDocument) => string[];
+  filterOptions: Record<string, number>;
 }
 
 export function GenericFilter({
   title,
   selectedItems = [],
   onItemsChange,
-  documents,
-  getItemValues,
+  filterOptions = {},
 }: GenericFilterProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [itemSearch, setItemSearch] = useState("");
 
-  const availableItemsCache = useMemo(() => {
-    const cache = new Map<string, Set<string>>();
-    documents.forEach((doc) => {
-      getItemValues(doc).forEach((value) => {
-        if (!cache.has(value)) cache.set(value, new Set());
-        cache.get(value)!.add(doc.filename);
-      });
-    });
-    return cache;
-  }, [documents, getItemValues]);
-
   const availableItems = useMemo(() => {
-    return Array.from(availableItemsCache.keys()).sort();
-  }, [availableItemsCache]);
+    return Object.keys(filterOptions || {}).sort();
+  }, [filterOptions]);
 
   const getItemCount = useCallback(
     (item: string): number => {
-      return availableItemsCache.get(item)?.size || 0;
+      return (filterOptions || {})[item] || 0;
     },
-    [availableItemsCache]
+    [filterOptions]
   );
 
   const filteredItems = useMemo(() => {
