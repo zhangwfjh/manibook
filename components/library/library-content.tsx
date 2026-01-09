@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/empty";
 import { DocumentCard } from "@/components/library/document-card";
 import { DocumentList } from "@/components/library/document-list";
+import { VirtualDocumentList } from "@/components/library/virtual-document-list";
 import { DocumentCardSkeleton } from "@/components/library/document-card-skeleton";
 import { DocumentListSkeleton } from "@/components/library/document-list-skeleton";
 import { PaginationControls } from "@/components/library/pagination-controls";
@@ -73,6 +74,10 @@ export function LibraryContent({
   const goToPage = (page: number) => {
     onPageChange?.(page);
   };
+
+  const useVirtualList = useMemo(() => {
+    return viewMode === "list" && paginatedItems.length > 50;
+  }, [viewMode, paginatedItems.length]);
 
   const nextPage = () => {
     if (hasNextPage) {
@@ -187,6 +192,27 @@ export function LibraryContent({
           </div>
 
           {/* Pagination controls for card view */}
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={totalPages}
+            hasNextPage={hasNextPage}
+            hasPrevPage={hasPrevPage}
+            onNextPage={nextPage}
+            onPrevPage={prevPage}
+            onGoToPage={goToPage}
+            className="mt-8"
+          />
+        </>
+      ) : useVirtualList ? (
+        <>
+          <VirtualDocumentList
+            documents={paginatedItems}
+            onClick={onDocumentClick}
+            onDownload={onDownload}
+            onFavoriteToggle={onFavoriteToggle}
+          />
+
+          {/* Pagination controls for virtual list view */}
           <PaginationControls
             currentPage={currentPage}
             totalPages={totalPages}

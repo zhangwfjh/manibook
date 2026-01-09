@@ -11,6 +11,7 @@ import { useLibraryData } from "@/hooks/use-library-data";
 import { useDocumentFilters } from "@/hooks/use-document-filters";
 import { useDocumentSorting } from "@/hooks/use-document-sorting";
 import { useLibraryOperations } from "@/hooks/use-library-operations";
+import { useDebouncedFilters } from "@/hooks/use-debounced-filters";
 import { LibraryDocument } from "@/lib/library";
 
 type ViewMode = "card" | "list";
@@ -184,21 +185,23 @@ export default function LibraryPage() {
     [setSelectedCategory]
   );
 
-  // Reload data when filters change
+  // Reload data when filters change (with debouncing)
+  const debouncedFilterParams = useDebouncedFilters(filterParams, 300);
+
   useEffect(() => {
     if (currentLibrary) {
       // Combine filter and sort parameters
       const combinedParams = new URLSearchParams();
-      filterParams.forEach((value, key) => {
+      debouncedFilterParams.forEach((value: string, key: string) => {
         combinedParams.set(key, value);
       });
-      sortParams.forEach((value, key) => {
+      sortParams.forEach((value: string, key: string) => {
         combinedParams.set(key, value);
       });
 
       loadFilteredData(combinedParams);
     }
-  }, [filterParams, sortParams, currentLibrary, loadFilteredData]);
+  }, [debouncedFilterParams, sortParams, currentLibrary, loadFilteredData]);
 
   return (
     <div className="min-h-screen bg-linear-to-br from-background via-background to-muted/10">

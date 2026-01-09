@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -29,17 +29,32 @@ export function GenericFilter({
   const [isOpen, setIsOpen] = useState(true);
   const [itemSearch, setItemSearch] = useState("");
 
-  const availableItems = useMemo(() => {
-    const itemSet = new Set<string>();
+  const availableItemsCache = useMemo(() => {
+    const cache = new Map<string, Set<string>>();
     documents.forEach((doc) => {
-      getItemValues(doc).forEach((value) => itemSet.add(value));
+      getItemValues(doc).forEach((value) => {
+        if (!cache.has(value)) cache.set(value, new Set());
+        cache.get(value)!.add(doc.filename);
+      });
     });
-    return Array.from(itemSet).sort();
+    return cache;
   }, [documents, getItemValues]);
 
+  const availableItems = useMemo(() => {
+    return Array.from(availableItemsCache.keys()).sort();
+  }, [availableItemsCache]);
+
+  const getItemCount = useCallback(
+    (item: string): number => {
+      return availableItemsCache.get(item)?.size || 0;
+    },
+    [availableItemsCache]
+  );
+
   const filteredItems = useMemo(() => {
+    const searchLower = itemSearch.toLowerCase();
     return availableItems.filter((item) =>
-      item.toLowerCase().includes(itemSearch.toLowerCase())
+      item.toLowerCase().includes(searchLower)
     );
   }, [availableItems, itemSearch]);
 
@@ -131,9 +146,7 @@ export function GenericFilter({
             <div className="flex flex-wrap gap-1 max-h-52 overflow-y-auto">
               {filteredItems.map((item) => {
                 const isSelected = selectedItems.includes(item);
-                const count = documents.filter((doc) =>
-                  getItemValues(doc).includes(item)
-                ).length;
+                const count = getItemCount(item);
 
                 return (
                   <Badge
