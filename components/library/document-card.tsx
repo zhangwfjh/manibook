@@ -1,4 +1,4 @@
-import React, { useMemo, memo, useState, useCallback } from "react";
+import React, { useMemo, memo, useCallback } from "react";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,7 @@ import {
   getFormatIcon,
   getCoverUrl,
 } from "@/lib/library/document-utils";
+import { useImageLoading } from "@/hooks/use-image-loading";
 
 interface DocumentCardProps {
   library: string;
@@ -65,9 +66,18 @@ const DocumentCardComponent = ({
     [onFavoriteToggle, document]
   );
 
-  // Lazy load images
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const handleImageLoad = useCallback(() => setImageLoaded(true), []);
+  // Lazy load images with intersection observer
+  const { isLoaded, hasError, observeImage, handleLoad, handleError } =
+    useImageLoading();
+  const imageRef = useCallback(
+    (img: HTMLImageElement) => {
+      observeImage(img, coverUrl);
+      if (!isLoaded(coverUrl) && !hasError(coverUrl)) {
+        handleLoad(coverUrl);
+      }
+    },
+    [coverUrl, isLoaded, hasError, observeImage, handleLoad]
+  );
 
   return (
     <Card
@@ -202,18 +212,19 @@ const DocumentCardComponent = ({
             <HoverCard>
               <HoverCardTrigger asChild>
                 <div className="cursor-pointer">
+                  <div className="inline-block bg-muted/50 blur-sm rounded animate-pulse" />
                   <Image
+                    ref={imageRef}
                     src={coverUrl}
                     alt={`${metadata.title} cover`}
                     width={150}
                     height={200}
-                    className={`object-cover rounded border shadow-sm hover:shadow-md transition-shadow ${
-                      imageLoaded ? "opacity-100" : "opacity-0"
-                    } transition-opacity duration-200`}
+                    className="object-cover rounded border shadow-sm hover:shadow-md transition-opacity duration-200"
                     loading="lazy"
-                    onLoad={handleImageLoad}
+                    onLoad={() => handleLoad(coverUrl)}
                     onError={(e) => {
                       e.currentTarget.style.display = "none";
+                      handleError(coverUrl);
                     }}
                   />
                 </div>
@@ -229,6 +240,7 @@ const DocumentCardComponent = ({
                   width={450}
                   height={600}
                   className="object-cover rounded border shadow-lg"
+                  loading="eager"
                   onError={(e) => {
                     e.currentTarget.style.display = "none";
                   }}
