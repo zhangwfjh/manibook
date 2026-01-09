@@ -59,7 +59,11 @@ export function LibraryControls({
           />
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Select value={sortBy} onValueChange={onSortChange}>
+          <Select
+            value={sortBy}
+            defaultValue="updatedAt-desc"
+            onValueChange={onSortChange}
+          >
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Sort by..." />
             </SelectTrigger>

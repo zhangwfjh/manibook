@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 
 export function useDocumentSorting() {
-  const [sortBy, setSortBy] = useState<string>("createdAt-desc");
+  const [sortBy, setSortBy] = useState<string>("updatedAt-desc");
 
   // Get sort parameters for API calls
   const sortParams = useMemo(() => {

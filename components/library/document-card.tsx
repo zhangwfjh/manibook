@@ -212,7 +212,7 @@ const DocumentCardComponent = ({
             <HoverCard>
               <HoverCardTrigger asChild>
                 <div className="cursor-pointer">
-                  <div className="inline-block bg-muted/50 blur-sm rounded animate-pulse" />
+                  <div className="bg-muted/50 blur-sm rounded animate-pulse" />
                   <Image
                     ref={imageRef}
                     src={coverUrl}
