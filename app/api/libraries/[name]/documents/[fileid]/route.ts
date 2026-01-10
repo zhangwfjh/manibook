@@ -29,7 +29,8 @@ export async function GET(
     return NextResponse.json({ document });
   } catch (error) {
     console.error('Error fetching document:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
@@ -119,7 +120,8 @@ export async function PUT(
     return NextResponse.json({ success: true, document: libraryDocument });
   } catch (error) {
     console.error('Error updating document:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
@@ -156,7 +158,8 @@ export async function PATCH(
 
   } catch (error) {
     console.error('Error updating favorite status:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
@@ -203,6 +206,7 @@ export async function DELETE(
 
   } catch (error) {
     console.error('Error deleting file:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

@@ -472,7 +472,8 @@ export async function GET(
     });
   } catch (error) {
     console.error('Error in documents API:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
@@ -533,6 +534,7 @@ export async function POST(
 
   } catch (error) {
     console.error('Error importing file:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

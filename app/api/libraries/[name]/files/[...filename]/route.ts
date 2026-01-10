@@ -32,7 +32,8 @@ export async function GET(
     });
   } catch (error) {
     console.error('Error serving file:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 

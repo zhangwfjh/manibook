@@ -7,7 +7,8 @@ export async function GET() {
     return NextResponse.json({ libraries });
   } catch (error) {
     console.error('Error fetching libraries:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
@@ -41,6 +42,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, message: 'Library created successfully' });
   } catch (error) {
     console.error('Error creating library:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
