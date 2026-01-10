@@ -256,11 +256,11 @@ export async function GET(
     const prisma = await getLibraryPrisma(name);
 
     // Build WHERE conditions for filtering
-    type WhereCondition = Record<string, any>;
+    type WhereCondition = Record<string, unknown>;
     type WhereConditions = {
       AND?: WhereCondition[];
       OR?: WhereCondition[];
-      [key: string]: any;
+      [key: string]: unknown;
     };
     const whereConditions: WhereConditions = {};
 

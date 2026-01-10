@@ -4,7 +4,6 @@ import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
-  InputGroupText,
   InputGroupTextarea,
 } from "@/components/ui/input-group";
 import { Send, Paperclip } from "lucide-react";

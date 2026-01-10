@@ -179,7 +179,7 @@ export function LibraryContent({
       ) : viewMode === "card" ? (
         <>
           <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-2 gap-6">
-            {paginatedItems.map((document, index) => (
+            {paginatedItems.map((document) => (
               <DocumentCard
                 key={`${currentLibrary}-${document.filename}`}
                 library={currentLibrary}

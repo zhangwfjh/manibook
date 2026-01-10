@@ -50,36 +50,29 @@ const emptySettings: LLMSettings = {
 export function SettingsDialog() {
   const [settings, setSettings] = useState<LLMSettings>(emptySettings);
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (open) {
+      const loadSettings = async () => {
+        try {
+          const response = await fetch("/api/llm-settings");
+          if (response.ok) {
+            const data = await response.json();
+            setSettings(data);
+          } else {
+            console.error("Failed to load settings");
+            setSettings(emptySettings);
+          }
+        } catch (error) {
+          console.error("Error loading settings:", error);
+          setSettings(emptySettings);
+        }
+      };
       loadSettings();
     }
   }, [open]);
 
-  const loadSettings = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch("/api/llm-settings");
-      if (response.ok) {
-        const data = await response.json();
-        setSettings(data);
-      } else {
-        console.error("Failed to load settings");
-        setSettings(emptySettings);
-      }
-    } catch (error) {
-      console.error("Error loading settings:", error);
-      setSettings(emptySettings);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSave = async () => {
-    setSaving(true);
     try {
       const response = await fetch("/api/llm-settings", {
         method: "POST",
@@ -98,8 +91,6 @@ export function SettingsDialog() {
     } catch (error) {
       console.error("Error saving settings:", error);
       alert("Error saving settings");
-    } finally {
-      setSaving(false);
     }
   };
 
