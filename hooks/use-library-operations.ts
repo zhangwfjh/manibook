@@ -19,8 +19,14 @@ export function useLibraryOperations({
   const [newLibraryName, setNewLibraryName] = useState("");
   const [newLibraryPath, setNewLibraryPath] = useState("");
   const [renameLibraryOpen, setRenameLibraryOpen] = useState(false);
+  const [moveLibraryOpen, setMoveLibraryOpen] = useState(false);
   const [archiveLibraryOpen, setArchiveLibraryOpen] = useState(false);
   const [renameLibraryName, setRenameLibraryName] = useState("");
+  const [moveLibraryPath, setMoveLibraryPath] = useState("");
+  const [selectedLibraryForOperation, setSelectedLibraryForOperation] = useState<{
+    name: string;
+    path?: string;
+  }>({ name: "" });
 
   const handleCreateLibrary = async () => {
     if (!newLibraryName || !newLibraryPath) {
@@ -58,23 +64,29 @@ export function useLibraryOperations({
       return;
     }
 
-    if (renameLibraryName === currentLibrary) {
+    if (renameLibraryName === selectedLibraryForOperation.name) {
       toast.error("New name must be different from current name");
       return;
     }
 
     try {
-      const response = await fetch(`/api/libraries/${currentLibrary}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ newName: renameLibraryName }),
-      });
+      const response = await fetch(
+        `/api/libraries/${selectedLibraryForOperation.name}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ newName: renameLibraryName }),
+        }
+      );
 
       if (response.ok) {
         toast.success("Library renamed successfully");
         setRenameLibraryOpen(false);
-        setCurrentLibrary(renameLibraryName);
+        if (currentLibrary === selectedLibraryForOperation.name) {
+          setCurrentLibrary(renameLibraryName);
+        }
         setRenameLibraryName("");
+        setSelectedLibraryForOperation({ name: "" });
         onLibrariesChange();
       } else {
         const error = await response.json();
@@ -83,6 +95,52 @@ export function useLibraryOperations({
     } catch (error) {
       console.error("Error renaming library:", error);
       toast.error("Failed to rename library");
+    }
+  };
+
+  const handleMoveLibrary = async () => {
+    if (!moveLibraryPath.trim()) {
+      toast.error("Please enter a new library path");
+      return;
+    }
+
+    const targetLibrary = libraries.find(
+      (lib) => lib.name === selectedLibraryForOperation.name
+    );
+
+    if (!targetLibrary) {
+      toast.error("Library not found");
+      return;
+    }
+
+    if (moveLibraryPath === targetLibrary.path) {
+      toast.error("New path must be different from current path");
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `/api/libraries/${selectedLibraryForOperation.name}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ newPath: moveLibraryPath }),
+        }
+      );
+
+      if (response.ok) {
+        toast.success("Library moved successfully");
+        setMoveLibraryOpen(false);
+        setMoveLibraryPath("");
+        setSelectedLibraryForOperation({ name: "" });
+        onLibrariesChange();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to move library");
+      }
+    } catch (error) {
+      console.error("Error moving library:", error);
+      toast.error("Failed to move library");
     }
   };
 
@@ -95,7 +153,6 @@ export function useLibraryOperations({
       if (response.ok) {
         toast.success("Library archived successfully");
         setArchiveLibraryOpen(false);
-        // Switch to the first available library
         const remainingLibraries = libraries.filter(
           (lib) => lib.name !== currentLibrary
         );
@@ -116,8 +173,15 @@ export function useLibraryOperations({
   };
 
   const handleOpenRenameDialog = (libraryName: string) => {
+    setSelectedLibraryForOperation({ name: libraryName });
     setRenameLibraryName(libraryName);
     setRenameLibraryOpen(true);
+  };
+
+  const handleOpenMoveDialog = (libraryName: string, currentPath: string) => {
+    setSelectedLibraryForOperation({ name: libraryName, path: currentPath });
+    setMoveLibraryPath(currentPath);
+    setMoveLibraryOpen(true);
   };
 
   const handleOpenArchiveDialog = (libraryName: string) => {
@@ -134,6 +198,13 @@ export function useLibraryOperations({
   const resetRenameDialog = () => {
     setRenameLibraryOpen(false);
     setRenameLibraryName("");
+    setSelectedLibraryForOperation({ name: "" });
+  };
+
+  const resetMoveDialog = () => {
+    setMoveLibraryOpen(false);
+    setMoveLibraryPath("");
+    setSelectedLibraryForOperation({ name: "" });
   };
 
   return {
@@ -146,18 +217,26 @@ export function useLibraryOperations({
     setNewLibraryPath,
     renameLibraryOpen,
     setRenameLibraryOpen,
+    moveLibraryOpen,
+    setMoveLibraryOpen,
     archiveLibraryOpen,
     setArchiveLibraryOpen,
     renameLibraryName,
     setRenameLibraryName,
+    moveLibraryPath,
+    setMoveLibraryPath,
+    selectedLibraryForOperation,
 
     // Handlers
     handleCreateLibrary,
     handleRenameLibrary,
+    handleMoveLibrary,
     handleArchiveLibrary,
     handleOpenRenameDialog,
+    handleOpenMoveDialog,
     handleOpenArchiveDialog,
     resetCreateDialog,
     resetRenameDialog,
+    resetMoveDialog,
   };
 }

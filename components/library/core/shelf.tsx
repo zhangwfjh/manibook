@@ -11,6 +11,7 @@ import {
   EditIcon,
   TrashIcon,
   StarIcon,
+  FolderOpenIcon,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -31,6 +32,7 @@ interface ShelfProps {
   onCategorySelect: (categoryPath: string) => void;
   onCreateLibrary: () => void;
   onRenameLibrary: (libraryName: string) => void;
+  onMoveLibrary: (libraryName: string, currentPath: string) => void;
   onArchiveLibrary: (libraryName: string) => void;
 }
 
@@ -43,6 +45,7 @@ interface LibraryNodeProps {
   onToggleExpanded: (libraryName: string) => void;
   onCategorySelect: (categoryPath: string) => void;
   onRenameLibrary: (libraryName: string) => void;
+  onMoveLibrary: (libraryName: string, currentPath: string) => void;
   onArchiveLibrary: (libraryName: string) => void;
 }
 
@@ -127,6 +130,7 @@ function LibraryNode({
   onToggleExpanded,
   onCategorySelect,
   onRenameLibrary,
+  onMoveLibrary,
   onArchiveLibrary: onArchiveLibrary,
 }: LibraryNodeProps) {
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
@@ -145,18 +149,18 @@ function LibraryNode({
 
   const handleSetAsDefault = async () => {
     try {
-      const response = await fetch('/api/libraries/settings', {
-        method: 'POST',
+      const response = await fetch("/api/libraries/settings", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ defaultLibrary: library.name }),
       });
       if (!response.ok) {
-        console.error('Failed to set default library');
+        console.error("Failed to set default library");
       }
     } catch (error) {
-      console.error('Error setting default library:', error);
+      console.error("Error setting default library:", error);
     }
   };
 
@@ -197,6 +201,12 @@ function LibraryNode({
               <EditIcon className="h-4 w-4 mr-2" />
               Rename Library
             </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => onMoveLibrary(library.name, library.path)}
+            >
+              <FolderOpenIcon className="h-4 w-4 mr-2" />
+              Move Library
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => onArchiveLibrary(library.name)}
@@ -208,6 +218,14 @@ function LibraryNode({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {isExpanded && (
+        <div className="ml-6">
+          <div className="text-xs text-muted-foreground mb-1 truncate">
+            {library.path}
+          </div>
+        </div>
+      )}
 
       {isExpanded && (
         <div className="ml-6 space-y-1">
@@ -237,6 +255,7 @@ export function Shelf({
   onCategorySelect,
   onCreateLibrary,
   onRenameLibrary,
+  onMoveLibrary,
   onArchiveLibrary: onArchiveLibrary,
 }: ShelfProps) {
   const [expandedLibraries, setExpandedLibraries] = useState<Set<string>>(
@@ -278,6 +297,7 @@ export function Shelf({
               onToggleExpanded={handleLibraryToggle}
               onCategorySelect={onCategorySelect}
               onRenameLibrary={onRenameLibrary}
+              onMoveLibrary={onMoveLibrary}
               onArchiveLibrary={onArchiveLibrary}
             />
           ))}

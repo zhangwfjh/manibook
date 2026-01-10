@@ -141,6 +141,86 @@ export async function renameLibrary(oldName: string, newName: string): Promise<b
   return true;
 }
 
+export async function moveLibrary(name: string, newPath: string): Promise<boolean> {
+  if (!name.trim() || !newPath.trim()) {
+    throw new Error('Library name and path cannot be empty');
+  }
+
+  const libraries = await readLibraries();
+  const library = libraries.find(lib => lib.name === name);
+  if (!library) {
+    throw new Error('Library not found');
+  }
+
+  const oldPath = library.path;
+
+  // Check if the new path is the same as the old path
+  if (oldPath === newPath) {
+    throw new Error('New path is the same as the current path');
+  }
+
+  // Validate path format (basic check)
+  if (!newPath.startsWith('/') && !newPath.match(/^[A-Za-z]:/)) {
+    throw new Error('Invalid path format');
+  }
+
+  // Check if new path already exists and is not empty
+  try {
+    await fs.access(newPath);
+    // Path exists, check if it's empty
+    const entries = await fs.readdir(newPath);
+    if (entries.length > 0) {
+      throw new Error('Target directory is not empty');
+    }
+  } catch (error) {
+    if ((error as { code?: string })?.code === 'ENOENT') {
+      // Path doesn't exist, try to create it
+      try {
+        await fs.mkdir(newPath, { recursive: true });
+      } catch {
+        throw new Error('Failed to create target directory');
+      }
+    } else {
+      throw new Error('Failed to access target directory');
+    }
+  }
+
+  async function moveDirectoryRecursive(src: string, dest: string): Promise<void> {
+    const entries = await fs.readdir(src, { withFileTypes: true });
+    
+    for (const entry of entries) {
+      const srcPath = path.join(src, entry.name);
+      const destPath = path.join(dest, entry.name);
+      
+      if (entry.isDirectory()) {
+        await fs.mkdir(destPath, { recursive: true });
+        await moveDirectoryRecursive(srcPath, destPath);
+        await fs.rmdir(srcPath);
+      } else {
+        await fs.copyFile(srcPath, destPath);
+        await fs.unlink(srcPath);
+      }
+    }
+  }
+
+  await moveDirectoryRecursive(oldPath, newPath);
+
+  // Remove the now-empty old directory
+  try {
+    await fs.rmdir(oldPath);
+  } catch (error) {
+    if ((error as { code?: string })?.code !== 'ENOENT') {
+      console.warn('Failed to remove old directory:', error);
+    }
+  }
+
+  // Update the library path in settings
+  library.path = newPath.trim();
+  await writeLibraries(libraries);
+
+  return true;
+}
+
 export async function getLibrary(name: string): Promise<Library | null> {
   const libraries = await readLibraries();
   return libraries.find(lib => lib.name === name) || null;

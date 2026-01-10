@@ -20,6 +20,7 @@ interface SidebarProps {
   onCategorySelect: (category: string) => void;
   onCreateLibrary: () => void;
   onRenameLibrary: (libraryName: string) => void;
+  onMoveLibrary: (libraryName: string, currentPath: string) => void;
   onArchiveLibrary: (libraryName: string) => void;
   onKeywordsChange: (keywords: string[]) => void;
   onFormatsChange: (formats: string[]) => void;
@@ -43,6 +44,7 @@ export function Sidebar({
   onCategorySelect,
   onCreateLibrary,
   onRenameLibrary,
+  onMoveLibrary,
   onArchiveLibrary,
   onKeywordsChange,
   onFormatsChange,
@@ -61,6 +63,7 @@ export function Sidebar({
         onCategorySelect={onCategorySelect}
         onCreateLibrary={onCreateLibrary}
         onRenameLibrary={onRenameLibrary}
+        onMoveLibrary={onMoveLibrary}
         onArchiveLibrary={onArchiveLibrary}
       />
 

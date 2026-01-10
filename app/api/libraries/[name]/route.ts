@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getLibrary, renameLibrary, archiveLibrary } from '@/lib/library';
+import { getLibrary, renameLibrary, moveLibrary, archiveLibrary } from '@/lib/library';
 
 export async function GET(
   request: NextRequest,
@@ -16,7 +16,6 @@ export async function GET(
     return NextResponse.json({
       name: libraryInfo.name,
       path: libraryInfo.path,
-      // Could add more metadata like creation date, document count, etc.
     });
   } catch (error) {
     console.error('Error fetching library:', error);
@@ -31,21 +30,44 @@ export async function PATCH(
 ) {
   try {
     const { name } = await params;
-    const { newName } = await request.json();
+    const { newName, newPath } = await request.json();
 
-    if (!newName) {
-      return NextResponse.json({ error: 'newName is required' }, { status: 400 });
+    if (!newName && !newPath) {
+      return NextResponse.json({ error: 'Either newName or newPath is required' }, { status: 400 });
     }
 
-    // Rename library
-    const success = await renameLibrary(name, newName);
-    if (!success) {
-      return NextResponse.json({ error: 'Library not found or new name already exists' }, { status: 400 });
+    // Handle rename only
+    if (newName && !newPath) {
+      const success = await renameLibrary(name, newName);
+      if (!success) {
+        return NextResponse.json({ error: 'Library not found or new name already exists' }, { status: 400 });
+      }
+      return NextResponse.json({ success: true, message: 'Library renamed successfully' });
     }
 
-    return NextResponse.json({ success: true, message: 'Library renamed successfully' });
+    // Handle move only
+    if (newPath && !newName) {
+      const success = await moveLibrary(name, newPath);
+      if (!success) {
+        return NextResponse.json({ error: 'Failed to move library' }, { status: 400 });
+      }
+      return NextResponse.json({ success: true, message: 'Library moved successfully' });
+    }
+
+    // Handle both rename and move
+    const renameSuccess = await renameLibrary(name, newName);
+    if (!renameSuccess) {
+      return NextResponse.json({ error: 'Failed to rename library' }, { status: 400 });
+    }
+
+    const moveSuccess = await moveLibrary(newName, newPath);
+    if (!moveSuccess) {
+      return NextResponse.json({ error: 'Failed to move library' }, { status: 400 });
+    }
+
+    return NextResponse.json({ success: true, message: 'Library renamed and moved successfully' });
   } catch (error) {
-    console.error('Error renaming library:', error);
+    console.error('Error updating library:', error);
     const errorMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
@@ -58,7 +80,6 @@ export async function DELETE(
   try {
     const { name } = await params;
 
-    // Archive library
     const success = await archiveLibrary(name);
     if (!success) {
       return NextResponse.json({ error: 'Library not found' }, { status: 404 });

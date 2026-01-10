@@ -7,7 +7,7 @@ import { Sidebar } from "@/components/library/layout";
 import { Controls } from "@/components/library/layout";
 import { Content } from "@/components/library/core";
 import {
-  RenameDialog,
+  LibraryDialog,
   ArchiveDialog,
   ImportDialog,
 } from "@/components/library/dialogs";
@@ -73,17 +73,25 @@ export default function LibraryPage() {
     setNewLibraryPath,
     renameLibraryOpen,
     setRenameLibraryOpen,
+    moveLibraryOpen,
+    setMoveLibraryOpen,
     archiveLibraryOpen,
     setArchiveLibraryOpen,
     renameLibraryName,
     setRenameLibraryName,
+    moveLibraryPath,
+    setMoveLibraryPath,
+    selectedLibraryForOperation,
     handleCreateLibrary,
     handleRenameLibrary,
+    handleMoveLibrary,
     handleArchiveLibrary,
     handleOpenRenameDialog,
+    handleOpenMoveDialog,
     handleOpenArchiveDialog,
     resetCreateDialog,
     resetRenameDialog,
+    resetMoveDialog,
   } = useLibraryOperations({
     currentLibrary,
     setCurrentLibrary,
@@ -203,14 +211,7 @@ export default function LibraryPage() {
       <div className="container mx-auto px-6 py-8">
         {/* Header */}
         <Header
-          createLibraryOpen={createLibraryOpen}
-          setCreateLibraryOpen={setCreateLibraryOpen}
-          newLibraryName={newLibraryName}
-          setNewLibraryName={setNewLibraryName}
-          newLibraryPath={newLibraryPath}
-          setNewLibraryPath={setNewLibraryPath}
-          handleCreateLibrary={handleCreateLibrary}
-          resetCreateDialog={resetCreateDialog}
+          onCreateLibraryClick={() => setCreateLibraryOpen(true)}
         />
 
         <div className="flex gap-10 lg:gap-12">
@@ -230,6 +231,7 @@ export default function LibraryPage() {
             onCategorySelect={setSelectedCategory}
             onCreateLibrary={() => setCreateLibraryOpen(true)}
             onRenameLibrary={handleOpenRenameDialog}
+            onMoveLibrary={handleOpenMoveDialog}
             onArchiveLibrary={handleOpenArchiveDialog}
             onKeywordsChange={setSelectedKeywords}
             onFormatsChange={setSelectedFormats}
@@ -281,14 +283,41 @@ export default function LibraryPage() {
           onUpdate={handleDocumentUpdate}
         />
 
-        {/* Rename Dialog */}
-        <RenameDialog
+        {/* Create Library Dialog */}
+        <LibraryDialog
+          mode="create"
+          open={createLibraryOpen}
+          onOpenChange={setCreateLibraryOpen}
+          name={newLibraryName}
+          onNameChange={setNewLibraryName}
+          path={newLibraryPath}
+          onPathChange={setNewLibraryPath}
+          onSubmit={handleCreateLibrary}
+          onCancel={resetCreateDialog}
+        />
+
+        {/* Rename Library Dialog */}
+        <LibraryDialog
+          mode="rename"
           open={renameLibraryOpen}
           onOpenChange={setRenameLibraryOpen}
-          renameLibraryName={renameLibraryName}
-          setRenameLibraryName={setRenameLibraryName}
-          handleRenameLibrary={handleRenameLibrary}
-          resetDialog={resetRenameDialog}
+          currentName={selectedLibraryForOperation.name}
+          name={renameLibraryName}
+          onNameChange={setRenameLibraryName}
+          onSubmit={handleRenameLibrary}
+          onCancel={resetRenameDialog}
+        />
+
+        {/* Move Library Dialog */}
+        <LibraryDialog
+          mode="move"
+          open={moveLibraryOpen}
+          onOpenChange={setMoveLibraryOpen}
+          currentPath={selectedLibraryForOperation.path}
+          path={moveLibraryPath}
+          onPathChange={setMoveLibraryPath}
+          onSubmit={handleMoveLibrary}
+          onCancel={resetMoveDialog}
         />
 
         {/* Archive Dialog */}
