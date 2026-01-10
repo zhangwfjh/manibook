@@ -5,7 +5,7 @@ import { DocumentDetailDialog } from "@/components/library/dialogs/detail-dialog
 import { Header } from "@/components/library/layout";
 import { Sidebar } from "@/components/library/layout";
 import { Controls } from "@/components/library/layout";
-import { Content } from "@/components/library/library";
+import { Content } from "@/components/library/core";
 import {
   RenameDialog,
   ArchiveDialog,

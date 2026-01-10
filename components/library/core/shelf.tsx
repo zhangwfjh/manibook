@@ -21,7 +21,7 @@ import {
 import { LibraryCategory } from "@/lib/library";
 import { Library } from "@/lib/library";
 
-interface LibraryManagerProps {
+interface ShelfProps {
   libraries: Library[];
   currentLibrary: string;
   categories: LibraryCategory[];
@@ -205,7 +205,7 @@ function LibraryNode({
   );
 }
 
-export function LibraryManager({
+export function Shelf({
   libraries,
   currentLibrary,
   categories,
@@ -215,7 +215,7 @@ export function LibraryManager({
   onCreateLibrary,
   onRenameLibrary,
   onArchiveLibrary: onArchiveLibrary,
-}: LibraryManagerProps) {
+}: ShelfProps) {
   const [expandedLibraries, setExpandedLibraries] = useState<Set<string>>(
     new Set([currentLibrary])
   );

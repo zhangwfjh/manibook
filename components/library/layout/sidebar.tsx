@@ -1,7 +1,7 @@
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { LibraryManager } from "@/components/library/library/manager";
+import { Shelf } from "@/components/library/core/shelf";
 import { Filter } from "@/components/library/ui/filter";
 import { LibraryCategory, Library } from "@/lib/library";
 
@@ -52,7 +52,7 @@ export function Sidebar({
 }: SidebarProps) {
   return (
     <div className="w-80 shrink-0 space-y-6">
-      <LibraryManager
+      <Shelf
         libraries={libraries}
         currentLibrary={currentLibrary}
         categories={categories}
