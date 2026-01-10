@@ -9,33 +9,30 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DownloadIcon, HeartIcon } from "lucide-react";
+import { HeartIcon, BookOpenIcon } from "lucide-react";
 import { LibraryDocument } from "@/lib/library";
 import { formatFileSize } from "@/lib/library/document-utils";
 
 interface DocumentListProps {
   documents: LibraryDocument[];
   onClick?: (document: LibraryDocument) => void;
-  onDownload?: (document: LibraryDocument) => void;
+  onOpen?: (document: LibraryDocument) => void;
   onFavoriteToggle?: (document: LibraryDocument) => void;
 }
 
 const DocumentListComponent = ({
   documents,
   onClick,
-  onDownload,
+  onOpen,
   onFavoriteToggle,
 }: DocumentListProps) => {
   const handleRowClick = (document: LibraryDocument) => {
     onClick?.(document);
   };
 
-  const handleDownloadClick = (
-    e: React.MouseEvent,
-    document: LibraryDocument
-  ) => {
-    e.stopPropagation(); // Prevent row click
-    onDownload?.(document);
+  const handleOpenClick = (e: React.MouseEvent, document: LibraryDocument) => {
+    e.stopPropagation();
+    onOpen?.(document);
   };
 
   const handleFavoriteToggleClick = (
@@ -117,6 +114,13 @@ const DocumentListComponent = ({
                   <Button
                     variant="ghost"
                     size="sm"
+                    onClick={(e) => handleOpenClick(e, document)}
+                  >
+                    <BookOpenIcon className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={(e) => handleFavoriteToggleClick(e, document)}
                     className={
                       document.metadata.favorite
@@ -129,13 +133,6 @@ const DocumentListComponent = ({
                         document.metadata.favorite ? "fill-current" : ""
                       }`}
                     />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => handleDownloadClick(e, document)}
-                  >
-                    <DownloadIcon className="h-4 w-4" />
                   </Button>
                 </div>
               </TableCell>

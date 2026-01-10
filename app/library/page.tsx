@@ -88,16 +88,12 @@ export default function LibraryPage() {
   });
 
   // Event handlers
-  const handleDownload = useCallback(
+  const handleOpen = useCallback(
     (doc: LibraryDocument) => {
-      const link = window.document.createElement("a");
-      link.href = doc.url.startsWith("lib://")
+      const fileUrl = doc.url.startsWith("lib://")
         ? `/api/libraries/${currentLibrary}/files/${doc.url.substring(6)}`
         : doc.url;
-      link.download = doc.filename;
-      window.document.body.appendChild(link);
-      link.click();
-      window.document.body.removeChild(link);
+      window.open(fileUrl, "_blank");
     },
     [currentLibrary]
   );
@@ -268,7 +264,7 @@ export default function LibraryPage() {
               loading={loading}
               pagination={pagination}
               onDocumentClick={handleDocumentClick}
-              onDownload={handleDownload}
+              onOpen={handleOpen}
               onFavoriteToggle={handleFavoriteToggle}
               onBreadcrumbClick={handleBreadcrumbClick}
               onPageChange={loadPage}
@@ -282,7 +278,7 @@ export default function LibraryPage() {
           document={selectedDocument}
           open={dialogOpen}
           onOpenChange={setDialogOpen}
-          onDownload={handleDownload}
+          onOpen={handleOpen}
           onDelete={handleDocumentDelete}
           onUpdate={handleDocumentUpdate}
         />

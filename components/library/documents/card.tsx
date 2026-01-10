@@ -13,7 +13,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
-import { UsersIcon, CalendarIcon, HeartIcon } from "lucide-react";
+import { UsersIcon, CalendarIcon, HeartIcon, BookOpenIcon } from "lucide-react";
 import { LibraryDocument } from "@/lib/library";
 import {
   formatFileSize,
@@ -26,7 +26,7 @@ interface DocumentCardProps {
   library: string;
   document: LibraryDocument;
   onClick?: (document: LibraryDocument) => void;
-  onDownload?: (document: LibraryDocument) => void;
+  onOpen?: (document: LibraryDocument) => void;
   onFavoriteToggle?: (document: LibraryDocument) => void;
 }
 
@@ -34,6 +34,7 @@ const DocumentCardComponent = ({
   library,
   document,
   onClick,
+  onOpen,
   onFavoriteToggle,
 }: DocumentCardProps) => {
   const { metadata } = document;
@@ -52,6 +53,14 @@ const DocumentCardComponent = ({
   const formatIcon = useMemo(
     () => (metadata.format ? getFormatIcon(metadata.format) : null),
     [metadata.format]
+  );
+
+  const handleOpenClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onOpen?.(document);
+    },
+    [onOpen, document]
   );
 
   const handleCardClick = useCallback(() => {
@@ -101,6 +110,14 @@ const DocumentCardComponent = ({
               )}
             </div>
             <div className="flex items-center gap-2 shrink-0">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleOpenClick}
+                className="h-6 w-6 p-0"
+              >
+                <BookOpenIcon className="h-4 w-4" />
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"

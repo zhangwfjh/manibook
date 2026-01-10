@@ -7,7 +7,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   AlertDialog,
@@ -20,11 +19,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  DownloadIcon,
   TrashIcon,
   EditIcon,
   SaveIcon,
   XIcon,
+  BookOpenIcon,
 } from "lucide-react";
 import { LibraryDocument, DocumentMetadata } from "@/lib/library";
 import React, { useState, useMemo, useCallback } from "react";
@@ -42,7 +41,7 @@ interface DocumentDetailDialogProps {
   document: LibraryDocument | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onDownload?: (document: LibraryDocument) => void;
+  onOpen?: (document: LibraryDocument) => void;
   onDelete?: (document: LibraryDocument) => void;
   onUpdate?: (updatedDoc: LibraryDocument) => void;
 }
@@ -52,7 +51,7 @@ export function DocumentDetailDialog({
   document,
   open,
   onOpenChange,
-  onDownload,
+  onOpen,
   onDelete,
   onUpdate,
 }: DocumentDetailDialogProps) {
@@ -70,10 +69,9 @@ export function DocumentDetailDialog({
     [library, document]
   );
 
-  const handleDownload = useCallback(() => {
-    onDownload?.(document!);
-    onOpenChange(false);
-  }, [document, onDownload, onOpenChange]);
+  const handleOpen = useCallback(() => {
+    onOpen?.(document!);
+  }, [document, onOpen]);
 
   const handleEdit = useCallback(() => {
     setIsEditing(true);
@@ -233,9 +231,9 @@ export function DocumentDetailDialog({
                   <EditIcon className="h-4 w-4 mr-2" />
                   Edit
                 </Button>
-                <Button onClick={handleDownload}>
-                  <DownloadIcon className="h-4 w-4 mr-2" />
-                  Download
+                <Button onClick={handleOpen}>
+                  <BookOpenIcon className="h-4 w-4 mr-2" />
+                  Open
                 </Button>
               </>
             )}

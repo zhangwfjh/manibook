@@ -6,14 +6,14 @@ import { LibraryDocument } from "@/lib/library";
 interface VirtualDocumentListProps {
   documents: LibraryDocument[];
   onClick: (document: LibraryDocument) => void;
-  onDownload: (document: LibraryDocument) => void;
+  onOpen: (document: LibraryDocument) => void;
   onFavoriteToggle: (document: LibraryDocument) => void;
 }
 
 function VirtualDocumentListComponent({
   documents,
   onClick,
-  onDownload,
+  onOpen,
   onFavoriteToggle,
 }: VirtualDocumentListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
@@ -72,7 +72,7 @@ function VirtualDocumentListComponent({
               key={virtualRow.key}
               document={documents[virtualRow.index]}
               onClick={onClick}
-              onDownload={onDownload}
+              onOpen={onOpen}
               onFavoriteToggle={onFavoriteToggle}
               style={{
                 position: "absolute",

@@ -1,14 +1,14 @@
 import React, { memo, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { HeartIcon, DownloadIcon } from "lucide-react";
+import { HeartIcon, BookOpenIcon } from "lucide-react";
 import { LibraryDocument } from "@/lib/library";
 import { formatFileSize } from "@/lib/library/document-utils";
 
 interface DocumentRowProps {
   document: LibraryDocument;
   onClick: (document: LibraryDocument) => void;
-  onDownload: (document: LibraryDocument) => void;
+  onOpen: (document: LibraryDocument) => void;
   onFavoriteToggle: (document: LibraryDocument) => void;
   style?: React.CSSProperties;
 }
@@ -16,7 +16,7 @@ interface DocumentRowProps {
 function DocumentRowComponent({
   document,
   onClick,
-  onDownload,
+  onOpen,
   onFavoriteToggle,
   style,
 }: DocumentRowProps) {
@@ -24,12 +24,12 @@ function DocumentRowComponent({
     onClick(document);
   }, [document, onClick]);
 
-  const handleDownload = useCallback(
+  const handleOpen = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      onDownload(document);
+      onOpen(document);
     },
-    [document, onDownload]
+    [document, onOpen]
   );
 
   const handleFavorite = useCallback(
@@ -86,6 +86,14 @@ function DocumentRowComponent({
         <Button
           variant="ghost"
           size="sm"
+          onClick={handleOpen}
+          className="h-6 w-6 p-0"
+        >
+          <BookOpenIcon className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={handleFavorite}
           className={`h-6 w-6 p-0 ${
             metadata.favorite
@@ -96,14 +104,6 @@ function DocumentRowComponent({
           <HeartIcon
             className={`h-4 w-4 ${metadata.favorite ? "fill-current" : ""}`}
           />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleDownload}
-          className="h-6 w-6 p-0"
-        >
-          <DownloadIcon className="h-4 w-4" />
         </Button>
       </div>
     </div>

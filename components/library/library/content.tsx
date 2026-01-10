@@ -42,7 +42,7 @@ interface ContentProps {
   loading?: boolean;
   pagination?: PaginationInfo | null;
   onDocumentClick: (document: LibraryDocument) => void;
-  onDownload: (doc: LibraryDocument) => void;
+  onOpen: (document: LibraryDocument) => void;
   onFavoriteToggle: (document: LibraryDocument) => void;
   onBreadcrumbClick: (category: string) => void;
   onPageChange?: (page: number) => void;
@@ -56,7 +56,7 @@ export function Content({
   loading = false,
   pagination,
   onDocumentClick,
-  onDownload,
+  onOpen,
   onFavoriteToggle,
   onBreadcrumbClick,
   onPageChange,
@@ -181,7 +181,7 @@ export function Content({
                 library={currentLibrary}
                 document={document}
                 onClick={onDocumentClick}
-                onDownload={onDownload}
+                onOpen={onOpen}
                 onFavoriteToggle={onFavoriteToggle}
               />
             ))}
@@ -203,7 +203,7 @@ export function Content({
           <VirtualList
             documents={paginatedItems}
             onClick={onDocumentClick}
-            onDownload={onDownload}
+            onOpen={onOpen}
             onFavoriteToggle={onFavoriteToggle}
           />
 
@@ -223,7 +223,7 @@ export function Content({
           <DocumentList
             documents={paginatedItems}
             onClick={onDocumentClick}
-            onDownload={onDownload}
+            onOpen={onOpen}
             onFavoriteToggle={onFavoriteToggle}
           />
 
