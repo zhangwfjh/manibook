@@ -1,13 +1,13 @@
 import mupdf from "mupdf";
 import { parseEPUB } from "@/lib/parser";
-import { vllmCall } from "@/lib/llm";
+import { openaiCall } from "@/lib/llm";
 import fs from "fs";
 import { execSync } from "child_process";
 import { METADATA_EXTRACTION_PROMPT, OCR_PROMPT } from "./prompts";
 
 interface LLMProvider {
   name: string;
-  type: "openai-compatible" | "ollama";
+  type: "OpenAI" | "Ollama";
   model: string;
   baseURL: string;
   apiKey?: string;
@@ -126,7 +126,7 @@ async function callLLMForImageText(
   cover: Uint8Array,
   provider: LLMProvider
 ): Promise<string> {
-  const response = await vllmCall(
+  const response = await openaiCall(
     [
       {
         role: "system",
@@ -158,7 +158,7 @@ async function callLLMForMetadata(
   foreword: string,
   provider: LLMProvider
 ): Promise<DocumentMetadata> {
-  const response = await vllmCall(
+  const response = await openaiCall(
     [
       {
         role: "system",

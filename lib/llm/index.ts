@@ -30,7 +30,7 @@ export async function ollamaCall(messages: Array<Message>, options?: ChatRequest
     return await response.json();
 }
 
-export async function vllmCall(messages: Array<Message>, options?: ChatRequestOption) {
+export async function openaiCall(messages: Array<Message>, options?: ChatRequestOption) {
     const { model, apiKey, baseURL, stream, response_format, temperature } = options || {};
     const url = `${baseURL ? baseURL : 'http://localhost:8000/v1'}/chat/completions`;
     const response = await fetch(url, {

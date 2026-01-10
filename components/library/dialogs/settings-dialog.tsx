@@ -25,7 +25,7 @@ import { SettingsIcon, PlusIcon, TrashIcon } from "lucide-react";
 
 interface LLMProvider {
   name: string;
-  type: "openai-compatible" | "ollama";
+  type: "OpenAI" | "Ollama";
   model: string;
   baseURL: string;
   apiKey?: string;
@@ -94,15 +94,13 @@ export function SettingsDialog() {
     }
   };
 
-  const addProvider = (type: "openai-compatible" | "ollama") => {
+  const addProvider = (type: "OpenAI" | "Ollama") => {
     const newProvider: LLMProvider = {
-      name: `New ${
-        type === "openai-compatible" ? "OpenAI-Compatible" : "Ollama"
-      } Provider`,
+      name: `New ${type} Provider`,
       type,
       model: "",
       baseURL: "",
-      apiKey: type === "openai-compatible" ? "" : undefined,
+      apiKey: "",
     };
     setSettings((prev) => ({
       ...prev,
@@ -168,14 +166,14 @@ export function SettingsDialog() {
           <TabsContent value="providers" className="space-y-4">
             <div className="flex gap-2">
               <Button
-                onClick={() => addProvider("openai-compatible")}
+                onClick={() => addProvider("OpenAI")}
                 size="sm"
               >
                 <PlusIcon className="h-4 w-4 mr-2" />
-                Add OpenAI-Compatible
+                Add OpenAI
               </Button>
               <Button
-                onClick={() => addProvider("ollama")}
+                onClick={() => addProvider("Ollama")}
                 size="sm"
                 variant="outline"
               >
@@ -193,7 +191,7 @@ export function SettingsDialog() {
                         {provider.name}
                         <Badge
                           variant={
-                            provider.type === "openai-compatible"
+                            provider.type === "OpenAI"
                               ? "default"
                               : "secondary"
                           }
@@ -250,7 +248,7 @@ export function SettingsDialog() {
                           placeholder="Base URL"
                         />
                       </div>
-                      {provider.type === "openai-compatible" && (
+                      {provider.type === "OpenAI" && (
                         <div className="space-y-1">
                           <Label className="text-xs">API Key</Label>
                           <Input

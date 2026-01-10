@@ -3,7 +3,7 @@ import path from 'path';
 
 interface LLMProvider {
   name: string;
-  type: 'openai-compatible' | 'ollama';
+  type: 'OpenAI' | 'Ollama';
   model: string;
   baseURL: string;
   apiKey?: string;

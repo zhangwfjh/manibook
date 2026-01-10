@@ -10,7 +10,7 @@ import { validateLibraryAccess, dbDocumentToLibraryDocument, getLibraryPrisma } 
 interface LLMSettings {
   providers: Array<{
     name: string;
-    type: 'openai-compatible' | 'ollama';
+    type: 'OpenAI' | 'Ollama';
     model: string;
     baseURL: string;
     apiKey?: string;
