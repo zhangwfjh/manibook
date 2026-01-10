@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { DocumentDetailDialog } from "@/components/library/dialogs/detail-dialog";
-import { Header } from "@/components/library/layout";
 import { Sidebar } from "@/components/library/layout";
 import { Controls } from "@/components/library/layout";
 import { Content } from "@/components/library/core";
@@ -210,9 +209,17 @@ export default function LibraryPage() {
     <div className="min-h-screen bg-linear-to-br from-background via-background to-muted/10">
       <div className="container mx-auto px-6 py-8">
         {/* Header */}
-        <Header
-          onCreateLibraryClick={() => setCreateLibraryOpen(true)}
-        />
+        <div className="mb-8 space-y-6">
+          <div className="space-y-2">
+            <h1 className="text-4xl font-bold tracking-tight bg-linear-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+              Library
+            </h1>
+            <p className="text-muted-foreground text-lg max-w-md">
+              Organize and browse your collection of books and articles with
+              powerful search and filtering
+            </p>
+          </div>
+        </div>
 
         <div className="flex gap-10 lg:gap-12">
           {/* Sidebar */}
