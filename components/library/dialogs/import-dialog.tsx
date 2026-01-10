@@ -5,6 +5,19 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "@/components/ui/collapsible";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -16,6 +29,11 @@ import {
   XIcon,
   PlusIcon,
   FileTextIcon,
+  ChevronDownIcon,
+  SaveIcon,
+  CheckCircle,
+  XCircle,
+  Trash2Icon,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -24,6 +42,14 @@ interface ImportDialogProps {
   onOpenChange: (open: boolean) => void;
   currentLibrary: string;
   onImportComplete: () => void;
+}
+
+interface LogEntry {
+  filename: string;
+  path: string;
+  status: "success" | "failed";
+  error?: string;
+  timestamp: string;
 }
 
 export function ImportDialog({
@@ -36,6 +62,8 @@ export function ImportDialog({
   const [importing, setImporting] = useState(false);
   const [importProgress, setImportProgress] = useState("");
   const [importProgressPercent, setImportProgressPercent] = useState(0);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [logsOpen, setLogsOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
@@ -43,6 +71,50 @@ export function ImportDialog({
 
   const [urls, setUrls] = useState<string[]>([""]);
   const [urlErrors, setUrlErrors] = useState<string[]>([]);
+
+  const addLog = useCallback(
+    (
+      filename: string,
+      path: string,
+      status: "success" | "failed",
+      error?: string
+    ) => {
+      const timestamp = new Date().toISOString();
+      setLogs((prev) => [
+        ...prev,
+        { filename, path, status, error, timestamp },
+      ]);
+    },
+    []
+  );
+
+  const downloadLogs = useCallback(() => {
+    const headers = ["Timestamp", "Filename", "Path", "Status", "Error"];
+    const csvContent = [
+      headers.join(","),
+      ...logs.map(
+        (log) =>
+          `${log.timestamp},"${log.filename}","${log.path}","${log.status}","${
+            log.error || ""
+          }"`
+      ),
+    ].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `import-logs-${new Date()
+      .toISOString()
+      .replace(/[:.]/g, "-")}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [logs]);
+
+  const clearLogs = useCallback(() => {
+    setLogs([]);
+  }, []);
 
   const handleFileImport = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -61,6 +133,8 @@ export function ImportDialog({
         );
         return;
       }
+
+      setLogs([]);
 
       setImporting(true);
       setImportProgressPercent(0);
@@ -93,11 +167,27 @@ export function ImportDialog({
 
           if (response.ok) {
             successCount++;
+            addLog(file.name, file.webkitRelativePath || file.name, "success");
           } else {
             errorCount++;
+            const errorText = await response.text();
+            addLog(
+              file.name,
+              file.webkitRelativePath || file.name,
+              "failed",
+              errorText
+            );
           }
         } catch (error) {
           errorCount++;
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          addLog(
+            file.name,
+            file.webkitRelativePath || file.name,
+            "failed",
+            errorMessage
+          );
           console.error(`Error importing ${file.name}:`, error);
         }
 
@@ -136,7 +226,7 @@ export function ImportDialog({
 
       setTimeout(() => setImportProgress(""), 3000);
     },
-    [currentLibrary, onImportComplete]
+    [currentLibrary, onImportComplete, addLog]
   );
 
   const handleDrag = useCallback((e: React.DragEvent) => {
@@ -213,6 +303,8 @@ export function ImportDialog({
       return;
     }
 
+    setLogs([]);
+
     setImporting(true);
     setImportProgressPercent(0);
     setImportProgress(
@@ -235,6 +327,13 @@ export function ImportDialog({
 
       if (response.ok) {
         const { successCount, errorCount, errors } = result;
+        if (errors && errors.length > 0) {
+          errors.forEach((err: any) => {
+            const filename = err.url.split("/").pop() || "Unknown";
+            addLog(filename, err.url, "failed", err.error);
+          });
+        }
+
         onImportComplete();
 
         if (errorCount === 0) {
@@ -257,7 +356,8 @@ export function ImportDialog({
         setUrlErrors([""]);
         onOpenChange(false);
       } else {
-        toast.error(result.error || "Import failed");
+        const error = result.error || "Import failed";
+        toast.error(error);
         setImportProgress("Import failed");
       }
     } catch (error) {
@@ -282,7 +382,7 @@ export function ImportDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="min-w-1xl max-w-2xl">
         <DialogHeader>
           <DialogTitle>Import Documents</DialogTitle>
         </DialogHeader>
@@ -420,6 +520,73 @@ export function ImportDialog({
               <Progress value={importProgressPercent} className="w-full" />
             )}
           </div>
+        )}
+
+        {logs.length > 0 && (
+          <Collapsible open={logsOpen} onOpenChange={setLogsOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" className="w-full justify-between">
+                <span>Import Logs ({logs.length} entries)</span>
+                <ChevronDownIcon className="h-4 w-4 transition-transform duration-200" />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-2 space-y-2">
+              <div className="border rounded-md max-w-116 max-h-75 overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="min-w-16">Status</TableHead>
+                      <TableHead className="min-w-24">Timestamp</TableHead>
+                      <TableHead className="min-w-20">Filename</TableHead>
+                      <TableHead className="min-w-24">Path</TableHead>
+                      <TableHead className="min-w-32">Error</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {logs.map((log, index) => (
+                      <TableRow key={index}>
+                        <TableCell>
+                          {log.status === "success" ? (
+                            <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                              <CheckCircle className="h-4 w-4" />
+                              Success
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1 text-red-600 dark:text-red-400">
+                              <XCircle className="h-4 w-4" />
+                              Failed
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">
+                          {log.timestamp}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">
+                          {log.filename}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">
+                          {log.path}
+                        </TableCell>
+                        <TableCell className="text-xs text-red-600 dark:text-red-400">
+                          {log.error || "-"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" size="sm" onClick={clearLogs}>
+                  <Trash2Icon className="h-4 w-4 mr-2" />
+                  Clear
+                </Button>
+                <Button variant="outline" size="sm" onClick={downloadLogs}>
+                  <SaveIcon className="h-4 w-4 mr-2" />
+                  Save
+                </Button>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         )}
 
         <div className="flex justify-end gap-2">
