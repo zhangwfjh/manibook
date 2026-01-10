@@ -147,7 +147,24 @@ export function useLibraryData() {
 
   useEffect(() => {
     if (libraries.length > 0 && !currentLibrary) {
-      setCurrentLibrary(libraries[0].name);
+      // Try to load default library from settings, fallback to first library
+      const loadDefaultLibrary = async () => {
+        try {
+          const response = await fetch('/api/libraries/settings');
+          if (response.ok) {
+            const data = await response.json();
+            if (data.defaultLibrary && libraries.some(lib => lib.name === data.defaultLibrary)) {
+              setCurrentLibrary(data.defaultLibrary);
+              return;
+            }
+          }
+        } catch (error) {
+          console.error('Error loading default library:', error);
+        }
+        // Fallback to first library
+        setCurrentLibrary(libraries[0].name);
+      };
+      loadDefaultLibrary();
     }
   }, [libraries, currentLibrary]);
 

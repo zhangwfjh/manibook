@@ -10,6 +10,7 @@ import {
   MoreHorizontalIcon,
   EditIcon,
   TrashIcon,
+  StarIcon,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -142,6 +143,23 @@ function LibraryNode({
     });
   };
 
+  const handleSetAsDefault = async () => {
+    try {
+      const response = await fetch('/api/libraries/settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ defaultLibrary: library.name }),
+      });
+      if (!response.ok) {
+        console.error('Failed to set default library');
+      }
+    } catch (error) {
+      console.error('Error setting default library:', error);
+    }
+  };
+
   return (
     <div className="space-y-1">
       <div className="flex items-center">
@@ -170,6 +188,11 @@ function LibraryNode({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={handleSetAsDefault}>
+              <StarIcon className="h-4 w-4 mr-2" />
+              Set as Default
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => onRenameLibrary(library.name)}>
               <EditIcon className="h-4 w-4 mr-2" />
               Rename Library

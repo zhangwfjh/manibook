@@ -19,7 +19,7 @@ interface LLMSettings {
 
 export function loadLLMSettings(): LLMSettings {
   try {
-    const settingsPath = path.join(process.cwd(), '.llm-settings.json');
+    const settingsPath = path.join(process.cwd(), 'settings', 'llm.json');
     if (fs.existsSync(settingsPath)) {
       const data = fs.readFileSync(settingsPath, 'utf-8');
       return JSON.parse(data);

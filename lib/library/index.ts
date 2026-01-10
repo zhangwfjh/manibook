@@ -42,29 +42,56 @@ export interface Library {
   path: string; // Full path to library directory
 }
 
-const LIBRARIES_FILE = path.join(process.cwd(), 'libraries.json');
+export interface LibrarySettings {
+  libraries: Library[];
+  defaultLibrary?: string;
+}
 
-export async function readLibraries(): Promise<Library[]> {
+const LIBRARY_SETTINGS_FILE = path.join(process.cwd(), 'settings', 'library.json');
+
+export async function readLibrarySettings(): Promise<LibrarySettings> {
   try {
-    await fs.access(LIBRARIES_FILE);
-    const data = await fs.readFile(LIBRARIES_FILE, 'utf-8');
+    await fs.access(LIBRARY_SETTINGS_FILE);
+    const data = await fs.readFile(LIBRARY_SETTINGS_FILE, 'utf-8');
     return JSON.parse(data);
   } catch (error) {
     if (error instanceof Error && (error as { code?: string })?.code === 'ENOENT') {
-      return [];
+      return { libraries: [] };
     }
-    console.error('Error reading libraries:', error);
-    return [];
+    console.error('Error reading library settings:', error);
+    return { libraries: [] };
   }
 }
 
-export async function writeLibraries(libraries: Library[]): Promise<void> {
+export async function writeLibrarySettings(settings: LibrarySettings): Promise<void> {
   try {
-    await fs.writeFile(LIBRARIES_FILE, JSON.stringify(libraries, null, 2));
+    await fs.writeFile(LIBRARY_SETTINGS_FILE, JSON.stringify(settings, null, 2));
   } catch (error) {
-    console.error('Error writing libraries:', error);
+    console.error('Error writing library settings:', error);
     throw error;
   }
+}
+
+export async function readLibraries(): Promise<Library[]> {
+  const settings = await readLibrarySettings();
+  return settings.libraries;
+}
+
+export async function writeLibraries(libraries: Library[]): Promise<void> {
+  const settings = await readLibrarySettings();
+  settings.libraries = libraries;
+  await writeLibrarySettings(settings);
+}
+
+export async function getDefaultLibrary(): Promise<string | null> {
+  const settings = await readLibrarySettings();
+  return settings.defaultLibrary || null;
+}
+
+export async function setDefaultLibrary(libraryName: string): Promise<void> {
+  const settings = await readLibrarySettings();
+  settings.defaultLibrary = libraryName;
+  await writeLibrarySettings(settings);
 }
 
 export async function addLibrary(name: string, libraryPath: string): Promise<boolean> {

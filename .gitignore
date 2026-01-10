@@ -43,4 +43,5 @@ libraries.json
 next-env.d.ts
 
 scripts/
+settings/
 /lib/generated/prisma

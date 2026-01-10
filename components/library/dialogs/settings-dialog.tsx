@@ -55,7 +55,7 @@ export function SettingsDialog() {
     if (open) {
       const loadSettings = async () => {
         try {
-          const response = await fetch("/api/llm-settings");
+          const response = await fetch("/api/llm/settings");
           if (response.ok) {
             const data = await response.json();
             setSettings(data);
@@ -74,7 +74,7 @@ export function SettingsDialog() {
 
   const handleSave = async () => {
     try {
-      const response = await fetch("/api/llm-settings", {
+      const response = await fetch("/api/llm/settings", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
