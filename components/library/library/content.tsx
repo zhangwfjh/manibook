@@ -177,7 +177,7 @@ export function Content({
           <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-2 gap-6">
             {paginatedItems.map((document) => (
               <DocumentCard
-                key={`${currentLibrary}-${document.filename}`}
+                key={document.id}
                 library={currentLibrary}
                 document={document}
                 onClick={onDocumentClick}

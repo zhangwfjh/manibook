@@ -5,13 +5,11 @@ import { validateLibraryAccess, dbDocumentToLibraryDocument, getLibraryPrisma } 
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ name: string; filename: string }> }
+  { params }: { params: Promise<{ name: string; fileid: string }> }
 ) {
   try {
-    const { name, filename: encodedFilename } = await params;
-    const filename = decodeURIComponent(encodedFilename);
+    const { name, fileid } = await params;
 
-    // Validate library access
     const validation = await validateLibraryAccess(name);
     if (validation.error) {
       return NextResponse.json({ error: validation.error }, { status: validation.status });
@@ -19,9 +17,8 @@ export async function GET(
 
     const prisma = await getLibraryPrisma(name);
 
-    // Find the document
     const dbDoc = await prisma.document.findUnique({
-      where: { filename }
+      where: { id: fileid }
     });
 
     if (!dbDoc) {
@@ -38,13 +35,11 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ name: string; filename: string }> }
+  { params }: { params: Promise<{ name: string; fileid: string }> }
 ) {
   try {
-    const { name, filename: encodedFilename } = await params;
-    const filename = decodeURIComponent(encodedFilename);
+    const { name, fileid } = await params;
 
-    // Validate library access
     const validation = await validateLibraryAccess(name);
     if (validation.error) {
       return NextResponse.json({ error: validation.error }, { status: validation.status });
@@ -59,9 +54,8 @@ export async function PUT(
 
     const prisma = await getLibraryPrisma(name);
 
-    // Find the existing document
     const existingDoc = await prisma.document.findUnique({
-      where: { filename }
+      where: { id: fileid }
     });
 
     if (!existingDoc) {
@@ -88,11 +82,10 @@ export async function PUT(
     };
 
     if (oldCategory !== newCategory || oldTitle !== newTitle || existingDoc.doctype !== metadata.doctype) {
-      // Need to rename and move files
       const fileExtension = path.extname(existingDoc.filename);
 
       const categoryParts = newCategory.split('>').map((part: string) => part.trim()).filter((part: string) => part);
-      const folderPath = [metadata.doctype, ...categoryParts.slice(0, 2)].join('/'); // doctype + 2-level category folders
+      const folderPath = [metadata.doctype, ...categoryParts.slice(0, 2)].join('/');
       const categoryDir = path.join(libraryInfo.path, folderPath);
       fs.mkdirSync(categoryDir, { recursive: true });
       const safeTitle = newTitle.replace(/[\/\\?%*:|"<>]/g, '_');
@@ -103,7 +96,7 @@ export async function PUT(
         counter++;
       }
 
-      const oldFilePath = path.join(libraryInfo.path, existingDoc.url.substring(6));  // Skip lib://
+      const oldFilePath = path.join(libraryInfo.path, existingDoc.url.substring(6));
       const newFilePath = path.join(categoryDir, newFilename);
       const newUrl = `lib://` + `${folderPath}/${newFilename}`.replace(/\/+/g, '/');
       fs.renameSync(oldFilePath, newFilePath);
@@ -113,14 +106,12 @@ export async function PUT(
       const newCoverPath = path.join(categoryDir, newCoverFilename);
       fs.renameSync(oldCoverPath, newCoverPath);
 
-      // Update path-related fields
       updateData.filename = newFilename;
       updateData.url = newUrl;
     }
 
-    // Update the document
     const updatedDoc = await prisma.document.update({
-      where: { filename },
+      where: { id: existingDoc.id },
       data: updateData
     });
 
@@ -134,13 +125,11 @@ export async function PUT(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ name: string; filename: string }> }
+  { params }: { params: Promise<{ name: string; fileid: string }> }
 ) {
   try {
-    const { name, filename: encodedFilename } = await params;
-    const filename = decodeURIComponent(encodedFilename);
+    const { name, fileid } = await params;
 
-    // Validate library access
     const validation = await validateLibraryAccess(name);
     if (validation.error) {
       return NextResponse.json({ error: validation.error }, { status: validation.status });
@@ -154,15 +143,10 @@ export async function PATCH(
 
     const prisma = await getLibraryPrisma(name);
 
-    // Update favorite status in database
-    const updatedDocument = await prisma.document.updateMany({
-      where: { filename },
+    await prisma.document.update({
+      where: { id: fileid },
       data: { favorite },
     });
-
-    if (updatedDocument.count === 0) {
-      return NextResponse.json({ error: 'Document not found' }, { status: 404 });
-    }
 
     return NextResponse.json({
       success: true,
@@ -178,13 +162,11 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ name: string; filename: string }> }
+  { params }: { params: Promise<{ name: string; fileid: string }> }
 ) {
   try {
-    const { name, filename: encodedFilename } = await params;
-    const filename = decodeURIComponent(encodedFilename);
+    const { name, fileid } = await params;
 
-    // Validate library access
     const validation = await validateLibraryAccess(name);
     if (validation.error) {
       return NextResponse.json({ error: validation.error }, { status: validation.status });
@@ -193,23 +175,22 @@ export async function DELETE(
 
     const prisma = await getLibraryPrisma(name);
 
-    // Find the document first to get cover info and file path
     const document = await prisma.document.findUnique({
-      where: { filename },
+      where: { id: fileid },
     });
 
     if (!document) {
       return NextResponse.json({ error: 'Document not found in database' }, { status: 404 });
     }
 
-    const filePath = path.join(libraryInfo.path, document.url.substring(6)); // Skip lib://
+    const filePath = path.join(libraryInfo.path, document.url.substring(6));
     const coverFilename = `[Cover] ${document.filename.replace(/\.(pdf|epub|djvu)$/i, '.jpg')}`;
     const coverPath = path.join(path.dirname(filePath), coverFilename);
     if (fs.existsSync(coverPath)) {
       fs.unlinkSync(coverPath);
     }
     await prisma.document.delete({
-      where: { filename },
+      where: { id: document.id },
     });
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);

@@ -22,6 +22,7 @@ export interface DocumentMetadata {
 }
 
 export interface LibraryDocument {
+  id: string;
   path: string;
   filename: string;
   metadata: DocumentMetadata;

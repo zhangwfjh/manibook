@@ -15,7 +15,7 @@ datasource db {
 
 model Document {
   id                String   @id @default(cuid())
-  filename          String   @unique
+  filename          String
   url               String
   doctype           String   // 'Article' | 'Book' | 'Others'
   title             String

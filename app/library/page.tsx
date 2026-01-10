@@ -111,9 +111,7 @@ export default function LibraryPage() {
     async (document: LibraryDocument) => {
       try {
         await fetch(
-          `/api/libraries/${currentLibrary}/documents/${encodeURIComponent(
-            document.filename
-          )}`,
+          `/api/libraries/${currentLibrary}/documents/${document.id}`,
           {
             method: "DELETE",
           }
@@ -131,9 +129,7 @@ export default function LibraryPage() {
     async (updatedDoc: LibraryDocument) => {
       try {
         const response = await fetch(
-          `/api/libraries/${currentLibrary}/documents/${encodeURIComponent(
-            updatedDoc.filename
-          )}`,
+          `/api/libraries/${currentLibrary}/documents/${updatedDoc.id}`,
           {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
@@ -161,9 +157,7 @@ export default function LibraryPage() {
     async (document: LibraryDocument) => {
       try {
         await fetch(
-          `/api/libraries/${currentLibrary}/documents/${encodeURIComponent(
-            document.filename
-          )}`,
+          `/api/libraries/${currentLibrary}/documents/${document.id}`,
           {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
