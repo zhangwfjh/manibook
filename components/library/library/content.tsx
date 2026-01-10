@@ -14,12 +14,12 @@ import {
   EmptyDescription,
   EmptyMedia,
 } from "@/components/ui/empty";
-import { DocumentCard } from "@/components/library/document-card";
-import { DocumentList } from "@/components/library/document-list";
-import { VirtualDocumentList } from "@/components/library/virtual-document-list";
-import { DocumentCardSkeleton } from "@/components/library/document-card-skeleton";
-import { DocumentListSkeleton } from "@/components/library/document-list-skeleton";
-import { PaginationControls } from "@/components/library/pagination-controls";
+import { DocumentCard } from "@/components/library/documents/card";
+import { DocumentList } from "@/components/library/documents/list";
+import { VirtualList } from "@/components/library/documents/virtual-list";
+import { DocumentCardSkeleton } from "@/components/library/documents/card-skeleton";
+import { DocumentListSkeleton } from "@/components/library/documents/list-skeleton";
+import { Pagination } from "@/components/library/ui/pagination";
 import { LibraryDocument } from "@/lib/library";
 import { BookOpenIcon } from "lucide-react";
 
@@ -34,7 +34,7 @@ interface PaginationInfo {
   hasPrevPage: boolean;
 }
 
-interface LibraryContentProps {
+interface ContentProps {
   currentLibrary: string;
   selectedCategory: string;
   documents: LibraryDocument[];
@@ -48,7 +48,7 @@ interface LibraryContentProps {
   onPageChange?: (page: number) => void;
 }
 
-export function LibraryContent({
+export function Content({
   currentLibrary,
   selectedCategory,
   documents,
@@ -60,15 +60,13 @@ export function LibraryContent({
   onFavoriteToggle,
   onBreadcrumbClick,
   onPageChange,
-}: LibraryContentProps) {
-  // Use server-side pagination data
+}: ContentProps) {
   const currentPage = pagination?.page || 1;
   const totalPages = pagination?.totalPages || 1;
   const hasNextPage = pagination?.hasNextPage || false;
   const hasPrevPage = pagination?.hasPrevPage || false;
   const totalCount = pagination?.totalCount || 0;
 
-  // Since we're using server-side pagination, all documents are already paginated
   const paginatedItems = documents;
 
   const goToPage = (page: number) => {
@@ -93,7 +91,6 @@ export function LibraryContent({
 
   return (
     <div className="flex-1 min-w-0 space-y-6">
-      {/* Breadcrumb and Document Count */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         {currentLibrary && (
           <Breadcrumb>
@@ -142,7 +139,6 @@ export function LibraryContent({
           </Breadcrumb>
         )}
 
-        {/* Document count */}
         <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
           <span className="font-medium text-foreground">
             {totalCount || documents.length}
@@ -191,8 +187,7 @@ export function LibraryContent({
             ))}
           </div>
 
-          {/* Pagination controls for card view */}
-          <PaginationControls
+          <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
             hasNextPage={hasNextPage}
@@ -205,15 +200,14 @@ export function LibraryContent({
         </>
       ) : useVirtualList ? (
         <>
-          <VirtualDocumentList
+          <VirtualList
             documents={paginatedItems}
             onClick={onDocumentClick}
             onDownload={onDownload}
             onFavoriteToggle={onFavoriteToggle}
           />
 
-          {/* Pagination controls for virtual list view */}
-          <PaginationControls
+          <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
             hasNextPage={hasNextPage}
@@ -233,8 +227,7 @@ export function LibraryContent({
             onFavoriteToggle={onFavoriteToggle}
           />
 
-          {/* Pagination controls for list view */}
-          <PaginationControls
+          <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
             hasNextPage={hasNextPage}

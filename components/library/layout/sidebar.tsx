@@ -1,11 +1,11 @@
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { LibraryManager } from "@/components/library/library-manager";
-import { GenericFilter } from "@/components/library/generic-filter";
+import { LibraryManager } from "@/components/library/library/manager";
+import { Filter } from "@/components/library/ui/filter";
 import { LibraryCategory, Library } from "@/lib/library";
 
-interface LibrarySidebarProps {
+interface SidebarProps {
   libraries: Library[];
   currentLibrary: string;
   categories: LibraryCategory[];
@@ -28,7 +28,7 @@ interface LibrarySidebarProps {
   onShowFavoritesOnlyChange: (show: boolean) => void;
 }
 
-export function LibrarySidebar({
+export function Sidebar({
   libraries,
   currentLibrary,
   categories,
@@ -49,10 +49,9 @@ export function LibrarySidebar({
   onAuthorsChange,
   onPublishersChange,
   onShowFavoritesOnlyChange,
-}: LibrarySidebarProps) {
+}: SidebarProps) {
   return (
     <div className="w-80 shrink-0 space-y-6">
-      {/* Library Manager */}
       <LibraryManager
         libraries={libraries}
         currentLibrary={currentLibrary}
@@ -67,7 +66,6 @@ export function LibrarySidebar({
 
       <Separator />
 
-      {/* Favorites Filter */}
       <div className="space-y-2">
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
           Filters
@@ -84,28 +82,28 @@ export function LibrarySidebar({
         </Label>
       </div>
 
-      <GenericFilter
+      <Filter
         title="Formats"
         selectedItems={selectedFormats}
         onItemsChange={onFormatsChange}
         filterOptions={filterOptions.formats}
       />
 
-      <GenericFilter
+      <Filter
         title="Keywords"
         selectedItems={selectedKeywords}
         onItemsChange={onKeywordsChange}
         filterOptions={filterOptions.keywords}
       />
 
-      <GenericFilter
+      <Filter
         title="Authors"
         selectedItems={selectedAuthors}
         onItemsChange={onAuthorsChange}
         filterOptions={filterOptions.authors}
       />
 
-      <GenericFilter
+      <Filter
         title="Publishers"
         selectedItems={selectedPublishers}
         onItemsChange={onPublishersChange}

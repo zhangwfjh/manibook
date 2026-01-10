@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { DocumentDetailDialog } from "@/components/library/document-detail-dialog";
-import { LibraryHeader } from "@/components/library/library-header";
-import { LibrarySidebar } from "@/components/library/library-sidebar";
-import { LibraryControls } from "@/components/library/library-controls";
-import { LibraryContent } from "@/components/library/library-content";
-import { LibraryDialogs } from "@/components/library/library-dialogs";
+import { DocumentDetailDialog } from "@/components/library/dialogs/detail-dialog";
+import { Header } from "@/components/library/layout";
+import { Sidebar } from "@/components/library/layout";
+import { Controls } from "@/components/library/layout";
+import { Content } from "@/components/library/library";
+import { RenameDialog, ArchiveDialog, UploadDialog } from "@/components/library/dialogs";
 import { useLibraryData } from "@/hooks/use-library-data";
 import { useDocumentFilters } from "@/hooks/use-document-filters";
 import { useDocumentSorting } from "@/hooks/use-document-sorting";
@@ -208,7 +208,7 @@ export default function LibraryPage() {
     <div className="min-h-screen bg-linear-to-br from-background via-background to-muted/10">
       <div className="container mx-auto px-6 py-8">
         {/* Header */}
-        <LibraryHeader
+        <Header
           createLibraryOpen={createLibraryOpen}
           setCreateLibraryOpen={setCreateLibraryOpen}
           newLibraryName={newLibraryName}
@@ -221,7 +221,7 @@ export default function LibraryPage() {
 
         <div className="flex gap-10 lg:gap-12">
           {/* Sidebar */}
-          <LibrarySidebar
+          <Sidebar
             libraries={libraries}
             currentLibrary={currentLibrary}
             categories={categories}
@@ -247,7 +247,7 @@ export default function LibraryPage() {
           {/* Main Content */}
           <div className="flex-1 min-w-0">
             {/* Controls */}
-            <LibraryControls
+            <Controls
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
               sortBy={sortBy}
@@ -260,7 +260,7 @@ export default function LibraryPage() {
             />
 
             {/* Content */}
-            <LibraryContent
+            <Content
               currentLibrary={currentLibrary}
               selectedCategory={selectedCategory}
               documents={documents}
@@ -287,20 +287,29 @@ export default function LibraryPage() {
           onUpdate={handleDocumentUpdate}
         />
 
-        {/* Library Dialogs */}
-        <LibraryDialogs
-          renameLibraryOpen={renameLibraryOpen}
-          setRenameLibraryOpen={setRenameLibraryOpen}
+        {/* Rename Dialog */}
+        <RenameDialog
+          open={renameLibraryOpen}
+          onOpenChange={setRenameLibraryOpen}
           renameLibraryName={renameLibraryName}
           setRenameLibraryName={setRenameLibraryName}
           handleRenameLibrary={handleRenameLibrary}
-          resetRenameDialog={resetRenameDialog}
-          archiveLibraryOpen={archiveLibraryOpen}
-          setArchiveLibraryOpen={setArchiveLibraryOpen}
+          resetDialog={resetRenameDialog}
+        />
+
+        {/* Archive Dialog */}
+        <ArchiveDialog
+          open={archiveLibraryOpen}
+          onOpenChange={setArchiveLibraryOpen}
           currentLibrary={currentLibrary}
           handleArchiveLibrary={handleArchiveLibrary}
-          uploadDialogOpen={uploadDialogOpen}
-          setUploadDialogOpen={setUploadDialogOpen}
+        />
+
+        {/* Upload Dialog */}
+        <UploadDialog
+          open={uploadDialogOpen}
+          onOpenChange={setUploadDialogOpen}
+          currentLibrary={currentLibrary}
           onUploadComplete={refreshLibraryData}
         />
       </div>

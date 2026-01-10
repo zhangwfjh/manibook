@@ -1,5 +1,5 @@
 import {
-  Pagination,
+  Pagination as UIPagination,
   PaginationContent,
   PaginationItem,
   PaginationLink,
@@ -19,7 +19,7 @@ interface PaginationControlsProps {
   className?: string;
 }
 
-export function PaginationControls({
+export function Pagination({
   currentPage,
   totalPages,
   hasNextPage,
@@ -103,7 +103,7 @@ export function PaginationControls({
 
   return (
     <div className={`${className}`}>
-      <Pagination>
+      <UIPagination>
         <PaginationContent>
           <PaginationItem>
             <PaginationPrevious
@@ -121,7 +121,7 @@ export function PaginationControls({
             />
           </PaginationItem>
         </PaginationContent>
-      </Pagination>
+      </UIPagination>
     </div>
   );
 }

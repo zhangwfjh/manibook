@@ -14,11 +14,11 @@ import {
   UploadIcon,
   Loader2Icon,
 } from "lucide-react";
-import { SettingsDialog } from "@/components/library/settings-dialog";
+import { SettingsDialog } from "@/components/library/dialogs/settings-dialog";
 
 type ViewMode = "card" | "list";
 
-interface LibraryControlsProps {
+interface ControlsProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   sortBy: string;
@@ -30,7 +30,7 @@ interface LibraryControlsProps {
   isSearching?: boolean;
 }
 
-export function LibraryControls({
+export function Controls({
   searchQuery,
   onSearchChange,
   sortBy,
@@ -40,10 +40,9 @@ export function LibraryControls({
   librariesLength,
   onOpenUploadDialog,
   isSearching = false,
-}: LibraryControlsProps) {
+}: ControlsProps) {
   return (
     <div className="mb-6 space-y-4">
-      {/* Search and Actions */}
       <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
         <div className="relative flex-1 max-w-md w-full lg:w-auto">
           {isSearching ? (

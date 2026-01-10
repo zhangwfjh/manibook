@@ -141,5 +141,5 @@ function DialogExtraMetadataComponent({
   );
 }
 
-export const DialogExtraMetadata = memo(DialogExtraMetadataComponent);
-DialogExtraMetadata.displayName = "DialogExtraMetadata";
+export const ExtraMetadata = memo(DialogExtraMetadataComponent);
+ExtraMetadata.displayName = "ExtraMetadata";

@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-interface LibraryHeaderProps {
+interface HeaderProps {
   createLibraryOpen: boolean;
   setCreateLibraryOpen: (open: boolean) => void;
   newLibraryName: string;
@@ -19,7 +19,7 @@ interface LibraryHeaderProps {
   resetCreateDialog: () => void;
 }
 
-export function LibraryHeader({
+export function Header({
   createLibraryOpen,
   setCreateLibraryOpen,
   newLibraryName,
@@ -28,7 +28,7 @@ export function LibraryHeader({
   setNewLibraryPath,
   handleCreateLibrary,
   resetCreateDialog,
-}: LibraryHeaderProps) {
+}: HeaderProps) {
   return (
     <div className="mb-8 space-y-6">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">

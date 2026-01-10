@@ -90,4 +90,4 @@ function VirtualDocumentListComponent({
   );
 }
 
-export const VirtualDocumentList = VirtualDocumentListComponent;
+export const VirtualList = VirtualDocumentListComponent;

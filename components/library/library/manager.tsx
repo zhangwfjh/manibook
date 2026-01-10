@@ -221,17 +221,13 @@ export function LibraryManager({
   );
 
   const handleLibraryToggle = (libraryName: string) => {
-    // Switch to the clicked library
     onLibrarySelect(libraryName);
 
-    // Toggle expansion - when expanding, collapse all others
     setExpandedLibraries((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(libraryName)) {
-        // If already expanded, just collapse it
         newSet.delete(libraryName);
       } else {
-        // If not expanded, expand it and collapse all others
         newSet.clear();
         newSet.add(libraryName);
       }

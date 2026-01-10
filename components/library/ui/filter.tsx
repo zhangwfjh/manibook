@@ -17,7 +17,7 @@ interface GenericFilterProps {
   filterOptions: Record<string, number>;
 }
 
-export function GenericFilter({
+export function Filter({
   title,
   selectedItems = [],
   onItemsChange,

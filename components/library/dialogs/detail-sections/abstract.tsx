@@ -60,5 +60,5 @@ function DialogAbstractSectionComponent({
   );
 }
 
-export const DialogAbstractSection = memo(DialogAbstractSectionComponent);
-DialogAbstractSection.displayName = "DialogAbstractSection";
+export const AbstractSection = memo(DialogAbstractSectionComponent);
+AbstractSection.displayName = "AbstractSection";

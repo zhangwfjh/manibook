@@ -5,8 +5,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
-  TableHeader,
   TableRow,
 } from "@/components/ui/table";
 import {
@@ -31,23 +29,17 @@ function DialogFileInfoComponent({ document }: DialogFileInfoProps) {
           FILE INFORMATION
         </Label>
         <Table className="mt-3 max-w-full">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-1/6 min-w-24">Property</TableHead>
-              <TableHead className="max-w-0">Value</TableHead>
-            </TableRow>
-          </TableHeader>
           <TableBody>
             <TableRow>
-              <TableCell className="font-medium">Filename</TableCell>
+              <TableCell className="w-1/6 min-w-24 font-medium">Filename</TableCell>
               <TableCell className="max-w-0">{document.filename}</TableCell>
             </TableRow>
             <TableRow>
-              <TableCell className="font-medium">File path</TableCell>
+              <TableCell className="w-1/6 min-w-24 font-medium">File path</TableCell>
               <TableCell className="max-w-0">{document.path}</TableCell>
             </TableRow>
             <TableRow>
-              <TableCell className="font-medium">File size</TableCell>
+              <TableCell className="w-1/6 min-w-24 font-medium">File size</TableCell>
               <TableCell className="max-w-0">
                 <div className="flex items-center gap-2">
                   {metadata.filesize && metadata.format && (
@@ -72,7 +64,7 @@ function DialogFileInfoComponent({ document }: DialogFileInfoProps) {
               </TableCell>
             </TableRow>
             <TableRow>
-              <TableCell className="font-medium">Format</TableCell>
+              <TableCell className="w-1/6 min-w-24 font-medium">Format</TableCell>
               <TableCell className="max-w-0">
                 <div className="flex items-center gap-2">
                   {metadata.format && (
@@ -103,5 +95,5 @@ function DialogFileInfoComponent({ document }: DialogFileInfoProps) {
   );
 }
 
-export const DialogFileInfo = memo(DialogFileInfoComponent);
-DialogFileInfo.displayName = "DialogFileInfo";
+export const FileInfo = memo(DialogFileInfoComponent);
+FileInfo.displayName = "FileInfo";

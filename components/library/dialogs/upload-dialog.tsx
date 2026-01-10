@@ -19,127 +19,28 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-interface LibraryDialogsProps {
-  renameLibraryOpen: boolean;
-  setRenameLibraryOpen: (open: boolean) => void;
-  renameLibraryName: string;
-  setRenameLibraryName: (name: string) => void;
-  handleRenameLibrary: () => void;
-  resetRenameDialog: () => void;
-  archiveLibraryOpen: boolean;
-  setArchiveLibraryOpen: (open: boolean) => void;
-  currentLibrary: string;
-  handleArchiveLibrary: () => void;
-  uploadDialogOpen: boolean;
-  setUploadDialogOpen: (open: boolean) => void;
-  onUploadComplete: () => void;
-}
-
-export function LibraryDialogs({
-  renameLibraryOpen,
-  setRenameLibraryOpen,
-  renameLibraryName,
-  setRenameLibraryName,
-  handleRenameLibrary,
-  resetRenameDialog,
-  archiveLibraryOpen,
-  setArchiveLibraryOpen,
-  currentLibrary,
-  handleArchiveLibrary,
-  uploadDialogOpen,
-  setUploadDialogOpen,
-  onUploadComplete,
-}: LibraryDialogsProps) {
-  return (
-    <>
-      {/* Rename Library Dialog */}
-      <Dialog open={renameLibraryOpen} onOpenChange={setRenameLibraryOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Rename Library</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="rename-library-name">New Library Name</Label>
-              <Input
-                id="rename-library-name"
-                value={renameLibraryName}
-                onChange={(e) => setRenameLibraryName(e.target.value)}
-                placeholder="Enter new library name"
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={resetRenameDialog}>
-                Cancel
-              </Button>
-              <Button onClick={handleRenameLibrary}>Rename</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Archive Library Dialog */}
-      <Dialog open={archiveLibraryOpen} onOpenChange={setArchiveLibraryOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Archive Library</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Are you sure you want to archive the library &ldquo;
-              {currentLibrary}&rdquo;? All documents and data in this library
-              will be preserved on disk.
-            </p>
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setArchiveLibraryOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button variant="destructive" onClick={handleArchiveLibrary}>
-                Archive Library
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Upload Documents Dialog */}
-      <UploadDocumentsDialog
-        open={uploadDialogOpen}
-        onOpenChange={setUploadDialogOpen}
-        currentLibrary={currentLibrary}
-        onUploadComplete={onUploadComplete}
-      />
-    </>
-  );
-}
-
-interface UploadDocumentsDialogProps {
+interface UploadDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   currentLibrary: string;
   onUploadComplete: () => void;
 }
 
-function UploadDocumentsDialog({
+export function UploadDialog({
   open,
   onOpenChange,
   currentLibrary,
   onUploadComplete,
-}: UploadDocumentsDialogProps) {
+}: UploadDialogProps) {
   const [activeTab, setActiveTab] = useState("files");
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState("");
   const [uploadProgressPercent, setUploadProgressPercent] = useState(0);
 
-  // File upload state
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
 
-  // URL import state
   const [urls, setUrls] = useState<string[]>([""]);
   const [urlErrors, setUrlErrors] = useState<string[]>([]);
 
@@ -148,7 +49,6 @@ function UploadDocumentsDialog({
       const files = event.target.files;
       if (!files || files.length === 0) return;
 
-      // Filter files to only include PDF, DJVU, EPUB formats
       const allowedExtensions = ["pdf", "djvu", "epub"];
       const filteredFiles = Array.from(files).filter((file) => {
         const extension = file.name.split(".").pop()?.toLowerCase();
@@ -173,7 +73,6 @@ function UploadDocumentsDialog({
       let successCount = 0;
       let errorCount = 0;
 
-      // Process files sequentially to avoid overwhelming the server
       for (let i = 0; i < filteredFiles.length; i++) {
         const file = filteredFiles[i];
         setUploadProgress(
@@ -202,15 +101,12 @@ function UploadDocumentsDialog({
           console.error(`Error uploading ${file.name}:`, error);
         }
 
-        // Update progress percentage
         const progress = Math.round(((i + 1) / filteredFiles.length) * 100);
         setUploadProgressPercent(progress);
       }
 
-      // Refresh the library data
       onUploadComplete();
 
-      // Reset the file input
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -221,7 +117,6 @@ function UploadDocumentsDialog({
       setUploading(false);
       setUploadProgressPercent(0);
 
-      // Show toast notifications
       if (errorCount === 0) {
         toast.success(
           `Successfully uploaded ${successCount} file${
@@ -239,7 +134,6 @@ function UploadDocumentsDialog({
         setUploadProgress(`${successCount} uploaded, ${errorCount} failed`);
       }
 
-      // Clear progress message after 3 seconds
       setTimeout(() => setUploadProgress(""), 3000);
     },
     [currentLibrary, onUploadComplete]
@@ -287,7 +181,6 @@ function UploadDocumentsDialog({
     newUrls[index] = value;
     setUrls(newUrls);
 
-    // Clear error when user starts typing
     const newErrors = [...urlErrors];
     if (newErrors[index]) {
       newErrors[index] = "";
@@ -312,7 +205,6 @@ function UploadDocumentsDialog({
       return;
     }
 
-    // Validate all URLs
     const newErrors = urls.map((url) => validateUrl(url));
     setUrlErrors(newErrors);
 
@@ -356,13 +248,11 @@ function UploadDocumentsDialog({
           toast.warning(`${successCount} imported, ${errorCount} failed`);
           setUploadProgress(`${successCount} imported, ${errorCount} failed`);
 
-          // Show first error as toast
           if (errors && errors.length > 0) {
             toast.error(`Import error: ${errors[0].error}`);
           }
         }
 
-        // Reset URLs
         setUrls([""]);
         setUrlErrors([""]);
         onOpenChange(false);
@@ -379,7 +269,6 @@ function UploadDocumentsDialog({
     setUploading(false);
     setUploadProgressPercent(0);
 
-    // Clear progress message after 3 seconds
     setTimeout(() => setUploadProgress(""), 3000);
   };
 
@@ -516,7 +405,6 @@ function UploadDocumentsDialog({
           </TabsContent>
         </Tabs>
 
-        {/* Upload Progress */}
         {uploadProgress && (
           <div className="space-y-2">
             <div className="text-sm text-blue-600 dark:text-blue-400">

@@ -137,5 +137,5 @@ function DialogMetadataViewComponent({ metadata }: DialogMetadataViewProps) {
   );
 }
 
-export const DialogMetadataView = React.memo(DialogMetadataViewComponent);
-DialogMetadataView.displayName = "DialogMetadataView";
+export const MetadataView = React.memo(DialogMetadataViewComponent);
+MetadataView.displayName = "MetadataView";

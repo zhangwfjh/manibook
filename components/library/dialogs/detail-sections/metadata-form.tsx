@@ -357,5 +357,5 @@ const KeywordEditorComponent = ({
 const KeywordEditor = React.memo(KeywordEditorComponent);
 KeywordEditor.displayName = "KeywordEditor";
 
-export const DialogMetadataForm = memo(DialogMetadataFormComponent);
-DialogMetadataForm.displayName = "DialogMetadataForm";
+export const MetadataForm = memo(DialogMetadataFormComponent);
+MetadataForm.displayName = "MetadataForm";

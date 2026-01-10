@@ -29,12 +29,12 @@ import {
 import { LibraryDocument, DocumentMetadata } from "@/lib/library";
 import React, { useState, useMemo, useCallback } from "react";
 import {
-  DialogMetadataForm,
-  DialogMetadataView,
-  DialogAbstractSection,
-  DialogExtraMetadata,
-  DialogFileInfo,
-} from "./dialog";
+  MetadataForm,
+  MetadataView,
+  AbstractSection,
+  ExtraMetadata,
+  FileInfo,
+} from "./detail-sections";
 import { getCoverUrl } from "@/lib/library/document-utils";
 
 interface DocumentDetailDialogProps {
@@ -169,43 +169,39 @@ export function DocumentDetailDialog({
         </DialogHeader>
 
         <ScrollArea className="max-h-[70vh] pr-4">
-          <div className="space-y-6">
+          <div className="space-y-4">
             <div className="max-w-full">
               <div className="pt-6">
                 <Label className="text-sm font-medium text-muted-foreground mb-4 block">
                   BASIC INFORMATION
                 </Label>
                 {isEditing ? (
-                  <DialogMetadataForm
+                  <MetadataForm
                     editedMetadata={editedMetadata}
                     onChange={setEditedMetadata}
                     validationErrors={validationErrors}
                   />
                 ) : (
-                  <DialogMetadataView metadata={metadata} />
+                  <MetadataView metadata={metadata} />
                 )}
               </div>
             </div>
 
-            <DialogAbstractSection
+            <AbstractSection
               metadata={metadata}
               isEditing={isEditing}
               editedMetadata={editedMetadata}
               onChange={setEditedMetadata}
             />
 
-            <Separator />
-
-            <DialogExtraMetadata
+            <ExtraMetadata
               metadata={metadata}
               isEditing={isEditing}
               editedMetadata={editedMetadata}
               onChange={setEditedMetadata}
             />
 
-            <Separator />
-
-            <DialogFileInfo document={document} />
+            <FileInfo document={document} />
           </div>
         </ScrollArea>
 
