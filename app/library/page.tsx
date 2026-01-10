@@ -6,7 +6,11 @@ import { Header } from "@/components/library/layout";
 import { Sidebar } from "@/components/library/layout";
 import { Controls } from "@/components/library/layout";
 import { Content } from "@/components/library/library";
-import { RenameDialog, ArchiveDialog, UploadDialog } from "@/components/library/dialogs";
+import {
+  RenameDialog,
+  ArchiveDialog,
+  ImportDialog,
+} from "@/components/library/dialogs";
 import { useLibraryData } from "@/hooks/use-library-data";
 import { useDocumentFilters } from "@/hooks/use-document-filters";
 import { useDocumentSorting } from "@/hooks/use-document-sorting";
@@ -21,7 +25,7 @@ export default function LibraryPage() {
   const [selectedDocument, setSelectedDocument] =
     useState<LibraryDocument | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   // Custom hooks
   const {
@@ -251,7 +255,7 @@ export default function LibraryPage() {
               viewMode={viewMode}
               onViewModeChange={setViewMode}
               librariesLength={libraries.length}
-              onOpenUploadDialog={() => setUploadDialogOpen(true)}
+              onOpenImportDialog={() => setImportDialogOpen(true)}
               isSearching={isSearching}
             />
 
@@ -301,12 +305,12 @@ export default function LibraryPage() {
           handleArchiveLibrary={handleArchiveLibrary}
         />
 
-        {/* Upload Dialog */}
-        <UploadDialog
-          open={uploadDialogOpen}
-          onOpenChange={setUploadDialogOpen}
+        {/* Import Dialog */}
+        <ImportDialog
+          open={importDialogOpen}
+          onOpenChange={setImportDialogOpen}
           currentLibrary={currentLibrary}
-          onUploadComplete={refreshLibraryData}
+          onImportComplete={refreshLibraryData}
         />
       </div>
     </div>

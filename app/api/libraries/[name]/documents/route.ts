@@ -21,7 +21,7 @@ interface LLMSettings {
   };
 }
 
-async function processFileUpload(
+async function processFileImport(
   file: File,
   libraryName: string,
   libraryInfo: Library,
@@ -207,7 +207,7 @@ async function processUrlImport(
     const file = new File([buffer], `imported${fileExtension}`, { type: contentType });
 
     // Process the downloaded file
-    return await processFileUpload(file, libraryName, libraryInfo, llmSettings);
+    return await processFileImport(file, libraryName, libraryInfo, llmSettings);
 
   } catch (error) {
     clearTimeout(timeoutId);
@@ -523,16 +523,16 @@ export async function POST(
       });
     }
 
-    // Handle file upload (existing logic)
+    // Handle file import (existing logic)
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    const result = await processFileUpload(file, name, libraryInfo, llmSettings);
+    const result = await processFileImport(file, name, libraryInfo, llmSettings);
     return NextResponse.json(result);
 
   } catch (error) {
-    console.error('Error uploading file:', error);
+    console.error('Error importing file:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

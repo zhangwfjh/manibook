@@ -26,7 +26,7 @@ interface ControlsProps {
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
   librariesLength: number;
-  onOpenUploadDialog: () => void;
+  onOpenImportDialog: () => void;
   isSearching?: boolean;
 }
 
@@ -38,7 +38,7 @@ export function Controls({
   viewMode,
   onViewModeChange,
   librariesLength,
-  onOpenUploadDialog,
+  onOpenImportDialog,
   isSearching = false,
 }: ControlsProps) {
   return (
@@ -114,11 +114,11 @@ export function Controls({
           <Button
             variant="outline"
             size="sm"
-            onClick={onOpenUploadDialog}
+            onClick={onOpenImportDialog}
             disabled={librariesLength === 0}
           >
             <UploadIcon className="h-4 w-4 mr-2" />
-            Upload
+            Import
           </Button>
           <SettingsDialog />
         </div>

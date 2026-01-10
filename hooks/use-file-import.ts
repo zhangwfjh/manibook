@@ -1,19 +1,19 @@
 import { useState, useRef } from "react";
 import { toast } from "sonner";
 
-interface UseFileUploadProps {
+interface UseFileImportProps {
   currentLibrary: string;
-  onUploadComplete: () => void;
+  onImportComplete: () => void;
 }
 
-export function useFileUpload({ currentLibrary, onUploadComplete }: UseFileUploadProps) {
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<string>("");
-  const [uploadProgressPercent, setUploadProgressPercent] = useState<number>(0);
+export function useFileImport({ currentLibrary, onImportComplete }: UseFileImportProps) {
+  const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState<string>("");
+  const [importProgressPercent, setImportProgressPercent] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileUpload = async (
+  const handleFileImport = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const files = event.target.files;
@@ -34,11 +34,10 @@ export function useFileUpload({ currentLibrary, onUploadComplete }: UseFileUploa
       return;
     }
 
-    setUploading(true);
-    setUploadProgressPercent(0);
-    setUploadProgress(
-      `Uploading ${filteredFiles.length} file${
-        filteredFiles.length > 1 ? "s" : ""
+    setImporting(true);
+    setImportProgressPercent(0);
+    setImportProgress(
+      `Importing ${filteredFiles.length} file${filteredFiles.length > 1 ? "s" : ""
       }...`
     );
 
@@ -48,8 +47,8 @@ export function useFileUpload({ currentLibrary, onUploadComplete }: UseFileUploa
     // Process files sequentially to avoid overwhelming the server
     for (let i = 0; i < filteredFiles.length; i++) {
       const file = filteredFiles[i];
-      setUploadProgress(
-        `Uploading ${file.name} (${i + 1}/${filteredFiles.length})...`
+      setImportProgress(
+        `Importing ${file.name} (${i + 1}/${filteredFiles.length})...`
       );
 
       const formData = new FormData();
@@ -71,16 +70,16 @@ export function useFileUpload({ currentLibrary, onUploadComplete }: UseFileUploa
         }
       } catch (error) {
         errorCount++;
-        console.error(`Error uploading ${file.name}:`, error);
+        console.error(`Error importing ${file.name}:`, error);
       }
 
       // Update progress percentage
       const progress = Math.round(((i + 1) / filteredFiles.length) * 100);
-      setUploadProgressPercent(progress);
+      setImportProgressPercent(progress);
     }
 
     // Refresh the library data
-    onUploadComplete();
+    onImportComplete();
 
     // Reset the file input
     if (fileInputRef.current) {
@@ -90,53 +89,51 @@ export function useFileUpload({ currentLibrary, onUploadComplete }: UseFileUploa
       folderInputRef.current.value = "";
     }
 
-    setUploading(false);
-    setUploadProgressPercent(0);
+    setImporting(false);
+    setImportProgressPercent(0);
 
     // Show toast notifications
     if (errorCount === 0) {
       toast.success(
-        `Successfully uploaded ${successCount} file${
-          successCount > 1 ? "s" : ""
+        `Successfully imported ${successCount} file${successCount > 1 ? "s" : ""
         }!`
       );
-      setUploadProgress(
-        `${successCount} file${
-          successCount > 1 ? "s" : ""
-        } uploaded successfully!`
+      setImportProgress(
+        `${successCount} file${successCount > 1 ? "s" : ""
+        } imported successfully!`
       );
     } else if (successCount === 0) {
       toast.error(
-        `Failed to upload ${errorCount} file${errorCount > 1 ? "s" : ""}`
+        `Failed to import ${errorCount} file${errorCount > 1 ? "s" : ""}`
       );
-      setUploadProgress(
-        `Failed to upload ${errorCount} file${errorCount > 1 ? "s" : ""}`
+      setImportProgress(
+        `Failed to import ${errorCount} file${errorCount > 1 ? "s" : ""}`
       );
     } else {
-      toast.warning(`${successCount} uploaded, ${errorCount} failed`);
-      setUploadProgress(`${successCount} uploaded, ${errorCount} failed`);
+      toast.warning(`${successCount} imported, ${errorCount} failed`);
+      setImportProgress(`${successCount} imported, ${errorCount} failed`);
     }
 
     // Clear progress message after 3 seconds
-    setTimeout(() => setUploadProgress(""), 3000);
+    setTimeout(() => setImportProgress(""), 3000);
   };
 
-  const triggerFileUpload = () => {
+  const triggerFileImport = () => {
     fileInputRef.current?.click();
   };
 
-  const triggerFolderUpload = () => {
+  const triggerFolderImport = () => {
     folderInputRef.current?.click();
   };
 
   return {
-    uploading,
-    uploadProgress,
-    uploadProgressPercent,
+    importing,
+    importProgress,
+    importProgressPercent,
     fileInputRef,
     folderInputRef,
-    handleFileUpload,
-    triggerFileUpload,
-    triggerFolderUpload,
+    handleFileImport,
+    triggerFileImport,
+    triggerFolderImport,
   };
 }

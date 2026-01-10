@@ -167,7 +167,7 @@ export function Content({
             </EmptyMedia>
             <EmptyTitle>No documents found</EmptyTitle>
             <EmptyDescription>
-              Try adjusting your search query, category filter, or upload some
+              Try adjusting your search query, category filter, or import some
               documents to get started.
             </EmptyDescription>
           </EmptyHeader>

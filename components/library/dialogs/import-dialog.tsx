@@ -19,23 +19,23 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-interface UploadDialogProps {
+interface ImportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   currentLibrary: string;
-  onUploadComplete: () => void;
+  onImportComplete: () => void;
 }
 
-export function UploadDialog({
+export function ImportDialog({
   open,
   onOpenChange,
   currentLibrary,
-  onUploadComplete,
-}: UploadDialogProps) {
+  onImportComplete,
+}: ImportDialogProps) {
   const [activeTab, setActiveTab] = useState("files");
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState("");
-  const [uploadProgressPercent, setUploadProgressPercent] = useState(0);
+  const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState("");
+  const [importProgressPercent, setImportProgressPercent] = useState(0);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
@@ -44,7 +44,7 @@ export function UploadDialog({
   const [urls, setUrls] = useState<string[]>([""]);
   const [urlErrors, setUrlErrors] = useState<string[]>([]);
 
-  const handleFileUpload = useCallback(
+  const handleFileImport = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
       const files = event.target.files;
       if (!files || files.length === 0) return;
@@ -62,10 +62,10 @@ export function UploadDialog({
         return;
       }
 
-      setUploading(true);
-      setUploadProgressPercent(0);
-      setUploadProgress(
-        `Uploading ${filteredFiles.length} file${
+      setImporting(true);
+      setImportProgressPercent(0);
+      setImportProgress(
+        `Importing ${filteredFiles.length} file${
           filteredFiles.length > 1 ? "s" : ""
         }...`
       );
@@ -75,8 +75,8 @@ export function UploadDialog({
 
       for (let i = 0; i < filteredFiles.length; i++) {
         const file = filteredFiles[i];
-        setUploadProgress(
-          `Uploading ${file.name} (${i + 1}/${filteredFiles.length})...`
+        setImportProgress(
+          `Importing ${file.name} (${i + 1}/${filteredFiles.length})...`
         );
 
         const formData = new FormData();
@@ -98,14 +98,14 @@ export function UploadDialog({
           }
         } catch (error) {
           errorCount++;
-          console.error(`Error uploading ${file.name}:`, error);
+          console.error(`Error importing ${file.name}:`, error);
         }
 
         const progress = Math.round(((i + 1) / filteredFiles.length) * 100);
-        setUploadProgressPercent(progress);
+        setImportProgressPercent(progress);
       }
 
-      onUploadComplete();
+      onImportComplete();
 
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -114,29 +114,29 @@ export function UploadDialog({
         folderInputRef.current.value = "";
       }
 
-      setUploading(false);
-      setUploadProgressPercent(0);
+      setImporting(false);
+      setImportProgressPercent(0);
 
       if (errorCount === 0) {
         toast.success(
-          `Successfully uploaded ${successCount} file${
+          `Successfully imported ${successCount} file${
             successCount > 1 ? "s" : ""
           }!`
         );
-        setUploadProgress(`All files uploaded successfully!`);
+        setImportProgress(`All files imported successfully!`);
       } else if (successCount === 0) {
         toast.error(
-          `Failed to upload ${errorCount} file${errorCount > 1 ? "s" : ""}`
+          `Failed to import ${errorCount} file${errorCount > 1 ? "s" : ""}`
         );
-        setUploadProgress(`Failed to upload all files`);
+        setImportProgress(`Failed to import all files`);
       } else {
-        toast.warning(`${successCount} uploaded, ${errorCount} failed`);
-        setUploadProgress(`${successCount} uploaded, ${errorCount} failed`);
+        toast.warning(`${successCount} imported, ${errorCount} failed`);
+        setImportProgress(`${successCount} imported, ${errorCount} failed`);
       }
 
-      setTimeout(() => setUploadProgress(""), 3000);
+      setTimeout(() => setImportProgress(""), 3000);
     },
-    [currentLibrary, onUploadComplete]
+    [currentLibrary, onImportComplete]
   );
 
   const handleDrag = useCallback((e: React.DragEvent) => {
@@ -156,12 +156,12 @@ export function UploadDialog({
       setDragActive(false);
 
       if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-        handleFileUpload({
+        handleFileImport({
           target: { files: e.dataTransfer.files },
         } as React.ChangeEvent<HTMLInputElement>);
       }
     },
-    [handleFileUpload]
+    [handleFileImport]
   );
 
   const addUrl = () => {
@@ -213,9 +213,9 @@ export function UploadDialog({
       return;
     }
 
-    setUploading(true);
-    setUploadProgressPercent(0);
-    setUploadProgress(
+    setImporting(true);
+    setImportProgressPercent(0);
+    setImportProgress(
       `Importing ${validUrls.length} URL${validUrls.length > 1 ? "s" : ""}...`
     );
 
@@ -235,7 +235,7 @@ export function UploadDialog({
 
       if (response.ok) {
         const { successCount, errorCount, errors } = result;
-        onUploadComplete();
+        onImportComplete();
 
         if (errorCount === 0) {
           toast.success(
@@ -243,10 +243,10 @@ export function UploadDialog({
               successCount > 1 ? "s" : ""
             }!`
           );
-          setUploadProgress(`All documents imported successfully!`);
+          setImportProgress(`All documents imported successfully!`);
         } else {
           toast.warning(`${successCount} imported, ${errorCount} failed`);
-          setUploadProgress(`${successCount} imported, ${errorCount} failed`);
+          setImportProgress(`${successCount} imported, ${errorCount} failed`);
 
           if (errors && errors.length > 0) {
             toast.error(`Import error: ${errors[0].error}`);
@@ -258,25 +258,25 @@ export function UploadDialog({
         onOpenChange(false);
       } else {
         toast.error(result.error || "Import failed");
-        setUploadProgress("Import failed");
+        setImportProgress("Import failed");
       }
     } catch (error) {
       console.error("Error importing URLs:", error);
       toast.error("Import failed");
-      setUploadProgress("Import failed");
+      setImportProgress("Import failed");
     }
 
-    setUploading(false);
-    setUploadProgressPercent(0);
+    setImporting(false);
+    setImportProgressPercent(0);
 
-    setTimeout(() => setUploadProgress(""), 3000);
+    setTimeout(() => setImportProgress(""), 3000);
   };
 
-  const triggerFileUpload = () => {
+  const triggerFileImport = () => {
     fileInputRef.current?.click();
   };
 
-  const triggerFolderUpload = () => {
+  const triggerFolderImport = () => {
     folderInputRef.current?.click();
   };
 
@@ -284,7 +284,7 @@ export function UploadDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Upload Documents</DialogTitle>
+          <DialogTitle>Import Documents</DialogTitle>
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -318,14 +318,14 @@ export function UploadDialog({
                 below
               </p>
               <div className="flex gap-2 justify-center">
-                <Button onClick={triggerFileUpload} disabled={uploading}>
+                <Button onClick={triggerFileImport} disabled={importing}>
                   <UploadIcon className="h-4 w-4 mr-2" />
                   Select Files
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={triggerFolderUpload}
-                  disabled={uploading}
+                  onClick={triggerFolderImport}
+                  disabled={importing}
                 >
                   <UploadIcon className="h-4 w-4 mr-2" />
                   Select Folder
@@ -338,7 +338,7 @@ export function UploadDialog({
               type="file"
               accept=".pdf,.epub,.djvu"
               multiple
-              onChange={handleFileUpload}
+              onChange={handleFileImport}
               style={{ display: "none" }}
             />
             <input
@@ -346,7 +346,7 @@ export function UploadDialog({
               type="file"
               accept=".pdf,.epub,.djvu"
               multiple
-              onChange={handleFileUpload}
+              onChange={handleFileImport}
               style={{ display: "none" }}
               // @ts-expect-error - webkitdirectory is not in the standard types
               webkitdirectory=""
@@ -391,7 +391,7 @@ export function UploadDialog({
                 variant="outline"
                 onClick={addUrl}
                 className="w-full"
-                disabled={uploading}
+                disabled={importing}
               >
                 <PlusIcon className="h-4 w-4 mr-2" />
                 Add Another URL
@@ -405,19 +405,19 @@ export function UploadDialog({
           </TabsContent>
         </Tabs>
 
-        {uploadProgress && (
+        {importProgress && (
           <div className="space-y-2">
             <div className="text-sm text-blue-600 dark:text-blue-400">
-              {uploading && (
+              {importing && (
                 <div className="flex items-center gap-2">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                  {uploadProgress}
+                  {importProgress}
                 </div>
               )}
-              {!uploading && uploadProgress}
+              {!importing && importProgress}
             </div>
-            {uploading && uploadProgressPercent > 0 && (
-              <Progress value={uploadProgressPercent} className="w-full" />
+            {importing && importProgressPercent > 0 && (
+              <Progress value={importProgressPercent} className="w-full" />
             )}
           </div>
         )}
@@ -426,12 +426,12 @@ export function UploadDialog({
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            disabled={uploading}
+            disabled={importing}
           >
             Cancel
           </Button>
           {activeTab === "urls" && (
-            <Button onClick={handleUrlImport} disabled={uploading}>
+            <Button onClick={handleUrlImport} disabled={importing}>
               Import URLs
             </Button>
           )}
