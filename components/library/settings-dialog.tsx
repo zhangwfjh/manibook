@@ -185,8 +185,8 @@ export function SettingsDialog() {
             </div>
 
             <div className="space-y-4">
-              {settings.providers.map((provider) => (
-                <Card key={provider.name}>
+              {settings.providers.map((provider, index) => (
+                <Card key={index}>
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-sm flex items-center gap-2">
