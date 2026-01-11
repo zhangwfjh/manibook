@@ -34,12 +34,12 @@ interface DocumentMetadata {
   [key: string]: unknown;
 }
 
-const MAX_FOREWORD_PAGES = 5;
-const MAX_FOREWORD_LENGTH = 2000;
+const MAX_FOREWORD_PAGES = 10;
+const MAX_FOREWORD_LENGTH = 5000;
 
 async function extractFromDjvu(
   buffer: Buffer
-): Promise<{ foreword: string; cover: Uint8Array | null; numPages: number }> {
+): Promise<{ foreword: string; images: Uint8Array[]; numPages: number }> {
   let tempFilePath: string | null = null;
   let tmpCoverName: string | null = null;
   try {
@@ -51,30 +51,36 @@ async function extractFromDjvu(
     )
       .toString()
       .slice(0, MAX_FOREWORD_LENGTH);
-    tmpCoverName = tempFilePath.replace(/\.(djvu)$/i, "_cover.jpg");
-    execSync(
-      `ddjvu -format=tiff -page=1 -quality=80 "${tempFilePath}" "${tmpCoverName}"`
-    );
-    const cover = fs.readFileSync(tmpCoverName);
     const numPages = parseInt(
       execSync(`djvused -e n "${tempFilePath}"`).toString()
     );
-    return { foreword, cover, numPages };
+    const pageCount = Math.min(5, numPages);
+    const images: Uint8Array[] = [];
+
+    for (let i = 1; i <= pageCount; i++) {
+      tmpCoverName = `temp_djvu_page_${i}_${Date.now()}.jpg`;
+      execSync(
+        `ddjvu -format=tiff -page=${i} -quality=80 "${tempFilePath}" "${tmpCoverName}"`
+      );
+      const image = fs.readFileSync(tmpCoverName);
+      images.push(image);
+      if (fs.existsSync(tmpCoverName)) {
+        fs.unlinkSync(tmpCoverName);
+      }
+    }
+    return { foreword, images, numPages };
   } catch (error) {
     throw new Error(`Failed to extract from DJVU: ${error}`);
   } finally {
     if (tempFilePath && fs.existsSync(tempFilePath)) {
       fs.unlinkSync(tempFilePath);
     }
-    if (tmpCoverName && fs.existsSync(tmpCoverName)) {
-      fs.unlinkSync(tmpCoverName);
-    }
   }
 }
 
 async function extractFromEpub(
   buffer: Buffer
-): Promise<{ foreword: string; cover: Uint8Array | null; numPages: number }> {
+): Promise<{ foreword: string; images: Uint8Array[]; numPages: number }> {
   try {
     const epub = await parseEPUB(buffer);
     const cover = epub.coverImage
@@ -91,7 +97,7 @@ async function extractFromEpub(
       .join("\n\n")
       .slice(0, MAX_FOREWORD_LENGTH);
     const numPages = epub.pages.length;
-    return { foreword, cover, numPages };
+    return { foreword, images: cover ? [cover] : [], numPages };
   } catch (error) {
     throw new Error(`Failed to extract from EPUB: ${error}`);
   }
@@ -99,14 +105,21 @@ async function extractFromEpub(
 
 async function extractFromPdf(
   buffer: Buffer
-): Promise<{ foreword: string; cover: Uint8Array | null; numPages: number }> {
+): Promise<{ foreword: string; images: Uint8Array[]; numPages: number }> {
   try {
     const document = mupdf.Document.openDocument(buffer);
     const numPages = document.countPages();
-    const page = document.loadPage(0);
-    const cover = page
-      .toPixmap(mupdf.Matrix.identity, mupdf.ColorSpace.DeviceRGB)
-      .asJPEG(80);
+    const pageCount = Math.min(5, numPages);
+    const images: Uint8Array[] = [];
+
+    for (let i = 0; i < pageCount; i++) {
+      const page = document.loadPage(i);
+      const image = page
+        .toPixmap(mupdf.Matrix.identity, mupdf.ColorSpace.DeviceRGB)
+        .asJPEG(80);
+      images.push(image);
+    }
+
     const foreword = (
       await Promise.all(
         Array.from({ length: Math.min(MAX_FOREWORD_PAGES, numPages) }, (_, i) =>
@@ -116,14 +129,14 @@ async function extractFromPdf(
     )
       .join("\n\n")
       .slice(0, MAX_FOREWORD_LENGTH);
-    return { foreword, cover, numPages };
+    return { foreword, images, numPages };
   } catch (error) {
     throw new Error(`Failed to extract from PDF: ${error}`);
   }
 }
 
 async function callLLMForImageText(
-  cover: Uint8Array,
+  images: Uint8Array[],
   provider: LLMProvider
 ): Promise<string> {
   const response = await openaiCall(
@@ -134,14 +147,12 @@ async function callLLMForImageText(
       },
       {
         role: "user",
-        content: [
-          {
-            type: "image_url",
-            image_url: {
-              url: "data:image;base64," + Buffer.from(cover).toString("base64"),
-            },
+        content: images.map((img) => ({
+          type: "image_url",
+          image_url: {
+            url: "data:image;base64," + Buffer.from(img).toString("base64"),
           },
-        ],
+        })),
       },
     ],
     {
@@ -226,7 +237,7 @@ export async function extractMetadataFromFile(
 }> {
   let extractor: (buffer: Buffer) => Promise<{
     foreword: string;
-    cover: Uint8Array | null;
+    images: Uint8Array[];
     numPages: number;
   }>;
   switch (extension) {
@@ -245,17 +256,18 @@ export async function extractMetadataFromFile(
 
   const {
     foreword: initialForeword,
-    cover,
+    images,
     numPages,
   } = await extractor(buffer);
   let foreword = initialForeword;
+  const cover = images[0] || null;
 
-  if (cover && foreword.length < 100) {
+  if (images.length > 0 && foreword.length < 100) {
     const imageProvider = llmSettings?.providers.find(
       (p) => p.name === llmSettings.jobs.imageTextExtraction
     );
     if (imageProvider) {
-      foreword = await callLLMForImageText(cover, imageProvider);
+      foreword = await callLLMForImageText(images, imageProvider);
     }
   }
 
