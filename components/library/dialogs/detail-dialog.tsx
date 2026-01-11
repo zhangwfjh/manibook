@@ -24,6 +24,7 @@ import {
   SaveIcon,
   XIcon,
   BookOpenIcon,
+  RefreshCwIcon,
 } from "lucide-react";
 import { LibraryDocument, DocumentMetadata } from "@/lib/library";
 import React, { useState, useMemo, useCallback } from "react";
@@ -63,6 +64,7 @@ export function DocumentDetailDialog({
     Record<string, string>
   >({});
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const coverUrl = useMemo(
     () => (document ? getCoverUrl(library, document) : ""),
@@ -136,6 +138,54 @@ export function DocumentDetailDialog({
     onOpenChange(false);
     setIsDeleteDialogOpen(false);
   }, [document, onDelete, onOpenChange]);
+
+  const handleGenerateMetadata = useCallback(async () => {
+    if (!document) return;
+
+    setIsGenerating(true);
+    try {
+      const response = await fetch(
+        `/api/libraries/${library}/documents/${document.id}/generate`,
+        { method: "POST" }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to generate metadata");
+      }
+
+      const data = await response.json();
+
+      if (data.metadata) {
+        setEditedMetadata({
+          doctype: data.metadata.doctype,
+          title: data.metadata.title,
+          authors: data.metadata.authors,
+          publicationYear: data.metadata.publication_year,
+          publisher: data.metadata.publisher,
+          category: data.metadata.category,
+          language: data.metadata.language,
+          keywords: data.metadata.keywords,
+          abstract: data.metadata.abstract,
+          favorite: document.metadata.favorite,
+          numPages: document.metadata.numPages,
+          filesize: document.metadata.filesize,
+          format: document.metadata.format,
+          metadata: data.metadata.metadata,
+          updatedAt: new Date(),
+        });
+      }
+    } catch (error) {
+      console.error("Error generating metadata:", error);
+      alert(
+        `Error: ${
+          error instanceof Error ? error.message : "Failed to generate metadata"
+        }`
+      );
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [document, library]);
 
   if (!document) return null;
 
@@ -216,6 +266,18 @@ export function DocumentDetailDialog({
           <div className="flex gap-2">
             {isEditing ? (
               <>
+                <Button
+                  variant="outline"
+                  onClick={handleGenerateMetadata}
+                  disabled={isGenerating}
+                >
+                  <RefreshCwIcon
+                    className={`h-4 w-4 mr-2 ${
+                      isGenerating ? "animate-spin" : ""
+                    }`}
+                  />
+                  Generate
+                </Button>
                 <Button variant="outline" onClick={handleCancel}>
                   <XIcon className="h-4 w-4 mr-2" />
                   Cancel
