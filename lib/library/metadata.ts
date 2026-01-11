@@ -16,8 +16,8 @@ interface LLMProvider {
 interface LLMSettings {
   providers: LLMProvider[];
   jobs: {
-    metadataExtraction: string; // provider name
-    imageTextExtraction: string; // provider name
+    metadataExtraction: string;
+    imageTextExtraction: string;
   };
 }
 
@@ -195,12 +195,10 @@ function parseMetadataResponse(responseString: string): DocumentMetadata {
   const jsonString = jsonMatch?.[1] || responseString;
   const parsed = JSON.parse(jsonString);
 
-  // Normalize category
   if (parsed.category && Array.isArray(parsed.category)) {
     parsed.category = parsed.category[0];
   }
 
-  // Normalize keywords
   if (parsed.keywords) {
     if (typeof parsed.keywords === "string") {
       parsed.keywords = parsed.keywords
@@ -214,7 +212,6 @@ function parseMetadataResponse(responseString: string): DocumentMetadata {
     parsed.keywords = [];
   }
 
-  // Normalize authors
   if (parsed.authors) {
     if (typeof parsed.authors === "string") {
       parsed.authors = parsed.authors.split(",").map((a: string) => a.trim());

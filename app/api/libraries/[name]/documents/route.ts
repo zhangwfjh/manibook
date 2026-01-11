@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { DocumentMetadata, Library } from '@/lib/library';
-import { extractMetadataFromFile } from '@/app/library/metadata';
+import { extractMetadataFromFile } from '@/lib/library/metadata';
 import crypto from 'crypto';
 import { loadLLMSettings } from '@/lib/library/llm-settings';
 import { validateLibraryAccess, dbDocumentToLibraryDocument, getLibraryPrisma } from '@/lib/library/api-utils';

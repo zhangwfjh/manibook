@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { validateLibraryAccess, getLibraryPrisma } from '@/lib/library/api-utils';
-import { extractMetadataFromFile } from '@/app/library/metadata';
+import { extractMetadataFromFile } from '@/lib/library/metadata';
 import { loadLLMSettings } from '@/lib/library/llm-settings';
 
 export async function POST(
