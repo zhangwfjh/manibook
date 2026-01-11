@@ -9,7 +9,7 @@ export function dbDocumentToLibraryDocument(dbDoc: Document, library: string): L
     path,
     filename: dbDoc.filename,
     metadata: {
-      doctype: dbDoc.doctype as 'Article' | 'Book' | 'Others',
+      doctype: dbDoc.doctype as string,
       title: dbDoc.title,
       authors: JSON.parse(dbDoc.authors),
       publicationYear: dbDoc.publicationYear || undefined,

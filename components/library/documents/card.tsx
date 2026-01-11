@@ -134,9 +134,7 @@ const DocumentCardComponent = ({
                   }`}
                 />
               </Button>
-              <Badge
-                variant={metadata.doctype === "Book" ? "default" : "secondary"}
-              >
+              <Badge variant="secondary">
                 {metadata.doctype}
               </Badge>
             </div>

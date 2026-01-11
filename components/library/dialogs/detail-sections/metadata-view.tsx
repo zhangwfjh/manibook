@@ -91,9 +91,7 @@ function DialogMetadataViewComponent({ metadata }: DialogMetadataViewProps) {
             DOCUMENT TYPE
           </Label>
           <div className="flex items-center gap-2 mt-1">
-            <Badge
-              variant={metadata.doctype === "Book" ? "default" : "secondary"}
-            >
+            <Badge variant="secondary">
               <BookOpenIcon className="h-3 w-3 mr-1" />
               {metadata.doctype}
             </Badge>

@@ -60,10 +60,7 @@ function DocumentRowComponent({
         {metadata.publicationYear || "-"}
       </div>
       <div className="w-24 shrink-0">
-        <Badge
-          variant={metadata.doctype === "Book" ? "default" : "secondary"}
-          className="text-xs"
-        >
+        <Badge variant="secondary" className="text-xs">
           {metadata.doctype}
         </Badge>
       </div>

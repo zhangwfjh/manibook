@@ -4,7 +4,7 @@ import { PrismaLibSql } from '@prisma/adapter-libsql';
 import { PrismaClient } from '../generated/prisma/client';
 
 export interface DocumentMetadata {
-  doctype: 'Article' | 'Book' | 'Others';
+  doctype: string;
   title: string;
   authors: string[];
   publicationYear?: number;

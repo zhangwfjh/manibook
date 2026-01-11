@@ -3,13 +3,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { XIcon } from "lucide-react";
 import { DocumentMetadata } from "@/lib/library";
 
@@ -211,24 +204,13 @@ function DialogMetadataFormComponent({
           >
             DOCUMENT TYPE *
           </Label>
-          <Select
+          <Input
+            id="doctype"
             value={editedMetadata.doctype || ""}
-            onValueChange={(value) =>
-              handleFieldChange(
-                "doctype",
-                value as "Article" | "Book" | "Others"
-              )
-            }
-          >
-            <SelectTrigger className="mt-1">
-              <SelectValue placeholder="Select type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Article">Article</SelectItem>
-              <SelectItem value="Book">Book</SelectItem>
-              <SelectItem value="Others">Others</SelectItem>
-            </SelectContent>
-          </Select>
+            onChange={(e) => handleFieldChange("doctype", e.target.value)}
+            className="mt-1"
+            placeholder="e.g., Book, Paper, Thesis, Resume, Report, Note, Manual, Presentation"
+          />
           {validationErrors.doctype && (
             <Alert variant="destructive" className="mt-1">
               <AlertDescription>{validationErrors.doctype}</AlertDescription>

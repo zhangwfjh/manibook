@@ -65,7 +65,7 @@ async function processFileImport(
     numPages = extractedNumPages;
     const doctype = (extractedMetadata.doctype as string);
     metadata = {
-      doctype: doctype as 'Article' | 'Book' | 'Others',
+      doctype: doctype,
       title: extractedMetadata.title as string,
       authors: extractedMetadata.authors as string[],
       publicationYear: extractedMetadata.publication_year as number || undefined,

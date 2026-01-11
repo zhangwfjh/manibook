@@ -84,13 +84,7 @@ const DocumentListComponent = ({
               </TableCell>
               <TableCell>{document.metadata.publicationYear || "-"}</TableCell>
               <TableCell>
-                <Badge
-                  variant={
-                    document.metadata.doctype === "Book"
-                      ? "default"
-                      : "secondary"
-                  }
-                >
+                <Badge variant="secondary">
                   {document.metadata.doctype}
                 </Badge>
               </TableCell>
