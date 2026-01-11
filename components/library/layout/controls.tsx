@@ -15,6 +15,7 @@ import {
   Loader2Icon,
 } from "lucide-react";
 import { SettingsDialog } from "@/components/library/dialogs/settings-dialog";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 type ViewMode = "card" | "list";
 
@@ -121,6 +122,7 @@ export function Controls({
             Import
           </Button>
           <SettingsDialog />
+          <ThemeToggle />
         </div>
       </div>
     </div>

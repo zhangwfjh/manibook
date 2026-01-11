@@ -328,7 +328,7 @@ export function ImportDialog({
       if (response.ok) {
         const { successCount, errorCount, errors } = result;
         if (errors && errors.length > 0) {
-          errors.forEach((err: any) => {
+          errors.forEach((err: { url: string; error: string }) => {
             const filename = err.url.split("/").pop() || "Unknown";
             addLog(filename, err.url, "failed", err.error);
           });
