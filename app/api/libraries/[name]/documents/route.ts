@@ -83,7 +83,7 @@ async function processFileImport(
 
   } catch (error) {
     console.error('Error extracting metadata:', error);
-    throw new Error('File parse failed');
+    throw new Error(`File parse failed ${error}`);
   }
 
   // Parse category for folder structure

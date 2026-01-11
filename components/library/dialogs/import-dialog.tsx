@@ -505,6 +505,12 @@ export function ImportDialog({
           </TabsContent>
         </Tabs>
 
+        {activeTab === "urls" && (
+          <Button onClick={handleUrlImport} disabled={importing}>
+            Import URLs
+          </Button>
+        )}
+
         {importProgress && (
           <div className="space-y-2">
             <div className="text-sm text-blue-600 dark:text-blue-400">
@@ -588,21 +594,6 @@ export function ImportDialog({
             </CollapsibleContent>
           </Collapsible>
         )}
-
-        <div className="flex justify-end gap-2">
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={importing}
-          >
-            Cancel
-          </Button>
-          {activeTab === "urls" && (
-            <Button onClick={handleUrlImport} disabled={importing}>
-              Import URLs
-            </Button>
-          )}
-        </div>
       </DialogContent>
     </Dialog>
   );

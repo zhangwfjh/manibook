@@ -48,27 +48,19 @@ async function extractFromDjvu(
 
     const foreword = execSync(
       `djvutxt --page=1-${MAX_FOREWORD_PAGES} "${tempFilePath}"`
-    )
-      .toString()
-      .slice(0, MAX_FOREWORD_LENGTH);
+    ).toString();
     const numPages = parseInt(
       execSync(`djvused -e n "${tempFilePath}"`).toString()
     );
-    const pageCount = Math.min(5, numPages);
-    const images: Uint8Array[] = [];
-
-    for (let i = 1; i <= pageCount; i++) {
-      tmpCoverName = `temp_djvu_page_${i}_${Date.now()}.jpg`;
-      execSync(
-        `ddjvu -format=tiff -page=${i} -quality=80 "${tempFilePath}" "${tmpCoverName}"`
-      );
-      const image = fs.readFileSync(tmpCoverName);
-      images.push(image);
-      if (fs.existsSync(tmpCoverName)) {
-        fs.unlinkSync(tmpCoverName);
-      }
+    tmpCoverName = `temp_djvu_${Date.now()}.jpg`;
+    execSync(
+      `ddjvu -format=tiff -page=1 -quality=80 "${tempFilePath}" "${tmpCoverName}"`
+    );
+    const cover = fs.readFileSync(tmpCoverName);
+    if (fs.existsSync(tmpCoverName)) {
+      fs.unlinkSync(tmpCoverName);
     }
-    return { foreword, images, numPages };
+    return { foreword, images: cover ? [cover] : [], numPages };
   } catch (error) {
     throw new Error(`Failed to extract from DJVU: ${error}`);
   } finally {
@@ -93,9 +85,7 @@ async function extractFromEpub(
           (_, i) => epub.pages[i]?.content || ""
         )
       )
-    )
-      .join("\n\n")
-      .slice(0, MAX_FOREWORD_LENGTH);
+    ).join("\n\n");
     const numPages = epub.pages.length;
     return { foreword, images: cover ? [cover] : [], numPages };
   } catch (error) {
@@ -120,15 +110,25 @@ async function extractFromPdf(
       images.push(image);
     }
 
-    const foreword = (
+    let foreword = (
       await Promise.all(
-        Array.from({ length: Math.min(MAX_FOREWORD_PAGES, numPages) }, (_, i) =>
+        Array.from({ length: Math.min(5, numPages) }, (_, i) =>
           document.loadPage(i).toStructuredText().asText()
         )
       )
-    )
-      .join("\n\n")
-      .slice(0, MAX_FOREWORD_LENGTH);
+    ).join("\n\n");
+    if (numPages > 5 && foreword.length < MAX_FOREWORD_LENGTH) {
+      foreword += (
+        await Promise.all(
+          Array.from({ length: Math.min(5, numPages - 5) }, (_, i) =>
+            document
+              .loadPage(i + 5)
+              .toStructuredText()
+              .asText()
+          )
+        )
+      ).join("\n\n");
+    }
     return { foreword, images, numPages };
   } catch (error) {
     throw new Error(`Failed to extract from PDF: ${error}`);
@@ -270,6 +270,7 @@ export async function extractMetadataFromFile(
       foreword = await callLLMForImageText(images, imageProvider);
     }
   }
+  foreword = foreword.slice(0, MAX_FOREWORD_LENGTH);
 
   const metadataProvider = llmSettings?.providers.find(
     (p) => p.name === llmSettings.jobs.metadataExtraction
