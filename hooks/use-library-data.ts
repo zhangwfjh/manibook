@@ -208,6 +208,7 @@ export function useLibraryData() {
   const refreshLibraryData = useCallback(async () => {
     // Clear cache when refreshing data
     cacheRef.current.clear();
+    lastFetchParamsRef.current = "";
     await Promise.all([
       fetchLibraryData(currentPage),
       fetchCategories()
