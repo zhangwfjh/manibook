@@ -16,9 +16,11 @@ export async function GET(
     }
     const libraryInfo = validation.libraryInfo!;
     const filePath = path.join(libraryInfo.path, filenamePath);
+
     if (!fs.existsSync(filePath)) {
       return NextResponse.json({ error: 'File not found' }, { status: 404 });
     }
+
     const stat = fs.statSync(filePath);
     const fileBuffer = fs.readFileSync(filePath);
     const ext = path.extname(filePath).toLowerCase();
@@ -27,7 +29,7 @@ export async function GET(
       headers: {
         'Content-Type': contentType,
         'Content-Length': stat.size.toString(),
-        'Cache-Control': 'public, max-age=31536000', // Cache for 1 year
+        'Cache-Control': 'public, max-age=31536000',
       },
     });
   } catch (error) {
@@ -42,12 +44,9 @@ function getContentType(ext: string): string {
     '.pdf': 'application/pdf',
     '.epub': 'application/epub+zip',
     '.djvu': 'image/vnd.djvu',
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.png': 'image/png',
-    '.gif': 'image/gif',
     '.txt': 'text/plain',
   };
 
   return contentTypes[ext] || 'application/octet-stream';
 }
+

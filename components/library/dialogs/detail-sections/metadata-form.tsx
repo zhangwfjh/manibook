@@ -71,7 +71,8 @@ function DialogMetadataFormComponent({
 
   const handleKeywordRemove = useCallback(
     (index: number) => {
-      const keywords = editedMetadata?.keywords?.filter((_, i) => i !== index) || [];
+      const keywords =
+        editedMetadata?.keywords?.filter((_, i) => i !== index) || [];
       handleFieldChange("keywords", keywords);
     },
     [editedMetadata?.keywords, handleFieldChange]
@@ -97,7 +98,10 @@ function DialogMetadataFormComponent({
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div className="space-y-3">
         <div>
-          <Label htmlFor="title" className="text-sm font-medium text-muted-foreground">
+          <Label
+            htmlFor="title"
+            className="text-sm font-medium text-muted-foreground"
+          >
             TITLE *
           </Label>
           <Input
@@ -114,7 +118,10 @@ function DialogMetadataFormComponent({
         </div>
 
         <div>
-          <Label htmlFor="authors" className="text-sm font-medium text-muted-foreground">
+          <Label
+            htmlFor="authors"
+            className="text-sm font-medium text-muted-foreground"
+          >
             AUTHORS
           </Label>
           <Input
@@ -136,7 +143,7 @@ function DialogMetadataFormComponent({
           <Input
             id="publicationYear"
             type="number"
-            value={editedMetadata.publicationYear || ""}
+            value={editedMetadata.publicationYear || "?"}
             onChange={(e) =>
               handleFieldChange(
                 "publicationYear",
@@ -181,7 +188,10 @@ function DialogMetadataFormComponent({
         </div>
 
         <div>
-          <Label htmlFor="pages" className="text-sm font-medium text-muted-foreground">
+          <Label
+            htmlFor="pages"
+            className="text-sm font-medium text-muted-foreground"
+          >
             PAGES
           </Label>
           <Input
@@ -250,10 +260,8 @@ function DialogMetadataFormComponent({
               <Input
                 id="sub-category"
                 value={
-                  editedMetadata.category
-                    ?.split(" > ")
-                    .slice(1)
-                    .join(" > ") || ""
+                  editedMetadata.category?.split(" > ").slice(1).join(" > ") ||
+                  ""
                 }
                 onChange={handleCategorySubChange}
                 placeholder="e.g., Physics"
@@ -286,7 +294,7 @@ function DialogMetadataFormComponent({
       </div>
     </div>
   );
-};
+}
 
 interface KeywordEditorProps {
   keywords: string[];
@@ -297,7 +305,7 @@ interface KeywordEditorProps {
 
 const KeywordEditorComponent = ({
   keywords,
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onAdd,
   onRemove,
   onKeyDown,
@@ -314,7 +322,11 @@ const KeywordEditorComponent = ({
   return (
     <div className="flex flex-wrap gap-2 items-center">
       {keywords.map((keyword, index) => (
-        <Badge key={index} variant="secondary" className="flex items-center gap-1">
+        <Badge
+          key={index}
+          variant="secondary"
+          className="flex items-center gap-1"
+        >
           {keyword}
           <button
             type="button"

@@ -97,18 +97,13 @@ export async function PUT(
         counter++;
       }
 
-      const oldFilePath = path.join(libraryInfo.path, existingDoc.url.substring(6));
-      const newFilePath = path.join(categoryDir, newFilename);
-      const newUrl = `lib://` + `${folderPath}/${newFilename}`.replace(/\/+/g, '/');
-      fs.renameSync(oldFilePath, newFilePath);
-      const oldCoverFilename = `[Cover] ${existingDoc.filename.replace(/\.(pdf|epub|djvu)$/i, '.jpg')}`;
-      const oldCoverPath = path.join(path.dirname(oldFilePath), oldCoverFilename);
-      const newCoverFilename = `[Cover] ${newFilename.replace(/\.(pdf|epub|djvu)$/i, '.jpg')}`;
-      const newCoverPath = path.join(categoryDir, newCoverFilename);
-      fs.renameSync(oldCoverPath, newCoverPath);
+    const oldFilePath = path.join(libraryInfo.path, existingDoc.url.substring(6));
+    const newFilePath = path.join(categoryDir, newFilename);
+    const newUrl = `lib://` + `${folderPath}/${newFilename}`.replace(/\/+/g, '/');
+    fs.renameSync(oldFilePath, newFilePath);
 
-      updateData.filename = newFilename;
-      updateData.url = newUrl;
+    updateData.filename = newFilename;
+    updateData.url = newUrl;
     }
 
     const updatedDoc = await prisma.document.update({
@@ -187,11 +182,6 @@ export async function DELETE(
     }
 
     const filePath = path.join(libraryInfo.path, document.url.substring(6));
-    const coverFilename = `[Cover] ${document.filename.replace(/\.(pdf|epub|djvu)$/i, '.jpg')}`;
-    const coverPath = path.join(path.dirname(filePath), coverFilename);
-    if (fs.existsSync(coverPath)) {
-      fs.unlinkSync(coverPath);
-    }
     await prisma.document.delete({
       where: { id: document.id },
     });

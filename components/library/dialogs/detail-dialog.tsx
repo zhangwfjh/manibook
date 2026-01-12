@@ -1,12 +1,5 @@
-import Image from "next/image";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   AlertDialog,
@@ -27,7 +20,7 @@ import {
   RefreshCwIcon,
 } from "lucide-react";
 import { LibraryDocument, DocumentMetadata } from "@/lib/library";
-import React, { useState, useMemo, useCallback } from "react";
+import { useState, useCallback } from "react";
 import {
   MetadataForm,
   MetadataView,
@@ -35,7 +28,6 @@ import {
   ExtraMetadata,
   FileInfo,
 } from "./detail-sections";
-import { getCoverUrl } from "@/lib/library/document-utils";
 
 interface DocumentDetailDialogProps {
   library: string;
@@ -65,11 +57,6 @@ export function DocumentDetailDialog({
   >({});
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-
-  const coverUrl = useMemo(
-    () => (document ? getCoverUrl(library, document) : ""),
-    [library, document]
-  );
 
   const handleOpen = useCallback(() => {
     onOpen?.(document!);
@@ -194,46 +181,20 @@ export function DocumentDetailDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl w-full min-w-3xl max-h-[90vh]">
-        <DialogHeader>
-          <div className="flex items-start gap-4">
-            <div className="shrink-0">
-              <Image
-                src={coverUrl}
-                alt={`${metadata.title} cover`}
-                width={150}
-                height={200}
-                className="w-24 h-32 object-cover rounded-lg border shadow-sm"
-                onError={(e) => {
-                  e.currentTarget.style.display = "none";
-                }}
-              />
-            </div>
-            <div className="flex-1">
-              <DialogTitle className="text-xl font-semibold">
-                {metadata.title}
-              </DialogTitle>
-            </div>
-          </div>
-        </DialogHeader>
-
+        <DialogTitle className="text-xl font-semibold">
+          {metadata.title}
+        </DialogTitle>
         <ScrollArea className="max-h-[70vh] pr-4">
           <div className="space-y-4">
-            <div className="max-w-full">
-              <div className="pt-6">
-                <Label className="text-sm font-medium text-muted-foreground mb-4 block">
-                  BASIC INFORMATION
-                </Label>
-                {isEditing ? (
-                  <MetadataForm
-                    editedMetadata={editedMetadata}
-                    onChange={setEditedMetadata}
-                    validationErrors={validationErrors}
-                  />
-                ) : (
-                  <MetadataView metadata={metadata} />
-                )}
-              </div>
-            </div>
+            {isEditing ? (
+              <MetadataForm
+                editedMetadata={editedMetadata}
+                onChange={setEditedMetadata}
+                validationErrors={validationErrors}
+              />
+            ) : (
+              <MetadataView metadata={metadata} />
+            )}
 
             <AbstractSection
               metadata={metadata}

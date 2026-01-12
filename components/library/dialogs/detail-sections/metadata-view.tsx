@@ -22,7 +22,9 @@ function DialogMetadataViewComponent({ metadata }: DialogMetadataViewProps) {
           <Label className="text-sm font-medium text-muted-foreground">
             TITLE
           </Label>
-          <div className="mt-1 text-lg font-semibold">{metadata.title}</div>
+          <div className="mt-1 text-lg">
+            {metadata.title ? metadata.title : "Untitled"}
+          </div>
         </div>
 
         <div>
@@ -34,7 +36,7 @@ function DialogMetadataViewComponent({ metadata }: DialogMetadataViewProps) {
             <span>
               {metadata.authors && metadata.authors.length > 0
                 ? metadata.authors.join(", ")
-                : "Not specified"}
+                : "Unknown"}
             </span>
           </div>
         </div>
@@ -43,24 +45,20 @@ function DialogMetadataViewComponent({ metadata }: DialogMetadataViewProps) {
           <Label className="text-sm font-medium text-muted-foreground">
             PUBLICATION YEAR
           </Label>
-          {metadata.publicationYear && (
-            <div className="flex items-center gap-2 mt-1">
-              <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-              <span>{metadata.publicationYear}</span>
-            </div>
-          )}
+          <div className="flex items-center gap-2 mt-1">
+            <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+            <span>{metadata.publicationYear || "Unknown"}</span>
+          </div>
         </div>
 
         <div>
           <Label className="text-sm font-medium text-muted-foreground">
             PUBLISHER
           </Label>
-          {metadata.publisher && (
-            <div className="flex items-center gap-2 mt-1">
-              <GlobeIcon className="h-4 w-4 text-muted-foreground" />
-              <span>{metadata.publisher}</span>
-            </div>
-          )}
+          <div className="flex items-center gap-2 mt-1">
+            <GlobeIcon className="h-4 w-4 text-muted-foreground" />
+            <span>{metadata.publisher || "Unknown"}</span>
+          </div>
         </div>
 
         <div>
@@ -68,7 +66,7 @@ function DialogMetadataViewComponent({ metadata }: DialogMetadataViewProps) {
             LANGUAGE
           </Label>
           <span className="mt-1 block text-sm">
-            {metadata.language || "Not specified"}
+            {metadata.language || "Unknown"}
           </span>
         </div>
 

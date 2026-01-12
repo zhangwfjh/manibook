@@ -29,10 +29,6 @@ export function getFormatIcon(format: string): LucideIcon {
 }
 
 export function getCoverUrl(library: string, document: LibraryDocument): string {
-    return `/api/libraries/${library}/files/${document.url
-        .substring(6)
-        .replace(
-            document.filename,
-            `[Cover] ${document.filename.replace(/\.(pdf|epub|djvu)$/i, ".jpg")}`
-        )}`;
+    return `/api/libraries/${library}/documents/${document.id}/cover`;
 }
+

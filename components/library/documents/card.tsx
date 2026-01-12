@@ -98,16 +98,16 @@ const DocumentCardComponent = ({
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
               <CardTitle className="text-lg leading-tight line-clamp-2">
-                {metadata.title}
+                {metadata.title ? metadata.title : "Untitled"}
               </CardTitle>
-              {metadata.authors && metadata.authors.length > 0 && (
-                <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
-                  <UsersIcon className="h-4 w-4" />
-                  <span className="line-clamp-1">
-                    {metadata.authors.join(", ")}
-                  </span>
-                </div>
-              )}
+              <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
+                <UsersIcon className="h-4 w-4" />
+                <span className="line-clamp-1">
+                  {metadata.authors && metadata.authors.length > 0
+                    ? metadata.authors.join(", ")
+                    : "Unknown"}
+                </span>
+              </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <Button
@@ -134,41 +134,37 @@ const DocumentCardComponent = ({
                   }`}
                 />
               </Button>
-              <Badge variant="secondary">
-                {metadata.doctype}
-              </Badge>
+              <Badge variant="secondary">{metadata.doctype}</Badge>
             </div>
           </div>
           <div className="flex gap-5">
-            {metadata.publicationYear && (
-              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                <CalendarIcon className="h-4 w-4" />
-                <span>{metadata.publicationYear}</span>
-              </div>
-            )}
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              <CalendarIcon className="h-4 w-4" />
+              <span>
+                {metadata.publicationYear
+                  ? metadata.publicationYear
+                  : "?"}
+              </span>
+            </div>
 
-            {formattedFileSize && formatIcon && (
-              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                {React.createElement(formatIcon, {
-                  className: "h-4 w-4",
-                })}
-                <span>{formattedFileSize}</span>
-              </div>
-            )}
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              {React.createElement(formatIcon!, {
+                className: "h-4 w-4",
+              })}
+              <span>{formattedFileSize}</span>
+            </div>
 
-            {metadata.category && (
-              <div className="text-sm">
-                <Badge variant="outline" className="text-xs">
-                  {metadata.category}
-                </Badge>
-              </div>
-            )}
+            <div className="text-sm">
+              <Badge variant="outline" className="text-xs">
+                {metadata.category}
+              </Badge>
+            </div>
           </div>
         </CardHeader>
 
-        <CardContent className="flex flex-row gap-4">
+        <CardContent className="flex flex-row gap-4 justify-between">
           <div className="space-y-4">
-            {metadata.abstract && (
+            {metadata.abstract ? (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <p className="text-sm text-muted-foreground line-clamp-8 cursor-help">
@@ -181,6 +177,10 @@ const DocumentCardComponent = ({
                   </div>
                 </TooltipContent>
               </Tooltip>
+            ) : (
+              <p className="text-sm text-muted-foreground line-clamp-8 cursor-help">
+                No description
+              </p>
             )}
 
             {metadata.keywords && metadata.keywords.length > 0 && (
@@ -236,6 +236,7 @@ const DocumentCardComponent = ({
                     height={200}
                     className="object-cover rounded border shadow-sm hover:shadow-md transition-opacity duration-200"
                     loading="lazy"
+                    unoptimized
                     onLoad={() => handleLoad(coverUrl)}
                     onError={(e) => {
                       e.currentTarget.style.display = "none";
@@ -252,10 +253,11 @@ const DocumentCardComponent = ({
                 <Image
                   src={coverUrl}
                   alt={`${metadata.title} cover`}
-                  width={450}
-                  height={600}
+                  width={480}
+                  height={640}
                   className="object-cover rounded border shadow-lg"
                   loading="eager"
+                  unoptimized
                   onError={(e) => {
                     e.currentTarget.style.display = "none";
                   }}

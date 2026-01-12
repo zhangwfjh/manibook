@@ -109,13 +109,6 @@ async function processFileImport(
   const finalFilePath = path.join(categoryDir, newFilename);
   fs.writeFileSync(finalFilePath, buffer);
 
-  // Save cover image if available (now that we have the final filename and directory)
-  if (cover) {
-    const coverFilename = `[Cover] ${newFilename.replace(/\.(pdf|epub|djvu)$/i, '.jpg')}`;
-    const coverPath = path.join(categoryDir, coverFilename);
-    fs.writeFileSync(coverPath, cover);
-  }
-
   // Save to database
   const url = `lib://` + `${folderPath}/${newFilename}`.replace(/\/+/g, '/');
   await prisma.document.create({
@@ -137,6 +130,7 @@ async function processFileImport(
       numPages,
       filesize: BigInt(buffer.length),
       format: metadata.format,
+      cover: cover ? Buffer.from(cover) : null,
     },
   });
 

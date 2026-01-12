@@ -34,6 +34,7 @@ model Document {
   numPages          Int
   filesize          BigInt   // File size in bytes
   format            String   // File format: 'pdf' | 'epub' | 'djvu'
+  cover             Bytes?   // Cover image as binary blob
 
   @@index([title])
   @@index([authors])

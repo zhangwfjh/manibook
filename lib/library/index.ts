@@ -283,7 +283,8 @@ export async function ensureLibraryStructure(libraryPath: string): Promise<void>
         "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "numPages" INTEGER NOT NULL DEFAULT 0,
         "filesize" INTEGER NOT NULL DEFAULT 0,
-        "format" TEXT NOT NULL DEFAULT 'unknown'
+        "format" TEXT NOT NULL DEFAULT 'unknown',
+        "cover" BLOB
       )
     `;
 
