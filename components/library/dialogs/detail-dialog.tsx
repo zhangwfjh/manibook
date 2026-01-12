@@ -58,6 +58,13 @@ export function DocumentDetailDialog({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
+  const handleOpenChange = useCallback((newOpen: boolean) => {
+    onOpenChange(newOpen);
+    if (!newOpen) {
+      setIsEditing(false);
+    }
+  }, [onOpenChange]);
+
   const handleOpen = useCallback(() => {
     onOpen?.(document!);
   }, [document, onOpen]);
@@ -122,9 +129,9 @@ export function DocumentDetailDialog({
 
   const confirmDelete = useCallback(() => {
     onDelete?.(document!);
-    onOpenChange(false);
+    handleOpenChange(false);
     setIsDeleteDialogOpen(false);
-  }, [document, onDelete, onOpenChange]);
+  }, [document, onDelete, handleOpenChange]);
 
   const handleGenerateMetadata = useCallback(async () => {
     if (!document) return;
@@ -179,7 +186,7 @@ export function DocumentDetailDialog({
   const { metadata } = document;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-5xl w-full min-w-3xl max-h-[90vh]">
         <DialogTitle className="text-xl font-semibold">
           {metadata.title}
