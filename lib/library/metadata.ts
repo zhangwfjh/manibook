@@ -4,6 +4,7 @@ import { openaiCall } from "@/lib/llm";
 import fs from "fs";
 import { execSync } from "child_process";
 import { METADATA_EXTRACTION_PROMPT, OCR_PROMPT } from "./prompts";
+import { normalizeMetadata } from "./document-utils";
 
 interface LLMProvider {
   name: string;
@@ -205,9 +206,6 @@ function parseMetadataResponse(responseString: string): DocumentMetadata {
         .split(",")
         .map((kw: string) => kw.trim());
     }
-    parsed.keywords = parsed.keywords.map((kw: string) =>
-      kw.replace(/\b\w/g, (l: string) => l.toUpperCase())
-    );
   } else {
     parsed.keywords = [];
   }
@@ -220,7 +218,7 @@ function parseMetadataResponse(responseString: string): DocumentMetadata {
     parsed.authors = ["Unknown Author"];
   }
 
-  return parsed as DocumentMetadata;
+  return normalizeMetadata(parsed) as DocumentMetadata;
 }
 
 export async function extractMetadataFromFile(

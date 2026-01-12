@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { validateLibraryAccess, dbDocumentToLibraryDocument, getLibraryPrisma } from '@/lib/library/api-utils';
+import { normalizeMetadata } from '@/lib/library/document-utils';
 
 export async function GET(
   request: NextRequest,
@@ -53,6 +54,8 @@ export async function PUT(
       return NextResponse.json({ error: 'Metadata is required' }, { status: 400 });
     }
 
+    const normalizedMetadata = normalizeMetadata(metadata);
+
     const prisma = await getLibraryPrisma(name);
 
     const existingDoc = await prisma.document.findUnique({
@@ -65,28 +68,28 @@ export async function PUT(
 
     const oldCategory = existingDoc.category;
     const oldTitle = existingDoc.title;
-    const newCategory = metadata.category;
-    const newTitle = metadata.title;
+    const newCategory = normalizedMetadata.category as string;
+    const newTitle = normalizedMetadata.title as string;
 
     const updateData: Record<string, unknown> = {
-      title: metadata.title,
-      authors: JSON.stringify(metadata.authors || []),
+      title: normalizedMetadata.title,
+      authors: JSON.stringify(normalizedMetadata.authors || []),
       publicationYear: metadata.publication_year,
-      publisher: metadata.publisher,
-      category: metadata.category,
-      language: metadata.language,
-      keywords: JSON.stringify(metadata.keywords || []),
-      abstract: metadata.abstract,
-      doctype: metadata.doctype,
-      metadata: metadata.metadata ? JSON.stringify(metadata.metadata) : null,
+      publisher: normalizedMetadata.publisher,
+      category: normalizedMetadata.category,
+      language: normalizedMetadata.language,
+      keywords: JSON.stringify(normalizedMetadata.keywords || []),
+      abstract: normalizedMetadata.abstract,
+      doctype: normalizedMetadata.doctype,
+      metadata: normalizedMetadata.metadata ? JSON.stringify(normalizedMetadata.metadata) : null,
       updatedAt: new Date(),
     };
 
     if (oldCategory !== newCategory || oldTitle !== newTitle || existingDoc.doctype !== metadata.doctype) {
       const fileExtension = path.extname(existingDoc.filename);
 
-      const categoryParts = newCategory.split('>').map((part: string) => part.trim()).filter((part: string) => part);
-      const folderPath = [metadata.doctype, ...categoryParts.slice(0, 2)].join('/');
+      const categoryParts = newCategory.split(' > ').map((part: string) => part.trim()).filter((part: string) => part);
+      const folderPath = [normalizedMetadata.doctype, ...categoryParts.slice(0, 2)].join('/');
       const categoryDir = path.join(libraryInfo.path, folderPath);
       fs.mkdirSync(categoryDir, { recursive: true });
       const safeTitle = newTitle.replace(/[\/\\?%*:|"<>]/g, '_');

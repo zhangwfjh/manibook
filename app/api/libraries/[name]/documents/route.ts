@@ -6,6 +6,7 @@ import { extractMetadataFromFile } from '@/lib/library/metadata';
 import crypto from 'crypto';
 import { loadLLMSettings } from '@/lib/library/llm-settings';
 import { validateLibraryAccess, dbDocumentToLibraryDocument, getLibraryPrisma } from '@/lib/library/api-utils';
+import { normalizeMetadata, toProperTitleCase } from '@/lib/library/document-utils';
 
 interface LLMSettings {
   providers: Array<{
@@ -65,8 +66,8 @@ async function processFileImport(
     numPages = extractedNumPages;
     const doctype = (extractedMetadata.doctype as string);
     metadata = {
-      doctype: doctype,
-      title: extractedMetadata.title as string,
+      doctype: doctype || "Others",
+      title: extractedMetadata.title as string || "Untitled",
       authors: extractedMetadata.authors as string[],
       publicationYear: extractedMetadata.publication_year as number || undefined,
       publisher: extractedMetadata.publisher as string || undefined,
@@ -80,6 +81,8 @@ async function processFileImport(
       filesize: buffer.length,
       format: fileExtension.slice(1), // Remove the leading dot
     };
+
+    metadata = normalizeMetadata(metadata as unknown as Record<string, unknown>) as unknown as DocumentMetadata;
 
   } catch (error) {
     console.error('Error extracting metadata:', error);
@@ -415,7 +418,7 @@ export async function GET(
         try {
           const keywordArray = JSON.parse(doc.keywords as string) as string[];
           for (const kw of keywordArray) {
-            const titleCaseKw = kw.replace(/\b\w/g, (l: string) => l.toUpperCase());
+            const titleCaseKw = toProperTitleCase(kw);
             keywordCounts[titleCaseKw] = (keywordCounts[titleCaseKw] || 0) + 1;
           }
         } catch {
@@ -427,7 +430,7 @@ export async function GET(
         try {
           const authorArray = JSON.parse(doc.authors as string) as string[];
           for (const author of authorArray) {
-            const titleCaseAuthor = author.replace(/\b\w/g, (l: string) => l.toUpperCase());
+            const titleCaseAuthor = toProperTitleCase(author);
             authorCounts[titleCaseAuthor] = (authorCounts[titleCaseAuthor] || 0) + 1;
           }
         } catch {

@@ -4,6 +4,7 @@ import path from 'path';
 import { validateLibraryAccess, getLibraryPrisma } from '@/lib/library/api-utils';
 import { extractMetadataFromFile } from '@/lib/library/metadata';
 import { loadLLMSettings } from '@/lib/library/llm-settings';
+import { normalizeMetadata } from '@/lib/library/document-utils';
 
 export async function POST(
   request: NextRequest,
@@ -44,7 +45,7 @@ export async function POST(
       llmSettings
     );
 
-    const metadataToSave = {
+    const metadataToSave = normalizeMetadata({
       title: extractedMetadata.title || dbDoc.title,
       authors: extractedMetadata.authors || JSON.parse(dbDoc.authors),
       publication_year: extractedMetadata.publicationYear || dbDoc.publicationYear || undefined,
@@ -55,7 +56,7 @@ export async function POST(
       abstract: extractedMetadata.abstract || '',
       doctype: extractedMetadata.doctype || dbDoc.doctype,
       metadata: extractedMetadata.metadata || (dbDoc.metadata ? JSON.parse(dbDoc.metadata) : undefined),
-    };
+    });
 
     return NextResponse.json({ metadata: metadataToSave });
   } catch (error) {
