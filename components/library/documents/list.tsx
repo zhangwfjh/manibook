@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { HeartIcon, BookOpenIcon } from "lucide-react";
+import { HeartIcon, BookOpenIcon, TrashIcon } from "lucide-react";
 import { LibraryDocument } from "@/lib/library";
 import { formatFileSize } from "@/lib/library/document-utils";
 
@@ -18,6 +18,7 @@ interface DocumentListProps {
   onClick?: (document: LibraryDocument) => void;
   onOpen?: (document: LibraryDocument) => void;
   onFavoriteToggle?: (document: LibraryDocument) => void;
+  onDelete?: (document: LibraryDocument) => void;
 }
 
 const DocumentListComponent = ({
@@ -25,6 +26,7 @@ const DocumentListComponent = ({
   onClick,
   onOpen,
   onFavoriteToggle,
+  onDelete,
 }: DocumentListProps) => {
   const handleRowClick = (document: LibraryDocument) => {
     onClick?.(document);
@@ -41,6 +43,11 @@ const DocumentListComponent = ({
   ) => {
     e.stopPropagation(); // Prevent row click
     onFavoriteToggle?.(document);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent, document: LibraryDocument) => {
+    e.stopPropagation(); // Prevent row click
+    onDelete?.(document);
   };
 
   return (
@@ -127,6 +134,14 @@ const DocumentListComponent = ({
                         document.metadata.favorite ? "fill-current" : ""
                       }`}
                     />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => handleDeleteClick(e, document)}
+                    className="text-muted-foreground hover:text-red-500"
+                  >
+                    <TrashIcon className="h-4 w-4" />
                   </Button>
                 </div>
               </TableCell>

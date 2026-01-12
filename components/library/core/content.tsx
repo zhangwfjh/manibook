@@ -44,6 +44,7 @@ interface ContentProps {
   onDocumentClick: (document: LibraryDocument) => void;
   onOpen: (document: LibraryDocument) => void;
   onFavoriteToggle: (document: LibraryDocument) => void;
+  onDelete: (document: LibraryDocument) => void;
   onBreadcrumbClick: (category: string) => void;
   onPageChange?: (page: number) => void;
 }
@@ -58,6 +59,7 @@ export function Content({
   onDocumentClick,
   onOpen,
   onFavoriteToggle,
+  onDelete,
   onBreadcrumbClick,
   onPageChange,
 }: ContentProps) {
@@ -183,6 +185,7 @@ export function Content({
                 onClick={onDocumentClick}
                 onOpen={onOpen}
                 onFavoriteToggle={onFavoriteToggle}
+                onDelete={onDelete}
               />
             ))}
           </div>
@@ -205,6 +208,7 @@ export function Content({
             onClick={onDocumentClick}
             onOpen={onOpen}
             onFavoriteToggle={onFavoriteToggle}
+            onDelete={onDelete}
           />
 
           <Pagination
@@ -225,6 +229,7 @@ export function Content({
             onClick={onDocumentClick}
             onOpen={onOpen}
             onFavoriteToggle={onFavoriteToggle}
+            onDelete={onDelete}
           />
 
           <Pagination

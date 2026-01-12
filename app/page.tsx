@@ -263,6 +263,7 @@ export default function Home() {
               onDocumentClick={handleDocumentClick}
               onOpen={handleOpen}
               onFavoriteToggle={handleFavoriteToggle}
+              onDelete={handleDocumentDelete}
               onBreadcrumbClick={handleBreadcrumbClick}
               onPageChange={loadPage}
             />

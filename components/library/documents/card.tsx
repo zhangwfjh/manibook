@@ -1,4 +1,4 @@
-import React, { useMemo, memo, useCallback } from "react";
+import React, { useMemo, memo, useCallback, useState } from "react";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +13,24 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
-import { UsersIcon, CalendarIcon, HeartIcon, BookOpenIcon } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  UsersIcon,
+  CalendarIcon,
+  HeartIcon,
+  BookOpenIcon,
+  TrashIcon,
+} from "lucide-react";
 import { LibraryDocument } from "@/lib/library";
 import {
   formatFileSize,
@@ -28,6 +45,7 @@ interface DocumentCardProps {
   onClick?: (document: LibraryDocument) => void;
   onOpen?: (document: LibraryDocument) => void;
   onFavoriteToggle?: (document: LibraryDocument) => void;
+  onDelete?: (document: LibraryDocument) => void;
 }
 
 const DocumentCardComponent = ({
@@ -36,8 +54,10 @@ const DocumentCardComponent = ({
   onClick,
   onOpen,
   onFavoriteToggle,
+  onDelete,
 }: DocumentCardProps) => {
   const { metadata } = document;
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
   // Memoize expensive computations
   const coverUrl = useMemo(
@@ -64,8 +84,9 @@ const DocumentCardComponent = ({
   );
 
   const handleCardClick = useCallback(() => {
+    if (isConfirmingDelete) return;
     onClick?.(document);
-  }, [onClick, document]);
+  }, [isConfirmingDelete, onClick, document]);
 
   const handleFavoriteClick = useCallback(
     (e: React.MouseEvent) => {
@@ -134,6 +155,40 @@ const DocumentCardComponent = ({
                   }`}
                 />
               </Button>
+              <AlertDialog onOpenChange={setIsConfirmingDelete}>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => e.stopPropagation()}
+                    className="h-6 w-6 p-0 text-muted-foreground hover:text-red-500"
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Document</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete {"'"}
+                      {metadata.title || "this document"}
+                      {"'"}? This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete?.(document);
+                      }}
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
               <Badge variant="secondary">{metadata.doctype}</Badge>
             </div>
           </div>
@@ -141,9 +196,7 @@ const DocumentCardComponent = ({
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
               <CalendarIcon className="h-4 w-4" />
               <span>
-                {metadata.publicationYear
-                  ? metadata.publicationYear
-                  : "?"}
+                {metadata.publicationYear ? metadata.publicationYear : "?"}
               </span>
             </div>
 

@@ -1,7 +1,7 @@
 import React, { memo, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { HeartIcon, BookOpenIcon } from "lucide-react";
+import { HeartIcon, BookOpenIcon, TrashIcon } from "lucide-react";
 import { LibraryDocument } from "@/lib/library";
 import { formatFileSize } from "@/lib/library/document-utils";
 
@@ -10,6 +10,7 @@ interface DocumentRowProps {
   onClick: (document: LibraryDocument) => void;
   onOpen: (document: LibraryDocument) => void;
   onFavoriteToggle: (document: LibraryDocument) => void;
+  onDelete?: (document: LibraryDocument) => void;
   style?: React.CSSProperties;
 }
 
@@ -18,6 +19,7 @@ function DocumentRowComponent({
   onClick,
   onOpen,
   onFavoriteToggle,
+  onDelete,
   style,
 }: DocumentRowProps) {
   const handleClick = useCallback(() => {
@@ -38,6 +40,14 @@ function DocumentRowComponent({
       onFavoriteToggle(document);
     },
     [document, onFavoriteToggle]
+  );
+
+  const handleDelete = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onDelete?.(document);
+    },
+    [document, onDelete]
   );
 
   const { metadata } = document;
@@ -101,6 +111,14 @@ function DocumentRowComponent({
           <HeartIcon
             className={`h-4 w-4 ${metadata.favorite ? "fill-current" : ""}`}
           />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleDelete}
+          className="h-6 w-6 p-0 text-muted-foreground hover:text-red-500"
+        >
+          <TrashIcon className="h-4 w-4" />
         </Button>
       </div>
     </div>

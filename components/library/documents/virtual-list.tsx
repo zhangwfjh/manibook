@@ -8,6 +8,7 @@ interface VirtualDocumentListProps {
   onClick: (document: LibraryDocument) => void;
   onOpen: (document: LibraryDocument) => void;
   onFavoriteToggle: (document: LibraryDocument) => void;
+  onDelete?: (document: LibraryDocument) => void;
 }
 
 function VirtualDocumentListComponent({
@@ -15,6 +16,7 @@ function VirtualDocumentListComponent({
   onClick,
   onOpen,
   onFavoriteToggle,
+  onDelete,
 }: VirtualDocumentListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
 
@@ -74,6 +76,7 @@ function VirtualDocumentListComponent({
               onClick={onClick}
               onOpen={onOpen}
               onFavoriteToggle={onFavoriteToggle}
+              onDelete={onDelete}
               style={{
                 position: "absolute",
                 top: 0,
