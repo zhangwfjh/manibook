@@ -3,6 +3,7 @@ import { parseEPUB } from "@/lib/parser";
 import { openaiCall } from "@/lib/llm";
 import fs from "fs";
 import { execSync } from "child_process";
+import sharp from "sharp";
 import { METADATA_EXTRACTION_PROMPT, OCR_PROMPT } from "./prompts";
 import { normalizeMetadata } from "./document-utils";
 
@@ -38,6 +39,13 @@ interface DocumentMetadata {
 const MAX_FOREWORD_PAGES = 10;
 const MAX_FOREWORD_LENGTH = 5000;
 
+async function convertToWebP(buffer: Buffer): Promise<Uint8Array> {
+  const result = await sharp(buffer)
+    .webp({ quality: 80 })
+    .toBuffer();
+  return new Uint8Array(result);
+}
+
 async function extractFromDjvu(
   buffer: Buffer
 ): Promise<{ foreword: string; images: Uint8Array[]; numPages: number }> {
@@ -53,11 +61,12 @@ async function extractFromDjvu(
     const numPages = parseInt(
       execSync(`djvused -e n "${tempFilePath}"`).toString()
     );
-    tmpCoverName = `temp_djvu_${Date.now()}.jpg`;
+    tmpCoverName = `temp_djvu_${Date.now()}.tif`;
     execSync(
-      `ddjvu -format=tiff -page=1 -quality=80 "${tempFilePath}" "${tmpCoverName}"`
+      `ddjvu -format=tiff -page=1 "${tempFilePath}" "${tmpCoverName}"`
     );
-    const cover = fs.readFileSync(tmpCoverName);
+    const tiffBuffer = fs.readFileSync(tmpCoverName);
+    const cover = new Uint8Array(await sharp(tiffBuffer).webp({ quality: 80 }).toBuffer());
     if (fs.existsSync(tmpCoverName)) {
       fs.unlinkSync(tmpCoverName);
     }
@@ -76,9 +85,11 @@ async function extractFromEpub(
 ): Promise<{ foreword: string; images: Uint8Array[]; numPages: number }> {
   try {
     const epub = await parseEPUB(buffer);
-    const cover = epub.coverImage
-      ? new Uint8Array(await epub.coverImage.arrayBuffer())
-      : null;
+    let cover: Uint8Array | null = null;
+    if (epub.coverImage) {
+      const coverBuffer = Buffer.from(await epub.coverImage.arrayBuffer());
+      cover = await convertToWebP(coverBuffer);
+    }
     const foreword = (
       await Promise.all(
         Array.from(
@@ -107,8 +118,8 @@ async function extractFromPdf(
       const page = document.loadPage(i);
       const image = page
         .toPixmap(mupdf.Matrix.identity, mupdf.ColorSpace.DeviceRGB)
-        .asJPEG(80);
-      images.push(image);
+        .asPNG();
+      images.push(await convertToWebP(Buffer.from(image)));
     }
 
     let foreword = (

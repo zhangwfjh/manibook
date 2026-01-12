@@ -50,7 +50,7 @@ export async function GET(
 
     return new NextResponse(Uint8Array.from(coverBuffer), {
       headers: {
-        'Content-Type': 'image/jpeg',
+        'Content-Type': 'image/webp',
         'Content-Length': coverBuffer.length.toString(),
         'Cache-Control': 'public, max-age=31536000',
       },
