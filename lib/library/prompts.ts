@@ -8,7 +8,7 @@ Follow these rules precisely:
    - If any field cannot be determined, leave its value empty (e.g., '' for strings, [] for lists, null for numbers)—do NOT use placeholders like 'unknown', 'none', or 'N/A'.
 
 2. **Document Type (doctype)**:
-   - Classify strictly as one of: 'Book', 'Paper', 'Thesis', 'Resume', 'Report', 'Note', 'Manual', 'Presentation' or 'Others'.
+   - Classify strictly as one of: 'Book', 'Paper', 'Thesis', 'Resume', 'Report', 'Note', 'Lecture', 'Manual', 'Presentation' or 'Others'.
 
 3. **Category**:
    - Infer the most specific main category and subcategory (e.g., 'Computer Science > Artificial Intelligence').
@@ -22,7 +22,15 @@ Follow these rules precisely:
    - Return ONLY valid JSON. Do not include explanations, markdown, or extra text.
 `;
 
-export const OCR_PROMPT =
-  "Extract all readable text from this image. " +
-  "Pay special attention to titles, author names, publication information, " +
-  "and other metadata that would help identify this document.";
+export const OCR_PROMPT = `
+Extract all legible text from the document. Prioritize:
+   1. Titles and headings
+   2. Author names
+   3. Publication details(journal, publisher, date, volume, issue, pages)
+   4. Metadata(DOI, ISSN, etc.)
+Requirements:
+   - Preserve original text order and line breaks
+   - Exclude non-legible text, stamps, and watermarks
+   - Output ONLY the extracted text (no explanations)
+   - Format: One line per detected text line
+`;
