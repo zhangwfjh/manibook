@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Shagent",
-  description: "Shaun's personal AI assistant",
+  title: "ManiBook",
+  description: "ManiBook is a manager of many books",
 };
 
 export default function RootLayout({
