@@ -3,7 +3,7 @@ import { LibraryDocument, LibraryCategory, getLibrary } from './index';
 import { getPrismaClient } from '../db';
 
 export function dbDocumentToLibraryDocument(dbDoc: Document, library: string): LibraryDocument {
-  const path = dbDoc.url.startsWith('lib://') ? dbDoc.url.substring(6) : dbDoc.url.replace(`/api/libraries/${library}/files/`, '');
+  const path = dbDoc.url.startsWith('lib://') ? dbDoc.url.substring(6) : dbDoc.url;
   return {
     id: dbDoc.id,
     path,

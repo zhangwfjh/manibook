@@ -115,9 +115,10 @@ export default function Home() {
   // Event handlers
   const handleOpen = useCallback(
     (doc: LibraryDocument) => {
-      const fileUrl = doc.url.startsWith("lib://")
-        ? `/api/libraries/${currentLibrary}/files/${doc.url.substring(6)}`
-        : doc.url;
+      // Create a safe filename for download by combining title and format
+      const safeTitle = doc.metadata.title.replace(/[\/\\?%*:|"<>]/g, '_');
+      const filename = `${safeTitle}.${doc.metadata.format}`;
+      const fileUrl = `/api/libraries/${currentLibrary}/documents/${doc.id}/${filename}`;
       window.open(fileUrl, "_blank");
     },
     [currentLibrary]

@@ -1,30 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { validateLibraryAccess } from '@/lib/library/api-utils';
+import { validateLibraryAccess, getLibraryPrisma } from '@/lib/library/api-utils';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ name: string; filename: string[] }> }
+  { params }: { params: Promise<{ name: string; fileid: string; filename: string }> }
 ) {
   try {
-    const { name, filename } = await params;
-    const filenamePath = filename.map(segment => decodeURIComponent(segment)).join('/');
+    const { name, fileid } = await params;
+    
+    // Validate library access
     const validation = await validateLibraryAccess(name);
     if (validation.error) {
       return NextResponse.json({ error: validation.error }, { status: validation.status });
     }
     const libraryInfo = validation.libraryInfo!;
-    const filePath = path.join(libraryInfo.path, filenamePath);
 
+    // Get document from database
+    const prisma = await getLibraryPrisma(name);
+    const dbDoc = await prisma.document.findUnique({
+      where: { id: fileid }
+    });
+
+    if (!dbDoc) {
+      return NextResponse.json({ error: 'Document not found' }, { status: 404 });
+    }
+
+    // Construct file path from document URL
+    const filePath = path.join(libraryInfo.path, dbDoc.url.substring(6)); // Remove 'lib://' prefix
+
+    // Check file exists
     if (!fs.existsSync(filePath)) {
       return NextResponse.json({ error: 'File not found' }, { status: 404 });
     }
 
+    // Read file and determine content type
     const stat = fs.statSync(filePath);
     const fileBuffer = fs.readFileSync(filePath);
     const ext = path.extname(filePath).toLowerCase();
     const contentType = getContentType(ext);
+
     return new NextResponse(fileBuffer, {
       headers: {
         'Content-Type': contentType,
@@ -49,4 +65,3 @@ function getContentType(ext: string): string {
 
   return contentTypes[ext] || 'application/octet-stream';
 }
-
