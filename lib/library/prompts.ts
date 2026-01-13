@@ -8,7 +8,7 @@ Follow these rules precisely:
    - If any field cannot be determined, leave its value empty (e.g., '' for strings, [] for lists, null for numbers)—do NOT use placeholders like 'unknown', 'none', or 'N/A'.
 
 2. **Document Type (doctype)**:
-   - Classify strictly as one of: 'Book', 'Paper', 'Thesis', 'Resume', 'Report', 'Note', 'Lecture', 'Manual', 'Presentation' or 'Others'.
+   - Classify strictly as one of: 'Book', 'Paper', 'Report', 'Manual' or 'Others'.
 
 3. **Category**:
    - Infer the most specific main category and subcategory (e.g., 'Computer Science > Artificial Intelligence').

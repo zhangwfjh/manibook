@@ -219,7 +219,7 @@ function DialogMetadataFormComponent({
             value={editedMetadata.doctype || ""}
             onChange={(e) => handleFieldChange("doctype", e.target.value)}
             className="mt-1"
-            placeholder="e.g., Book, Paper, Thesis, Resume, Report, Note, Manual, Presentation"
+            placeholder="e.g., Book, Paper, Report, Manual, Others"
           />
           {validationErrors.doctype && (
             <Alert variant="destructive" className="mt-1">
