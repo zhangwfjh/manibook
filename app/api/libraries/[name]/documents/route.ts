@@ -606,3 +606,121 @@ export async function DELETE(
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ name: string }> }
+) {
+  try {
+    const { name } = await params;
+
+    const validation = await validateLibraryAccess(name);
+    if (validation.error) {
+      return NextResponse.json({ error: validation.error }, { status: validation.status });
+    }
+    const libraryInfo = validation.libraryInfo!;
+
+    const { documentIds, metadata } = await request.json();
+
+    if (!Array.isArray(documentIds) || documentIds.length === 0) {
+      return NextResponse.json({ error: 'No document IDs provided' }, { status: 400 });
+    }
+
+    if (!metadata || (!metadata.doctype && !metadata.category)) {
+      return NextResponse.json({ error: 'No metadata updates provided' }, { status: 400 });
+    }
+
+    const prisma = await getLibraryPrisma(name);
+
+    const documents = await prisma.document.findMany({
+      where: {
+        id: {
+          in: documentIds
+        }
+      }
+    });
+
+    if (documents.length === 0) {
+      return NextResponse.json({ error: 'No documents found' }, { status: 404 });
+    }
+
+    const errors: Array<{ id: string; error: string }> = [];
+    const successIds: string[] = [];
+
+    for (const document of documents) {
+      try {
+        const oldCategory = document.category;
+        const oldDoctype = document.doctype;
+        const newDoctype = metadata.doctype ? metadata.doctype : oldDoctype;
+        const newCategory = metadata.category ? metadata.category : oldCategory;
+
+        const updateData: Record<string, unknown> = {
+          updatedAt: new Date(),
+        };
+        if (metadata.doctype) {
+          updateData.doctype = newDoctype;
+        }
+        if (metadata.category) {
+          updateData.category = newCategory;
+        }
+        const shouldMoveFile = (metadata.doctype && oldDoctype !== newDoctype) ||
+          (metadata.category && oldCategory !== newCategory);
+
+        if (shouldMoveFile) {
+          const fileExtension = path.extname(document.filename);
+
+          const categoryParts = newCategory.split(' > ').map((part: string) => part.trim()).filter((part: string) => part);
+          const folderPath = [newDoctype, ...categoryParts.slice(0, 2)].join('/');
+          const categoryDir = path.join(libraryInfo.path, folderPath);
+          fs.mkdirSync(categoryDir, { recursive: true });
+
+          const safeTitle = document.title.replace(/[\/\\?%*:|"<>]/g, '_');
+          let newFilename = `${safeTitle}${fileExtension}`;
+          let counter = 1;
+          while (fs.existsSync(path.join(categoryDir, newFilename))) {
+            newFilename = `${safeTitle}_${counter}${fileExtension}`;
+            counter++;
+          }
+
+          const oldFilePath = path.join(libraryInfo.path, document.url.substring(6));
+          const newFilePath = path.join(categoryDir, newFilename);
+          const newUrl = `lib://` + `${folderPath}/${newFilename}`.replace(/\/+/g, '/');
+
+          if (fs.existsSync(oldFilePath)) {
+            fs.renameSync(oldFilePath, newFilePath);
+          }
+
+          updateData.filename = newFilename;
+          updateData.url = newUrl;
+        }
+
+        await prisma.document.update({
+          where: { id: document.id },
+          data: updateData
+        });
+
+        successIds.push(document.id);
+      } catch (error) {
+        console.error(`Error updating document ${document.id}:`, error);
+        errors.push({
+          id: document.id,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    }
+
+    const successCount = successIds.length;
+
+    return NextResponse.json({
+      success: true,
+      updatedCount: successCount,
+      errorCount: errors.length,
+      errors: errors.length > 0 ? errors : undefined
+    });
+
+  } catch (error) {
+    console.error('Error bulk updating documents:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
+  }
+}

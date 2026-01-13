@@ -280,6 +280,56 @@ export default function Home() {
     loadFilteredData,
   ]);
 
+  const handleBulkMove = useCallback(
+    async (doctype: string, category: string) => {
+      if (selectedDocuments.size === 0) return;
+
+      try {
+        const response = await fetch(
+          `/api/libraries/${currentLibrary}/documents`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              documentIds: Array.from(selectedDocuments),
+              metadata: { doctype, category },
+            }),
+          }
+        );
+
+        const result = await response.json();
+
+        if (response.ok) {
+          toast.success(
+            `Successfully moved ${result.updatedCount} document(s)`
+          );
+          setSelectedDocuments(new Set());
+          setSelectionMode(false);
+          const combinedParams = new URLSearchParams();
+          filterParams.forEach((value, key) => {
+            combinedParams.set(key, value);
+          });
+          sortParams.forEach((value, key) => {
+            combinedParams.set(key, value);
+          });
+          loadFilteredData(combinedParams, true);
+        } else {
+          toast.error(result.error || "Failed to move documents");
+        }
+      } catch (error) {
+        console.error("Error bulk moving documents:", error);
+        toast.error("Failed to move documents");
+      }
+    },
+    [
+      selectedDocuments,
+      currentLibrary,
+      filterParams,
+      sortParams,
+      loadFilteredData,
+    ]
+  );
+
   const handleDocumentClick = useCallback(
     (document: LibraryDocument) => {
       if (selectionMode) {
@@ -376,6 +426,7 @@ export default function Home() {
               onSelectAll={handleSelectAllDocuments}
               onClearSelection={handleClearSelection}
               onBulkDelete={() => setBulkDeleteDialogOpen(true)}
+              onBulkMove={handleBulkMove}
             />
 
             <Content

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { SettingsDialog } from "@/components/library/dialogs/settings-dialog";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { BulkMoveDropdown } from "./bulk-move-dropdown";
 
 type ViewMode = "card" | "list";
 
@@ -38,6 +39,7 @@ interface ControlsProps {
   onSelectAll?: () => void;
   onClearSelection?: () => void;
   onBulkDelete?: () => void;
+  onBulkMove?: (doctype: string, category: string) => void;
 }
 
 export function Controls({
@@ -56,6 +58,7 @@ export function Controls({
   onSelectAll,
   onClearSelection,
   onBulkDelete,
+  onBulkMove,
 }: ControlsProps) {
   return (
     <div className="mb-6 space-y-4">
@@ -85,10 +88,20 @@ export function Controls({
                 Select All
               </Button>
               {selectedCount > 0 && (
-                <Button variant="destructive" size="sm" onClick={onBulkDelete}>
-                  <TrashIcon className="h-4 w-4 mr-2" />
-                  Delete ({selectedCount})
-                </Button>
+                <>
+                  <BulkMoveDropdown
+                    selectedCount={selectedCount}
+                    onBulkMove={onBulkMove || (() => {})}
+                  />
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={onBulkDelete}
+                  >
+                    <TrashIcon className="h-4 w-4 mr-2" />
+                    Delete ({selectedCount})
+                  </Button>
+                </>
               )}
               <Button variant="ghost" size="sm" onClick={onToggleSelectionMode}>
                 Cancel
