@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { toast } from "sonner";
 import { DocumentDetailDialog } from "@/components/library/dialogs/detail-dialog";
 import { Sidebar } from "@/components/library/layout";
 import { Controls } from "@/components/library/layout";
@@ -10,6 +11,16 @@ import {
   ArchiveDialog,
   ImportDialog,
 } from "@/components/library/dialogs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useLibraryData } from "@/hooks/use-library-data";
 import { useDocumentFilters } from "@/hooks/use-document-filters";
 import { useDocumentSorting } from "@/hooks/use-document-sorting";
@@ -25,6 +36,9 @@ export default function Home() {
     useState<LibraryDocument | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set());
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
 
   // Custom hooks
   const {
@@ -109,11 +123,6 @@ export default function Home() {
     [currentLibrary]
   );
 
-  const handleDocumentClick = useCallback((document: LibraryDocument) => {
-    setSelectedDocument(document);
-    setDialogOpen(true);
-  }, []);
-
   const handleDocumentDelete = useCallback(
     async (document: LibraryDocument) => {
       try {
@@ -177,6 +186,68 @@ export default function Home() {
     [currentLibrary, refreshLibraryData]
   );
 
+  const handleToggleSelectionMode = useCallback(() => {
+    setSelectionMode((prev) => !prev);
+    setSelectedDocuments(new Set());
+  }, []);
+
+  const handleToggleDocumentSelection = useCallback((documentId: string) => {
+    setSelectedDocuments((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(documentId)) {
+        newSet.delete(documentId);
+      } else {
+        newSet.add(documentId);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const handleSelectAllDocuments = useCallback(() => {
+    const allIds = documents.map((doc) => doc.id);
+    setSelectedDocuments(new Set(allIds));
+  }, [documents]);
+
+  const handleClearSelection = useCallback(() => {
+    setSelectedDocuments(new Set());
+  }, []);
+
+  const handleBulkDelete = useCallback(async () => {
+    if (selectedDocuments.size === 0) return;
+
+    try {
+      const response = await fetch(`/api/libraries/${currentLibrary}/documents`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ documentIds: Array.from(selectedDocuments) }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        toast.success(`Successfully deleted ${result.deletedCount} document(s)`);
+        setBulkDeleteDialogOpen(false);
+        setSelectedDocuments(new Set());
+        setSelectionMode(false);
+        refreshLibraryData();
+      } else {
+        toast.error(result.error || "Failed to delete documents");
+      }
+    } catch (error) {
+      console.error("Error bulk deleting documents:", error);
+      toast.error("Failed to delete documents");
+    }
+  }, [selectedDocuments, currentLibrary, refreshLibraryData]);
+
+  const handleDocumentClick = useCallback((document: LibraryDocument) => {
+    if (selectionMode) {
+      handleToggleDocumentSelection(document.id);
+    } else {
+      setSelectedDocument(document);
+      setDialogOpen(true);
+    }
+  }, [selectionMode, handleToggleDocumentSelection]);
+
   const handleBreadcrumbClick = useCallback(
     (category: string) => {
       setSelectedCategory(category);
@@ -199,6 +270,13 @@ export default function Home() {
       loadFilteredData(combinedParams);
     }
   }, [debouncedFilterParams, sortParams, currentLibrary, loadFilteredData]);
+
+  useEffect(() => {
+    setTimeout(() => {
+      setSelectedDocuments(new Set());
+      setSelectionMode(false);
+    }, 0);
+  }, [currentLibrary, selectedCategory]);
 
   return (
     <div className="min-h-screen bg-linear-to-br from-background via-background to-muted/10">
@@ -251,6 +329,12 @@ export default function Home() {
               librariesLength={libraries.length}
               onOpenImportDialog={() => setImportDialogOpen(true)}
               isSearching={isSearching}
+              selectionMode={selectionMode}
+              onToggleSelectionMode={handleToggleSelectionMode}
+              selectedCount={selectedDocuments.size}
+              onSelectAll={handleSelectAllDocuments}
+              onClearSelection={handleClearSelection}
+              onBulkDelete={() => setBulkDeleteDialogOpen(true)}
             />
 
             <Content
@@ -266,6 +350,9 @@ export default function Home() {
               onDelete={handleDocumentDelete}
               onBreadcrumbClick={handleBreadcrumbClick}
               onPageChange={loadPage}
+              selectionMode={selectionMode}
+              selectedDocuments={selectedDocuments}
+              onToggleDocumentSelection={handleToggleDocumentSelection}
             />
           </div>
         </div>
@@ -327,6 +414,26 @@ export default function Home() {
           currentLibrary={currentLibrary}
           onImportComplete={refreshLibraryData}
         />
+
+        <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete {selectedDocuments.size} Document(s)</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete {selectedDocuments.size} document(s)? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={handleBulkDelete}
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

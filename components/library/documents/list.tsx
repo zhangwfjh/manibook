@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { HeartIcon, BookOpenIcon, TrashIcon } from "lucide-react";
 import { LibraryDocument } from "@/lib/library";
 import { formatFileSize } from "@/lib/library/document-utils";
@@ -19,6 +20,9 @@ interface DocumentListProps {
   onOpen?: (document: LibraryDocument) => void;
   onFavoriteToggle?: (document: LibraryDocument) => void;
   onDelete?: (document: LibraryDocument) => void;
+  selectionMode?: boolean;
+  selectedDocuments?: Set<string>;
+  onToggleDocumentSelection?: (documentId: string) => void;
 }
 
 const DocumentListComponent = ({
@@ -27,9 +31,16 @@ const DocumentListComponent = ({
   onOpen,
   onFavoriteToggle,
   onDelete,
+  selectionMode = false,
+  selectedDocuments = new Set(),
+  onToggleDocumentSelection,
 }: DocumentListProps) => {
   const handleRowClick = (document: LibraryDocument) => {
-    onClick?.(document);
+    if (selectionMode) {
+      onToggleDocumentSelection?.(document.id);
+    } else {
+      onClick?.(document);
+    }
   };
 
   const handleOpenClick = (e: React.MouseEvent, document: LibraryDocument) => {
@@ -50,11 +61,34 @@ const DocumentListComponent = ({
     onDelete?.(document);
   };
 
+  const handleSelectAll = () => {
+    const allSelected = documents.every(doc => selectedDocuments.has(doc.id));
+    if (allSelected) {
+      documents.forEach(doc => onToggleDocumentSelection?.(doc.id));
+    } else {
+      documents.forEach(doc => {
+        if (!selectedDocuments.has(doc.id)) {
+          onToggleDocumentSelection?.(doc.id);
+        }
+      });
+    }
+  };
+
+  const allSelected = documents.length > 0 && documents.every(doc => selectedDocuments.has(doc.id));
+
   return (
     <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
+            {selectionMode && (
+              <TableHead className="w-12">
+                <Checkbox
+                  checked={allSelected}
+                  onCheckedChange={handleSelectAll}
+                />
+              </TableHead>
+            )}
             <TableHead>Title</TableHead>
             <TableHead>Authors</TableHead>
             <TableHead>Year</TableHead>
@@ -64,18 +98,25 @@ const DocumentListComponent = ({
             <TableHead>Pages</TableHead>
             <TableHead>Format</TableHead>
             <TableHead>File Size</TableHead>
-            {/* <TableHead>Keywords</TableHead>
-            <TableHead>Category</TableHead> */}
-            <TableHead className="w-25">Actions</TableHead>
+            {!selectionMode && <TableHead className="w-25">Actions</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
           {documents.map((document, index) => (
             <TableRow
               key={index}
-              className="cursor-pointer hover:bg-muted/50"
+              className={`cursor-pointer hover:bg-muted/50 ${selectedDocuments.has(document.id) ? 'bg-muted' : ''}`}
               onClick={() => handleRowClick(document)}
             >
+              {selectionMode && (
+                <TableCell>
+                  <Checkbox
+                    checked={selectedDocuments.has(document.id)}
+                    onCheckedChange={() => onToggleDocumentSelection?.(document.id)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </TableCell>
+              )}
               <TableCell className="font-medium max-w-xs">
                 <div className="truncate" title={document.metadata.title}>
                   {document.metadata.title}
@@ -110,41 +151,43 @@ const DocumentListComponent = ({
                   ? formatFileSize(document.metadata.filesize)
                   : "-"}
               </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => handleOpenClick(e, document)}
-                  >
-                    <BookOpenIcon className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => handleFavoriteToggleClick(e, document)}
-                    className={
-                      document.metadata.favorite
-                        ? "text-red-500"
-                        : "text-muted-foreground hover:text-red-500"
-                    }
-                  >
-                    <HeartIcon
-                      className={`h-4 w-4 ${
-                        document.metadata.favorite ? "fill-current" : ""
-                      }`}
-                    />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => handleDeleteClick(e, document)}
-                    className="text-muted-foreground hover:text-red-500"
-                  >
-                    <TrashIcon className="h-4 w-4" />
-                  </Button>
-                </div>
-              </TableCell>
+              {!selectionMode && (
+                <TableCell>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => handleOpenClick(e, document)}
+                    >
+                      <BookOpenIcon className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => handleFavoriteToggleClick(e, document)}
+                      className={
+                        document.metadata.favorite
+                          ? "text-red-500"
+                          : "text-muted-foreground hover:text-red-500"
+                      }
+                    >
+                      <HeartIcon
+                        className={`h-4 w-4 ${
+                          document.metadata.favorite ? "fill-current" : ""
+                        }`}
+                      />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => handleDeleteClick(e, document)}
+                      className="text-muted-foreground hover:text-red-500"
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              )}
             </TableRow>
           ))}
         </TableBody>

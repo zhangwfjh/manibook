@@ -47,6 +47,9 @@ interface ContentProps {
   onDelete: (document: LibraryDocument) => void;
   onBreadcrumbClick: (category: string) => void;
   onPageChange?: (page: number) => void;
+  selectionMode?: boolean;
+  selectedDocuments?: Set<string>;
+  onToggleDocumentSelection?: (documentId: string) => void;
 }
 
 export function Content({
@@ -62,6 +65,9 @@ export function Content({
   onDelete,
   onBreadcrumbClick,
   onPageChange,
+  selectionMode = false,
+  selectedDocuments = new Set(),
+  onToggleDocumentSelection,
 }: ContentProps) {
   const currentPage = pagination?.page || 1;
   const totalPages = pagination?.totalPages || 1;
@@ -186,6 +192,9 @@ export function Content({
                 onOpen={onOpen}
                 onFavoriteToggle={onFavoriteToggle}
                 onDelete={onDelete}
+                selectionMode={selectionMode}
+                selected={selectedDocuments.has(document.id)}
+                onToggleSelection={onToggleDocumentSelection}
               />
             ))}
           </div>
@@ -209,6 +218,9 @@ export function Content({
             onOpen={onOpen}
             onFavoriteToggle={onFavoriteToggle}
             onDelete={onDelete}
+            selectionMode={selectionMode}
+            selectedDocuments={selectedDocuments}
+            onToggleDocumentSelection={onToggleDocumentSelection}
           />
 
           <Pagination
@@ -230,6 +242,9 @@ export function Content({
             onOpen={onOpen}
             onFavoriteToggle={onFavoriteToggle}
             onDelete={onDelete}
+            selectionMode={selectionMode}
+            selectedDocuments={selectedDocuments}
+            onToggleDocumentSelection={onToggleDocumentSelection}
           />
 
           <Pagination

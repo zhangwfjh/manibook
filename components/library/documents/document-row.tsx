@@ -1,6 +1,7 @@
 import React, { memo, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { HeartIcon, BookOpenIcon, TrashIcon } from "lucide-react";
 import { LibraryDocument } from "@/lib/library";
 import { formatFileSize } from "@/lib/library/document-utils";
@@ -12,6 +13,9 @@ interface DocumentRowProps {
   onFavoriteToggle: (document: LibraryDocument) => void;
   onDelete?: (document: LibraryDocument) => void;
   style?: React.CSSProperties;
+  selectionMode?: boolean;
+  selected?: boolean;
+  onToggleSelection?: (documentId: string) => void;
 }
 
 function DocumentRowComponent({
@@ -21,10 +25,17 @@ function DocumentRowComponent({
   onFavoriteToggle,
   onDelete,
   style,
+  selectionMode = false,
+  selected = false,
+  onToggleSelection,
 }: DocumentRowProps) {
   const handleClick = useCallback(() => {
-    onClick(document);
-  }, [document, onClick]);
+    if (selectionMode) {
+      onToggleSelection?.(document.id);
+    } else {
+      onClick(document);
+    }
+  }, [document, onClick, selectionMode, onToggleSelection]);
 
   const handleOpen = useCallback(
     (e: React.MouseEvent) => {
@@ -54,10 +65,21 @@ function DocumentRowComponent({
 
   return (
     <div
-      className="flex items-center border-b px-4 py-2 hover:bg-muted/50 cursor-pointer"
+      className={`flex items-center border-b px-4 py-2 hover:bg-muted/50 cursor-pointer ${
+        selected ? 'bg-muted' : ''
+      }`}
       style={style}
       onClick={handleClick}
     >
+      {selectionMode && (
+        <div className="w-10 shrink-0">
+          <Checkbox
+            checked={selected}
+            onCheckedChange={() => onToggleSelection?.(document.id)}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
       <div className="flex-1 min-w-0">
         <div className="font-medium max-w-xs truncate" title={metadata.title}>
           {metadata.title}
@@ -89,38 +111,40 @@ function DocumentRowComponent({
       <div className="w-20 text-sm text-muted-foreground shrink-0">
         {metadata.filesize ? formatFileSize(metadata.filesize) : "-"}
       </div>
-      <div className="flex items-center gap-1 shrink-0">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleOpen}
-          className="h-6 w-6 p-0"
-        >
-          <BookOpenIcon className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleFavorite}
-          className={`h-6 w-6 p-0 ${
-            metadata.favorite
-              ? "text-red-500"
-              : "text-muted-foreground hover:text-red-500"
-          }`}
-        >
-          <HeartIcon
-            className={`h-4 w-4 ${metadata.favorite ? "fill-current" : ""}`}
-          />
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleDelete}
-          className="h-6 w-6 p-0 text-muted-foreground hover:text-red-500"
-        >
-          <TrashIcon className="h-4 w-4" />
-        </Button>
-      </div>
+      {!selectionMode && (
+        <div className="flex items-center gap-1 shrink-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleOpen}
+            className="h-6 w-6 p-0"
+          >
+            <BookOpenIcon className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleFavorite}
+            className={`h-6 w-6 p-0 ${
+              metadata.favorite
+                ? "text-red-500"
+                : "text-muted-foreground hover:text-red-500"
+            }`}
+          >
+            <HeartIcon
+              className={`h-4 w-4 ${metadata.favorite ? "fill-current" : ""}`}
+            />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleDelete}
+            className="h-6 w-6 p-0 text-muted-foreground hover:text-red-500"
+          >
+            <TrashIcon className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

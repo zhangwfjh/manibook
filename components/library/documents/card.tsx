@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Tooltip,
   TooltipContent,
@@ -46,6 +47,9 @@ interface DocumentCardProps {
   onOpen?: (document: LibraryDocument) => void;
   onFavoriteToggle?: (document: LibraryDocument) => void;
   onDelete?: (document: LibraryDocument) => void;
+  selectionMode?: boolean;
+  selected?: boolean;
+  onToggleSelection?: (documentId: string) => void;
 }
 
 const DocumentCardComponent = ({
@@ -55,6 +59,9 @@ const DocumentCardComponent = ({
   onOpen,
   onFavoriteToggle,
   onDelete,
+  selectionMode = false,
+  selected = false,
+  onToggleSelection,
 }: DocumentCardProps) => {
   const { metadata } = document;
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
@@ -85,8 +92,12 @@ const DocumentCardComponent = ({
 
   const handleCardClick = useCallback(() => {
     if (isConfirmingDelete) return;
-    onClick?.(document);
-  }, [isConfirmingDelete, onClick, document]);
+    if (selectionMode) {
+      onToggleSelection?.(document.id);
+    } else {
+      onClick?.(document);
+    }
+  }, [isConfirmingDelete, onClick, document, selectionMode, onToggleSelection]);
 
   const handleFavoriteClick = useCallback(
     (e: React.MouseEvent) => {
@@ -111,9 +122,20 @@ const DocumentCardComponent = ({
 
   return (
     <Card
-      className="group w-full h-full flex flex-row hover:shadow-lg transition-shadow duration-200 cursor-pointer border-border/50 hover:border-border"
+      className={`group w-full h-full flex flex-row hover:shadow-lg transition-shadow duration-200 cursor-pointer border-border/50 hover:border-border ${
+        selected ? "ring-2 ring-ring" : ""
+      } ${selected ? "ring-2 ring-primary" : ""}`}
       onClick={handleCardClick}
     >
+      {selectionMode && (
+        <div className="absolute top-2 left-2 z-10">
+          <Checkbox
+            checked={selected}
+            onCheckedChange={() => onToggleSelection?.(document.id)}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
       <div className="flex-1 flex flex-col min-w-0">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-2">

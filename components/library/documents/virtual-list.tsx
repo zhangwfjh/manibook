@@ -1,6 +1,7 @@
 import React, { useRef, useMemo } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { DocumentRow } from "./document-row";
+import { Checkbox } from "@/components/ui/checkbox";
 import { LibraryDocument } from "@/lib/library";
 
 interface VirtualDocumentListProps {
@@ -9,6 +10,9 @@ interface VirtualDocumentListProps {
   onOpen: (document: LibraryDocument) => void;
   onFavoriteToggle: (document: LibraryDocument) => void;
   onDelete?: (document: LibraryDocument) => void;
+  selectionMode?: boolean;
+  selectedDocuments?: Set<string>;
+  onToggleDocumentSelection?: (documentId: string) => void;
 }
 
 function VirtualDocumentListComponent({
@@ -17,10 +21,12 @@ function VirtualDocumentListComponent({
   onOpen,
   onFavoriteToggle,
   onDelete,
+  selectionMode = false,
+  selectedDocuments = new Set(),
+  onToggleDocumentSelection,
 }: VirtualDocumentListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
 
-  // eslint-disable-next-line react-hooks/incompatible-library
   const virtualizer = useVirtualizer({
     count: documents.length,
     getScrollElement: () => parentRef.current,
@@ -41,9 +47,31 @@ function VirtualDocumentListComponent({
     );
   }
 
+  const allSelected = documents.length > 0 && documents.every(doc => selectedDocuments.has(doc.id));
+
+  const handleSelectAll = () => {
+    if (allSelected) {
+      documents.forEach(doc => onToggleDocumentSelection?.(doc.id));
+    } else {
+      documents.forEach(doc => {
+        if (!selectedDocuments.has(doc.id)) {
+          onToggleDocumentSelection?.(doc.id);
+        }
+      });
+    }
+  };
+
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center border-b px-4 py-2 bg-muted/50 text-sm font-medium">
+        {selectionMode && (
+          <div className="w-10 shrink-0">
+            <Checkbox
+              checked={allSelected}
+              onCheckedChange={handleSelectAll}
+            />
+          </div>
+        )}
         <div className="flex-1 min-w-0">Title</div>
         <div className="w-20 shrink-0">Year</div>
         <div className="w-24 shrink-0">Type</div>
@@ -52,7 +80,7 @@ function VirtualDocumentListComponent({
         <div className="w-16 shrink-0">Pages</div>
         <div className="w-16 shrink-0">Format</div>
         <div className="w-20 shrink-0">Size</div>
-        <div className="w-16 shrink-0">Actions</div>
+        {!selectionMode && <div className="w-16 shrink-0">Actions</div>}
       </div>
       <div
         ref={parentRef}
@@ -77,6 +105,9 @@ function VirtualDocumentListComponent({
               onOpen={onOpen}
               onFavoriteToggle={onFavoriteToggle}
               onDelete={onDelete}
+              selectionMode={selectionMode}
+              selected={selectedDocuments.has(documents[virtualRow.index].id)}
+              onToggleSelection={onToggleDocumentSelection}
               style={{
                 position: "absolute",
                 top: 0,

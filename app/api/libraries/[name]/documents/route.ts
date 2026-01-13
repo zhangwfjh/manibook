@@ -535,3 +535,74 @@ export async function POST(
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ name: string }> }
+) {
+  try {
+    const { name } = await params;
+
+    const validation = await validateLibraryAccess(name);
+    if (validation.error) {
+      return NextResponse.json({ error: validation.error }, { status: validation.status });
+    }
+    const libraryInfo = validation.libraryInfo!;
+
+    const { documentIds } = await request.json();
+
+    if (!Array.isArray(documentIds) || documentIds.length === 0) {
+      return NextResponse.json({ error: 'No document IDs provided' }, { status: 400 });
+    }
+
+    const prisma = await getLibraryPrisma(name);
+
+    const documents = await prisma.document.findMany({
+      where: {
+        id: {
+          in: documentIds
+        }
+      }
+    });
+
+    if (documents.length === 0) {
+      return NextResponse.json({ error: 'No documents found' }, { status: 404 });
+    }
+
+    const errors: Array<{ id: string; error: string }> = [];
+
+    for (const document of documents) {
+      try {
+        const filePath = path.join(libraryInfo.path, document.url.substring(6));
+
+        await prisma.document.delete({
+          where: { id: document.id },
+        });
+
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      } catch (error) {
+        console.error(`Error deleting document ${document.id}:`, error);
+        errors.push({
+          id: document.id,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    }
+
+    const successCount = documentIds.length - errors.length;
+
+    return NextResponse.json({
+      success: true,
+      deletedCount: successCount,
+      errorCount: errors.length,
+      errors: errors.length > 0 ? errors : undefined
+    });
+
+  } catch (error) {
+    console.error('Error deleting documents:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
+  }
+}
