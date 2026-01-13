@@ -58,7 +58,7 @@ export function useLibraryData() {
     }
   }, [currentLibrary]);
 
-  const fetchLibraryData = useCallback(async (page: number = 1, additionalParams?: URLSearchParams) => {
+  const fetchLibraryData = useCallback(async (page: number = 1, additionalParams?: URLSearchParams, forceRefresh: boolean = false) => {
     if (!currentLibrary) return;
 
     const params = new URLSearchParams();
@@ -73,17 +73,17 @@ export function useLibraryData() {
 
     const paramsString = params.toString();
 
-    if (lastFetchParamsRef.current === paramsString) {
+    if (!forceRefresh && lastFetchParamsRef.current === paramsString) {
       return;
     }
     lastFetchParamsRef.current = paramsString;
 
     const cacheKey = `${currentLibrary}:${paramsString}`;
 
-    // Check cache first
+    // Check cache first (skip if forceRefresh)
     const cached = cacheRef.current.get(cacheKey);
     const now = Date.now();
-    if (cached && (now - cached.timestamp) < CACHE_TTL) {
+    if (!forceRefresh && cached && (now - cached.timestamp) < CACHE_TTL) {
       // Use cached data
       setDocuments(cached.documents);
       setPagination(cached.pagination);
@@ -93,8 +93,8 @@ export function useLibraryData() {
       return;
     }
 
-    // Clear cache on first load to ensure fresh data
-    if (cached) {
+    // Clear cache on first load or force refresh to ensure fresh data
+    if (cached || forceRefresh) {
       cacheRef.current.delete(cacheKey);
     }
 
@@ -196,9 +196,9 @@ export function useLibraryData() {
   }, [pagination?.hasPrevPage, currentPage, loadPage]);
 
   // Load filtered data
-  const loadFilteredData = useCallback(async (filters: URLSearchParams) => {
+  const loadFilteredData = useCallback(async (filters: URLSearchParams, forceRefresh: boolean = false) => {
     setCurrentPage(1);
-    await fetchLibraryData(1, filters);
+    await fetchLibraryData(1, filters, forceRefresh);
   }, [fetchLibraryData]);
 
   const refreshLibraries = useCallback(async () => {

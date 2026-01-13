@@ -25,7 +25,6 @@ import { useLibraryData } from "@/hooks/use-library-data";
 import { useDocumentFilters } from "@/hooks/use-document-filters";
 import { useDocumentSorting } from "@/hooks/use-document-sorting";
 import { useLibraryOperations } from "@/hooks/use-library-operations";
-import { useDebouncedFilters } from "@/hooks/use-debounced-filters";
 import { LibraryDocument } from "@/lib/library";
 
 type ViewMode = "card" | "list";
@@ -37,7 +36,9 @@ export default function Home() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
-  const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set());
+  const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(
+    new Set()
+  );
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
 
   // Custom hooks
@@ -116,7 +117,7 @@ export default function Home() {
   const handleOpen = useCallback(
     (doc: LibraryDocument) => {
       // Create a safe filename for download by combining title and format
-      const safeTitle = doc.metadata.title.replace(/[\/\\?%*:|"<>]/g, '_');
+      const safeTitle = doc.metadata.title.replace(/[\/\\?%*:|"<>]/g, "_");
       const filename = `${safeTitle}.${doc.metadata.format}`;
       const fileUrl = `/api/libraries/${currentLibrary}/documents/${doc.id}/${filename}`;
       window.open(fileUrl, "_blank");
@@ -136,9 +137,16 @@ export default function Home() {
       } catch (error) {
         console.error("Error deleting document:", error);
       }
-      refreshLibraryData();
+      const combinedParams = new URLSearchParams();
+      filterParams.forEach((value, key) => {
+        combinedParams.set(key, value);
+      });
+      sortParams.forEach((value, key) => {
+        combinedParams.set(key, value);
+      });
+      loadFilteredData(combinedParams, true);
     },
-    [currentLibrary, refreshLibraryData]
+    [currentLibrary, filterParams, sortParams, loadFilteredData]
   );
 
   const handleDocumentUpdate = useCallback(
@@ -157,7 +165,14 @@ export default function Home() {
         if (response.ok) {
           const result = await response.json();
           setSelectedDocument(result.document);
-          refreshLibraryData();
+          const combinedParams = new URLSearchParams();
+          filterParams.forEach((value, key) => {
+            combinedParams.set(key, value);
+          });
+          sortParams.forEach((value, key) => {
+            combinedParams.set(key, value);
+          });
+          loadFilteredData(combinedParams, true);
         } else {
           console.error("Error updating document");
         }
@@ -165,7 +180,7 @@ export default function Home() {
         console.error("Error updating document:", error);
       }
     },
-    [currentLibrary, refreshLibraryData]
+    [currentLibrary, filterParams, sortParams, loadFilteredData]
   );
 
   const handleFavoriteToggle = useCallback(
@@ -182,9 +197,16 @@ export default function Home() {
       } catch (error) {
         console.error("Error toggling favorite:", error);
       }
-      refreshLibraryData();
+      const combinedParams = new URLSearchParams();
+      filterParams.forEach((value, key) => {
+        combinedParams.set(key, value);
+      });
+      sortParams.forEach((value, key) => {
+        combinedParams.set(key, value);
+      });
+      loadFilteredData(combinedParams, true);
     },
-    [currentLibrary, refreshLibraryData]
+    [currentLibrary, filterParams, sortParams, loadFilteredData]
   );
 
   const handleToggleSelectionMode = useCallback(() => {
@@ -217,20 +239,32 @@ export default function Home() {
     if (selectedDocuments.size === 0) return;
 
     try {
-      const response = await fetch(`/api/libraries/${currentLibrary}/documents`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ documentIds: Array.from(selectedDocuments) }),
-      });
+      const response = await fetch(
+        `/api/libraries/${currentLibrary}/documents`,
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ documentIds: Array.from(selectedDocuments) }),
+        }
+      );
 
       const result = await response.json();
 
       if (response.ok) {
-        toast.success(`Successfully deleted ${result.deletedCount} document(s)`);
+        toast.success(
+          `Successfully deleted ${result.deletedCount} document(s)`
+        );
         setBulkDeleteDialogOpen(false);
         setSelectedDocuments(new Set());
         setSelectionMode(false);
-        refreshLibraryData();
+        const combinedParams = new URLSearchParams();
+        filterParams.forEach((value, key) => {
+          combinedParams.set(key, value);
+        });
+        sortParams.forEach((value, key) => {
+          combinedParams.set(key, value);
+        });
+        loadFilteredData(combinedParams, true);
       } else {
         toast.error(result.error || "Failed to delete documents");
       }
@@ -238,16 +272,25 @@ export default function Home() {
       console.error("Error bulk deleting documents:", error);
       toast.error("Failed to delete documents");
     }
-  }, [selectedDocuments, currentLibrary, refreshLibraryData]);
+  }, [
+    selectedDocuments,
+    currentLibrary,
+    filterParams,
+    sortParams,
+    loadFilteredData,
+  ]);
 
-  const handleDocumentClick = useCallback((document: LibraryDocument) => {
-    if (selectionMode) {
-      handleToggleDocumentSelection(document.id);
-    } else {
-      setSelectedDocument(document);
-      setDialogOpen(true);
-    }
-  }, [selectionMode, handleToggleDocumentSelection]);
+  const handleDocumentClick = useCallback(
+    (document: LibraryDocument) => {
+      if (selectionMode) {
+        handleToggleDocumentSelection(document.id);
+      } else {
+        setSelectedDocument(document);
+        setDialogOpen(true);
+      }
+    },
+    [selectionMode, handleToggleDocumentSelection]
+  );
 
   const handleBreadcrumbClick = useCallback(
     (category: string) => {
@@ -256,21 +299,18 @@ export default function Home() {
     [setSelectedCategory]
   );
 
-  const debouncedFilterParams = useDebouncedFilters(filterParams, 300);
-
   useEffect(() => {
     if (currentLibrary) {
       const combinedParams = new URLSearchParams();
-      debouncedFilterParams.forEach((value: string, key: string) => {
+      filterParams.forEach((value, key) => {
         combinedParams.set(key, value);
       });
-      sortParams.forEach((value: string, key: string) => {
+      sortParams.forEach((value, key) => {
         combinedParams.set(key, value);
       });
-
       loadFilteredData(combinedParams);
     }
-  }, [debouncedFilterParams, sortParams, currentLibrary, loadFilteredData]);
+  }, [filterParams, sortParams, currentLibrary, loadFilteredData]);
 
   useEffect(() => {
     setTimeout(() => {
@@ -416,12 +456,18 @@ export default function Home() {
           onImportComplete={refreshLibraryData}
         />
 
-        <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialog
+          open={bulkDeleteDialogOpen}
+          onOpenChange={setBulkDeleteDialogOpen}
+        >
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete {selectedDocuments.size} Document(s)</AlertDialogTitle>
+              <AlertDialogTitle>
+                Delete {selectedDocuments.size} Document(s)
+              </AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete {selectedDocuments.size} document(s)? This action cannot be undone.
+                Are you sure you want to delete {selectedDocuments.size}{" "}
+                document(s)? This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
