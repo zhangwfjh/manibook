@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDefaultLibrary, setDefaultLibrary } from '@/lib/library';
+import { getDefaultLibrary, setDefaultLibrary } from '@/lib/library/server';
 
 export async function GET() {
   try {

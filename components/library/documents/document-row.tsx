@@ -3,19 +3,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { HeartIcon, BookOpenIcon, TrashIcon } from "lucide-react";
-import { LibraryDocument } from "@/lib/library";
-import { formatFileSize } from "@/lib/library/document-utils";
+import { formatFileSize } from "@/lib/library";
+import { DocumentMetadata } from "./metadata";
+import { DocumentDisplayProps } from "../types";
 
-interface DocumentRowProps {
-  document: LibraryDocument;
-  onClick: (document: LibraryDocument) => void;
-  onOpen: (document: LibraryDocument) => void;
-  onFavoriteToggle: (document: LibraryDocument) => void;
-  onDelete?: (document: LibraryDocument) => void;
+interface DocumentRowProps extends Omit<DocumentDisplayProps, 'library'> {
   style?: React.CSSProperties;
-  selectionMode?: boolean;
-  selected?: boolean;
-  onToggleSelection?: (documentId: string) => void;
 }
 
 function DocumentRowComponent({
@@ -33,14 +26,14 @@ function DocumentRowComponent({
     if (selectionMode) {
       onToggleSelection?.(document.id);
     } else {
-      onClick(document);
+      onClick?.(document);
     }
   }, [document, onClick, selectionMode, onToggleSelection]);
 
   const handleOpen = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      onOpen(document);
+      onOpen?.(document);
     },
     [document, onOpen]
   );
@@ -48,7 +41,7 @@ function DocumentRowComponent({
   const handleFavorite = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      onFavoriteToggle(document);
+      onFavoriteToggle?.(document);
     },
     [document, onFavoriteToggle]
   );
@@ -66,7 +59,7 @@ function DocumentRowComponent({
   return (
     <div
       className={`flex items-center border-b px-4 py-2 hover:bg-muted/50 cursor-pointer ${
-        selected ? 'bg-muted' : ''
+        selected ? "bg-muted" : ""
       }`}
       style={style}
       onClick={handleClick}
@@ -81,12 +74,7 @@ function DocumentRowComponent({
         </div>
       )}
       <div className="flex-1 min-w-0">
-        <div className="font-medium max-w-xs truncate" title={metadata.title}>
-          {metadata.title}
-        </div>
-        <div className="text-sm text-muted-foreground max-w-xs truncate">
-          {metadata.authors?.join(", ") || "-"}
-        </div>
+        <DocumentMetadata metadata={metadata} compact />
       </div>
       <div className="w-20 text-sm text-muted-foreground shrink-0">
         {metadata.publicationYear || "-"}

@@ -1,0 +1,65 @@
+import { Badge } from "@/components/ui/badge";
+import { UsersIcon } from "lucide-react";
+import { DocumentMetadata as MetadataType } from "@/lib/library";
+
+interface DocumentMetadataProps {
+  metadata: MetadataType;
+  showYear?: boolean;
+  showDoctype?: boolean;
+  showCategory?: boolean;
+  compact?: boolean;
+}
+
+export function DocumentMetadata({
+  metadata,
+  showYear = false,
+  showDoctype = false,
+  showCategory = false,
+  compact = false,
+}: DocumentMetadataProps) {
+  const titleClass = compact
+    ? "font-medium max-w-xs truncate"
+    : "font-medium text-lg leading-tight line-clamp-2";
+  const authorsClass = compact
+    ? "text-sm text-muted-foreground max-w-xs truncate"
+    : "flex items-center gap-1 text-sm text-muted-foreground mt-1";
+
+  return (
+    <>
+      <div className={titleClass} title={metadata.title}>
+        {metadata.title ? metadata.title : "Untitled"}
+      </div>
+      <div className={authorsClass}>
+        {compact ? (
+          metadata.authors?.join(", ") || "-"
+        ) : (
+          <>
+            <UsersIcon className="h-4 w-4" />
+            <span className="line-clamp-1">
+              {metadata.authors && metadata.authors.length > 0
+                ? metadata.authors.join(", ")
+                : "Unknown"}
+            </span>
+          </>
+        )}
+      </div>
+      {showYear && (
+        <div className="text-sm text-muted-foreground shrink-0">
+          {metadata.publicationYear || "-"}
+        </div>
+      )}
+      {showDoctype && (
+        <div className="shrink-0">
+          <Badge variant="secondary" className="text-xs">
+            {metadata.doctype}
+          </Badge>
+        </div>
+      )}
+      {showCategory && (
+        <Badge variant="outline" className="text-xs">
+          {metadata.category}
+        </Badge>
+      )}
+    </>
+  );
+}

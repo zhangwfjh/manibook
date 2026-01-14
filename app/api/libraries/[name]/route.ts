@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getLibrary, renameLibrary, moveLibrary, archiveLibrary } from '@/lib/library';
+import { getLibrary, renameLibrary, moveLibrary, archiveLibrary } from '@/lib/library/server';
 
 export async function GET(
   request: NextRequest,

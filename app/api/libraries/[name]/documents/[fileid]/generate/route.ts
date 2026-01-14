@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { validateLibraryAccess, getLibraryPrisma } from '@/lib/library/api-utils';
-import { extractMetadataFromFile } from '@/lib/library/metadata';
-import { loadLLMSettings } from '@/lib/library/llm-settings';
-import { normalizeMetadata } from '@/lib/library/document-utils';
+import { validateLibraryAccess, getLibraryPrisma } from '@/lib/library/utils';
+import { extractMetadataFromFile } from '@/lib/library/documents/metadata-extractor';
+import { loadLLMSettings } from '@/lib/library/settings/llm';
+import { normalizeMetadata } from '@/lib/library/utils';
+import { DocumentMetadata } from '@/lib/library';
 
 export async function POST(
   request: NextRequest,
@@ -30,7 +31,7 @@ export async function POST(
     }
 
     const filePath = path.join(libraryInfo.path, dbDoc.url.substring(6));
-    
+
     if (!fs.existsSync(filePath)) {
       return NextResponse.json({ error: 'Document file not found' }, { status: 404 });
     }
@@ -48,15 +49,19 @@ export async function POST(
     const metadataToSave = normalizeMetadata({
       title: extractedMetadata.title || dbDoc.title,
       authors: extractedMetadata.authors || JSON.parse(dbDoc.authors),
-      publication_year: extractedMetadata.publicationYear || dbDoc.publicationYear || undefined,
+      publicationYear: extractedMetadata.publicationYear || dbDoc.publicationYear || undefined,
       publisher: extractedMetadata.publisher || dbDoc.publisher || undefined,
       category: extractedMetadata.category || dbDoc.category,
       language: extractedMetadata.language || dbDoc.language,
       keywords: extractedMetadata.keywords || [],
       abstract: extractedMetadata.abstract || '',
       doctype: extractedMetadata.doctype || dbDoc.doctype,
+      favorite: dbDoc.favorite,
+      numPages: dbDoc.numPages,
+      filesize: Number(dbDoc.filesize),
+      format: dbDoc.format,
       metadata: extractedMetadata.metadata || (dbDoc.metadata ? JSON.parse(dbDoc.metadata) : undefined),
-    });
+    } as DocumentMetadata);
 
     return NextResponse.json({ metadata: metadataToSave });
   } catch (error) {

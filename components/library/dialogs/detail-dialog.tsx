@@ -1,5 +1,4 @@
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   AlertDialog,
@@ -11,14 +10,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  TrashIcon,
-  EditIcon,
-  SaveIcon,
-  XIcon,
-  BookOpenIcon,
-  RefreshCwIcon,
-} from "lucide-react";
 import { LibraryDocument, DocumentMetadata } from "@/lib/library";
 import { useState, useCallback } from "react";
 import {
@@ -28,6 +19,7 @@ import {
   ExtraMetadata,
   FileInfo,
 } from "./detail-sections";
+import { ActionsSection } from "./actions-section";
 
 interface DocumentDetailDialogProps {
   library: string;
@@ -221,54 +213,16 @@ export function DocumentDetailDialog({
           </div>
         </ScrollArea>
 
-        <div className="flex justify-between items-center pt-4 border-t">
-          <Button
-            variant="destructive"
-            onClick={handleDelete}
-            disabled={isEditing}
-          >
-            <TrashIcon className="h-4 w-4 mr-2" />
-            Delete
-          </Button>
-
-          <div className="flex gap-2">
-            {isEditing ? (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={handleGenerateMetadata}
-                  disabled={isGenerating}
-                >
-                  <RefreshCwIcon
-                    className={`h-4 w-4 mr-2 ${
-                      isGenerating ? "animate-spin" : ""
-                    }`}
-                  />
-                  Generate
-                </Button>
-                <Button variant="outline" onClick={handleCancel}>
-                  <XIcon className="h-4 w-4 mr-2" />
-                  Cancel
-                </Button>
-                <Button onClick={handleSave}>
-                  <SaveIcon className="h-4 w-4 mr-2" />
-                  Save
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button variant="outline" onClick={handleEdit}>
-                  <EditIcon className="h-4 w-4 mr-2" />
-                  Edit
-                </Button>
-                <Button onClick={handleOpen}>
-                  <BookOpenIcon className="h-4 w-4 mr-2" />
-                  Open
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
+         <ActionsSection
+           isEditing={isEditing}
+           isGenerating={isGenerating}
+           onEdit={handleEdit}
+           onCancel={handleCancel}
+           onSave={handleSave}
+           onDelete={handleDelete}
+           onOpen={handleOpen}
+           onGenerateMetadata={handleGenerateMetadata}
+         />
       </DialogContent>
 
       <AlertDialog

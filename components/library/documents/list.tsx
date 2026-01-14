@@ -11,8 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { HeartIcon, BookOpenIcon, TrashIcon } from "lucide-react";
-import { LibraryDocument } from "@/lib/library";
-import { formatFileSize } from "@/lib/library/document-utils";
+import { formatFileSize, LibraryDocument } from "@/lib/library";
 
 interface DocumentListProps {
   documents: LibraryDocument[];
@@ -56,17 +55,20 @@ const DocumentListComponent = ({
     onFavoriteToggle?.(document);
   };
 
-  const handleDeleteClick = (e: React.MouseEvent, document: LibraryDocument) => {
+  const handleDeleteClick = (
+    e: React.MouseEvent,
+    document: LibraryDocument
+  ) => {
     e.stopPropagation(); // Prevent row click
     onDelete?.(document);
   };
 
   const handleSelectAll = () => {
-    const allSelected = documents.every(doc => selectedDocuments.has(doc.id));
+    const allSelected = documents.every((doc) => selectedDocuments.has(doc.id));
     if (allSelected) {
-      documents.forEach(doc => onToggleDocumentSelection?.(doc.id));
+      documents.forEach((doc) => onToggleDocumentSelection?.(doc.id));
     } else {
-      documents.forEach(doc => {
+      documents.forEach((doc) => {
         if (!selectedDocuments.has(doc.id)) {
           onToggleDocumentSelection?.(doc.id);
         }
@@ -74,7 +76,9 @@ const DocumentListComponent = ({
     }
   };
 
-  const allSelected = documents.length > 0 && documents.every(doc => selectedDocuments.has(doc.id));
+  const allSelected =
+    documents.length > 0 &&
+    documents.every((doc) => selectedDocuments.has(doc.id));
 
   return (
     <div className="rounded-md border">
@@ -105,14 +109,18 @@ const DocumentListComponent = ({
           {documents.map((document, index) => (
             <TableRow
               key={index}
-              className={`cursor-pointer hover:bg-muted/50 ${selectedDocuments.has(document.id) ? 'bg-muted' : ''}`}
+              className={`cursor-pointer hover:bg-muted/50 ${
+                selectedDocuments.has(document.id) ? "bg-muted" : ""
+              }`}
               onClick={() => handleRowClick(document)}
             >
               {selectionMode && (
                 <TableCell>
                   <Checkbox
                     checked={selectedDocuments.has(document.id)}
-                    onCheckedChange={() => onToggleDocumentSelection?.(document.id)}
+                    onCheckedChange={() =>
+                      onToggleDocumentSelection?.(document.id)
+                    }
                     onClick={(e) => e.stopPropagation()}
                   />
                 </TableCell>
@@ -132,9 +140,7 @@ const DocumentListComponent = ({
               </TableCell>
               <TableCell>{document.metadata.publicationYear || "-"}</TableCell>
               <TableCell>
-                <Badge variant="secondary">
-                  {document.metadata.doctype}
-                </Badge>
+                <Badge variant="secondary">{document.metadata.doctype}</Badge>
               </TableCell>
               <TableCell className="max-w-xs">
                 <div className="truncate" title={document.metadata.publisher}>

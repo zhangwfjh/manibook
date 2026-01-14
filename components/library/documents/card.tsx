@@ -1,8 +1,6 @@
-import React, { useMemo, memo, useCallback, useState } from "react";
-import Image from "next/image";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useMemo, memo, useCallback } from "react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Tooltip,
@@ -10,47 +8,13 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
-  UsersIcon,
   CalendarIcon,
-  HeartIcon,
-  BookOpenIcon,
-  TrashIcon,
 } from "lucide-react";
-import { LibraryDocument } from "@/lib/library";
-import {
-  formatFileSize,
-  getFormatIcon,
-  getCoverUrl,
-} from "@/lib/library/document-utils";
-import { useImageLoading } from "@/hooks/use-image-loading";
-
-interface DocumentCardProps {
-  library: string;
-  document: LibraryDocument;
-  onClick?: (document: LibraryDocument) => void;
-  onOpen?: (document: LibraryDocument) => void;
-  onFavoriteToggle?: (document: LibraryDocument) => void;
-  onDelete?: (document: LibraryDocument) => void;
-  selectionMode?: boolean;
-  selected?: boolean;
-  onToggleSelection?: (documentId: string) => void;
-}
+import { formatFileSize, getFormatIcon } from "@/lib/library";
+import { DocumentMetadata } from "./metadata";
+import { DocumentActions } from "./document-actions";
+import { DocumentImage } from "./document-image";
+import { DocumentDisplayProps } from "../types";
 
 const DocumentCardComponent = ({
   library,
@@ -62,15 +26,8 @@ const DocumentCardComponent = ({
   selectionMode = false,
   selected = false,
   onToggleSelection,
-}: DocumentCardProps) => {
+}: DocumentDisplayProps) => {
   const { metadata } = document;
-  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
-
-  // Memoize expensive computations
-  const coverUrl = useMemo(
-    () => getCoverUrl(library, document),
-    [library, document]
-  );
 
   const formattedFileSize = useMemo(
     () => (metadata.filesize ? formatFileSize(metadata.filesize) : null),
@@ -82,43 +39,13 @@ const DocumentCardComponent = ({
     [metadata.format]
   );
 
-  const handleOpenClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      onOpen?.(document);
-    },
-    [onOpen, document]
-  );
-
   const handleCardClick = useCallback(() => {
-    if (isConfirmingDelete) return;
     if (selectionMode) {
       onToggleSelection?.(document.id);
     } else {
       onClick?.(document);
     }
-  }, [isConfirmingDelete, onClick, document, selectionMode, onToggleSelection]);
-
-  const handleFavoriteClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      onFavoriteToggle?.(document);
-    },
-    [onFavoriteToggle, document]
-  );
-
-  // Lazy load images with intersection observer
-  const { isLoaded, hasError, observeImage, handleLoad, handleError } =
-    useImageLoading();
-  const imageRef = useCallback(
-    (img: HTMLImageElement) => {
-      observeImage(img, coverUrl);
-      if (!isLoaded(coverUrl) && !hasError(coverUrl)) {
-        handleLoad(coverUrl);
-      }
-    },
-    [coverUrl, isLoaded, hasError, observeImage, handleLoad]
-  );
+  }, [onClick, document, selectionMode, onToggleSelection]);
 
   return (
     <Card
@@ -139,80 +66,13 @@ const DocumentCardComponent = ({
       <div className="flex-1 flex flex-col min-w-0">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              <CardTitle className="text-lg leading-tight line-clamp-2">
-                {metadata.title ? metadata.title : "Untitled"}
-              </CardTitle>
-              <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
-                <UsersIcon className="h-4 w-4" />
-                <span className="line-clamp-1">
-                  {metadata.authors && metadata.authors.length > 0
-                    ? metadata.authors.join(", ")
-                    : "Unknown"}
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleOpenClick}
-                className="h-6 w-6 p-0"
-              >
-                <BookOpenIcon className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleFavoriteClick}
-                className={`h-6 w-6 p-0 ${
-                  metadata.favorite
-                    ? "text-red-500"
-                    : "text-muted-foreground hover:text-red-500"
-                }`}
-              >
-                <HeartIcon
-                  className={`h-4 w-4 ${
-                    metadata.favorite ? "fill-current" : ""
-                  }`}
-                />
-              </Button>
-              <AlertDialog onOpenChange={setIsConfirmingDelete}>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => e.stopPropagation()}
-                    className="h-6 w-6 p-0 text-muted-foreground hover:text-red-500"
-                  >
-                    <TrashIcon className="h-4 w-4" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete Document</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Are you sure you want to delete {"'"}
-                      {metadata.title || "this document"}
-                      {"'"}? This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDelete?.(document);
-                      }}
-                    >
-                      Delete
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-              <Badge variant="secondary">{metadata.doctype}</Badge>
-            </div>
+            <DocumentMetadata metadata={metadata} />
+            <DocumentActions
+              document={document}
+              onOpen={onOpen}
+              onFavoriteToggle={onFavoriteToggle}
+              onDelete={onDelete}
+            />
           </div>
           <div className="flex gap-5">
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
@@ -298,48 +158,7 @@ const DocumentCardComponent = ({
             )}
           </div>
 
-          <div className="shrink-0">
-            <HoverCard>
-              <HoverCardTrigger asChild>
-                <div className="cursor-pointer">
-                  <div className="bg-muted/50 blur-sm rounded animate-pulse" />
-                  <Image
-                    ref={imageRef}
-                    src={coverUrl}
-                    alt={`${metadata.title} cover`}
-                    width={150}
-                    height={200}
-                    className="object-cover rounded border shadow-sm hover:shadow-md transition-opacity duration-200"
-                    loading="lazy"
-                    unoptimized
-                    onLoad={() => handleLoad(coverUrl)}
-                    onError={(e) => {
-                      e.currentTarget.style.display = "none";
-                      handleError(coverUrl);
-                    }}
-                  />
-                </div>
-              </HoverCardTrigger>
-              <HoverCardContent
-                className="w-auto p-0 border-0 shadow-2xl"
-                side="right"
-                align="start"
-              >
-                <Image
-                  src={coverUrl}
-                  alt={`${metadata.title} cover`}
-                  width={480}
-                  height={640}
-                  className="object-cover rounded border shadow-lg"
-                  loading="eager"
-                  unoptimized
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                  }}
-                />
-              </HoverCardContent>
-            </HoverCard>
-          </div>
+           <DocumentImage library={library} document={document} />
         </CardContent>
       </div>
     </Card>

@@ -1,21 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-
-interface LLMProvider {
-  name: string;
-  type: 'OpenAI' | 'Ollama';
-  model: string;
-  baseURL: string;
-  apiKey?: string;
-}
-
-interface LLMSettings {
-  providers: LLMProvider[];
-  jobs: {
-    metadataExtraction: string;
-    imageTextExtraction: string;
-  };
-}
+import { LLMSettings } from '../types';
 
 export function loadLLMSettings(): LLMSettings {
   try {

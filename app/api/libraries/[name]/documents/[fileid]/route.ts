@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { validateLibraryAccess, dbDocumentToLibraryDocument, getLibraryPrisma } from '@/lib/library/api-utils';
-import { normalizeMetadata } from '@/lib/library/document-utils';
+import { validateLibraryAccess, dbDocumentToLibraryDocument, getLibraryPrisma, normalizeMetadata } from '@/lib/library/utils';
+import { DocumentMetadata } from '@/lib/library';
 
 export async function GET(
   request: NextRequest,
@@ -26,7 +26,7 @@ export async function GET(
       return NextResponse.json({ error: 'Document not found' }, { status: 404 });
     }
 
-    const document = dbDocumentToLibraryDocument(dbDoc, name);
+    const document = dbDocumentToLibraryDocument(dbDoc);
     return NextResponse.json({ document });
   } catch (error) {
     console.error('Error fetching document:', error);
@@ -54,7 +54,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Metadata is required' }, { status: 400 });
     }
 
-    const normalizedMetadata = normalizeMetadata(metadata);
+    const normalizedMetadata = normalizeMetadata(metadata as DocumentMetadata);
 
     const prisma = await getLibraryPrisma(name);
 
@@ -100,13 +100,13 @@ export async function PUT(
         counter++;
       }
 
-    const oldFilePath = path.join(libraryInfo.path, existingDoc.url.substring(6));
-    const newFilePath = path.join(categoryDir, newFilename);
-    const newUrl = `lib://` + `${folderPath}/${newFilename}`.replace(/\/+/g, '/');
-    fs.renameSync(oldFilePath, newFilePath);
+      const oldFilePath = path.join(libraryInfo.path, existingDoc.url.substring(6));
+      const newFilePath = path.join(categoryDir, newFilename);
+      const newUrl = `lib://` + `${folderPath}/${newFilename}`.replace(/\/+/g, '/');
+      fs.renameSync(oldFilePath, newFilePath);
 
-    updateData.filename = newFilename;
-    updateData.url = newUrl;
+      updateData.filename = newFilename;
+      updateData.url = newUrl;
     }
 
     const updatedDoc = await prisma.document.update({
@@ -114,7 +114,7 @@ export async function PUT(
       data: updateData
     });
 
-    const libraryDocument = dbDocumentToLibraryDocument(updatedDoc, name);
+    const libraryDocument = dbDocumentToLibraryDocument(updatedDoc);
     return NextResponse.json({ success: true, document: libraryDocument });
   } catch (error) {
     console.error('Error updating document:', error);

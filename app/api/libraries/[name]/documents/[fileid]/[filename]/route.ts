@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { validateLibraryAccess, getLibraryPrisma } from '@/lib/library/api-utils';
+import { validateLibraryAccess, getLibraryPrisma } from '@/lib/library/server';
 
 export async function GET(
   request: NextRequest,
@@ -9,7 +9,7 @@ export async function GET(
 ) {
   try {
     const { name, fileid } = await params;
-    
+
     // Validate library access
     const validation = await validateLibraryAccess(name);
     if (validation.error) {

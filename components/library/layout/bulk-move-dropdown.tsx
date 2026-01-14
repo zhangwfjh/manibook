@@ -10,6 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MoveIcon } from "lucide-react";
+import { DOCTYPE_OPTIONS } from "../types";
 
 interface BulkMoveDropdownProps {
   selectedCount: number;
@@ -24,8 +25,7 @@ export function BulkMoveDropdown({
   const [selectedMainCategory, setSelectedMainCategory] = useState("");
   const [selectedSubCategory, setSelectedSubCategory] = useState("");
 
-  // Fixed doctype options
-  const doctypes = ["Book", "Paper", "Report", "Manual", "Others"];
+  const doctypes = DOCTYPE_OPTIONS;
 
   const handleApply = () => {
     const category = selectedMainCategory

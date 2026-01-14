@@ -2,11 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { DocumentMetadata, Library } from '@/lib/library';
-import { extractMetadataFromFile } from '@/lib/library/metadata';
+import { extractMetadataFromFile } from '@/lib/library/documents/metadata-extractor';
 import crypto from 'crypto';
-import { loadLLMSettings } from '@/lib/library/llm-settings';
-import { validateLibraryAccess, dbDocumentToLibraryDocument, getLibraryPrisma } from '@/lib/library/api-utils';
-import { normalizeMetadata, toProperTitleCase } from '@/lib/library/document-utils';
+import { loadLLMSettings } from '@/lib/library/settings/llm';
+import { validateLibraryAccess, dbDocumentToLibraryDocument, getLibraryPrisma, normalizeMetadata, toProperTitleCase } from '@/lib/library/utils';
 
 interface LLMSettings {
   providers: Array<{
@@ -82,7 +81,7 @@ async function processFileImport(
       format: fileExtension.slice(1), // Remove the leading dot
     };
 
-    metadata = normalizeMetadata(metadata as unknown as Record<string, unknown>) as unknown as DocumentMetadata;
+    metadata = normalizeMetadata(metadata);
 
   } catch (error) {
     console.error('Error extracting metadata:', error);
@@ -401,7 +400,7 @@ export async function GET(
       },
     });
 
-    const documents = dbDocuments.map(dbDoc => dbDocumentToLibraryDocument(dbDoc, name));
+    const documents = dbDocuments.map(dbDoc => dbDocumentToLibraryDocument(dbDoc));
 
     const formatCounts: Record<string, number> = {};
     const keywordCounts: Record<string, number> = {};

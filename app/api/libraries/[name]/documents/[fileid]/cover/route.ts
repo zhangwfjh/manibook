@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateLibraryAccess, getLibraryPrisma } from '@/lib/library/api-utils';
+import { validateLibraryAccess, getLibraryPrisma } from '@/lib/library/utils';
 
 // Placeholder SVG for documents without covers
 const PLACEHOLDER_SVG = `<svg width="150" height="200" viewBox="0 0 150 200" fill="none" xmlns="http://www.w3.org/2000/svg">

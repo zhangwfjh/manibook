@@ -22,53 +22,34 @@ import { DocumentListSkeleton } from "@/components/library/documents/list-skelet
 import { Pagination } from "@/components/library/ui/pagination";
 import { LibraryDocument } from "@/lib/library";
 import { BookOpenIcon } from "lucide-react";
+import { useLibraryContext } from "@/contexts/LibraryContext";
 
 type ViewMode = "card" | "list";
 
-interface PaginationInfo {
-  page: number;
-  limit: number;
-  totalCount: number;
-  totalPages: number;
-  hasNextPage: boolean;
-  hasPrevPage: boolean;
-}
-
 interface ContentProps {
-  currentLibrary: string;
-  selectedCategory: string;
-  documents: LibraryDocument[];
   viewMode: ViewMode;
-  loading?: boolean;
-  pagination?: PaginationInfo | null;
   onDocumentClick: (document: LibraryDocument) => void;
-  onOpen: (document: LibraryDocument) => void;
-  onFavoriteToggle: (document: LibraryDocument) => void;
-  onDelete: (document: LibraryDocument) => void;
-  onBreadcrumbClick: (category: string) => void;
-  onPageChange?: (page: number) => void;
-  selectionMode?: boolean;
-  selectedDocuments?: Set<string>;
-  onToggleDocumentSelection?: (documentId: string) => void;
 }
 
 export function Content({
-  currentLibrary,
-  selectedCategory,
-  documents,
   viewMode,
-  loading = false,
-  pagination,
   onDocumentClick,
-  onOpen,
-  onFavoriteToggle,
-  onDelete,
-  onBreadcrumbClick,
-  onPageChange,
-  selectionMode = false,
-  selectedDocuments = new Set(),
-  onToggleDocumentSelection,
 }: ContentProps) {
+  const {
+    currentLibrary,
+    selectedCategory,
+    documents,
+    loading,
+    pagination,
+    handleOpen,
+    handleFavoriteToggle,
+    handleDocumentDelete,
+    loadPage,
+    selectionMode,
+    selectedDocuments,
+    handleToggleDocumentSelection,
+    setSelectedCategory,
+  } = useLibraryContext();
   const currentPage = pagination?.page || 1;
   const totalPages = pagination?.totalPages || 1;
   const hasNextPage = pagination?.hasNextPage || false;
@@ -78,7 +59,7 @@ export function Content({
   const paginatedItems = documents;
 
   const goToPage = (page: number) => {
-    onPageChange?.(page);
+    loadPage(page);
   };
 
   const useVirtualList = useMemo(() => {
@@ -109,7 +90,7 @@ export function Content({
                   href="#"
                   onClick={(e) => {
                     e.preventDefault();
-                    onBreadcrumbClick("");
+                    setSelectedCategory("");
                   }}
                   className="transition-colors hover:text-foreground"
                 >
@@ -133,7 +114,7 @@ export function Content({
                             const newCategory = array
                               .slice(0, index + 1)
                               .join(" > ");
-                            onBreadcrumbClick(newCategory);
+                            setSelectedCategory(newCategory);
                           }}
                           className="transition-colors hover:text-foreground"
                         >
@@ -189,12 +170,12 @@ export function Content({
                 library={currentLibrary}
                 document={document}
                 onClick={onDocumentClick}
-                onOpen={onOpen}
-                onFavoriteToggle={onFavoriteToggle}
-                onDelete={onDelete}
+                onOpen={handleOpen}
+                onFavoriteToggle={handleFavoriteToggle}
+                onDelete={handleDocumentDelete}
                 selectionMode={selectionMode}
                 selected={selectedDocuments.has(document.id)}
-                onToggleSelection={onToggleDocumentSelection}
+                onToggleSelection={handleToggleDocumentSelection}
               />
             ))}
           </div>
@@ -215,12 +196,12 @@ export function Content({
           <VirtualList
             documents={paginatedItems}
             onClick={onDocumentClick}
-            onOpen={onOpen}
-            onFavoriteToggle={onFavoriteToggle}
-            onDelete={onDelete}
+            onOpen={handleOpen}
+            onFavoriteToggle={handleFavoriteToggle}
+            onDelete={handleDocumentDelete}
             selectionMode={selectionMode}
             selectedDocuments={selectedDocuments}
-            onToggleDocumentSelection={onToggleDocumentSelection}
+            onToggleDocumentSelection={handleToggleDocumentSelection}
           />
 
           <Pagination
@@ -239,12 +220,12 @@ export function Content({
           <DocumentList
             documents={paginatedItems}
             onClick={onDocumentClick}
-            onOpen={onOpen}
-            onFavoriteToggle={onFavoriteToggle}
-            onDelete={onDelete}
+            onOpen={handleOpen}
+            onFavoriteToggle={handleFavoriteToggle}
+            onDelete={handleDocumentDelete}
             selectionMode={selectionMode}
             selectedDocuments={selectedDocuments}
-            onToggleDocumentSelection={onToggleDocumentSelection}
+            onToggleDocumentSelection={handleToggleDocumentSelection}
           />
 
           <Pagination

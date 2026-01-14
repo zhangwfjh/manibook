@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readLibraries, addLibrary, ensureLibraryStructure } from '@/lib/library';
+import { readLibraries, addLibrary, ensureLibraryStructure } from '@/lib/library/server';
 
 export async function GET() {
   try {

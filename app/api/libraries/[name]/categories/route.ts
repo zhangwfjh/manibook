@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { validateLibraryAccess, getLibraryPrisma, buildCategoryTreeFromAggregatedData } from '@/lib/library/api-utils';
+import { validateLibraryAccess, getLibraryPrisma, buildCategoryTreeFromAggregatedData } from '@/lib/library/utils';
 
 export async function GET(
   request: Request,

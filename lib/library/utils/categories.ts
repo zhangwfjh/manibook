@@ -1,9 +1,7 @@
-import { Document } from '../generated/prisma/client';
-import { LibraryDocument, LibraryCategory, getLibrary } from './index';
-import { getPrismaClient } from '../db';
+import { Document } from '../../generated/prisma/client';
+import { LibraryDocument, LibraryCategory } from '../types';
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function dbDocumentToLibraryDocument(dbDoc: Document, _library: string): LibraryDocument {
+export function dbDocumentToLibraryDocument(dbDoc: Document): LibraryDocument {
   const path = dbDoc.url.startsWith('lib://') ? dbDoc.url.substring(6) : dbDoc.url;
   return {
     id: dbDoc.id,
@@ -90,14 +88,6 @@ export function buildCategoryTree(documents: LibraryDocument[]): LibraryCategory
   return root.children;
 }
 
-export async function validateLibraryAccess(libraryName: string) {
-  const libraryInfo = await getLibrary(libraryName);
-  if (!libraryInfo) {
-    return { error: 'Library not found', status: 404 };
-  }
-  return { libraryInfo };
-}
-
 export function buildCategoryTreeFromAggregatedData(categoryData: Array<{
   doctype: string;
   category: string;
@@ -159,12 +149,4 @@ export function buildCategoryTreeFromAggregatedData(categoryData: Array<{
   });
 
   return root.children;
-}
-
-export async function getLibraryPrisma(libraryName: string) {
-  const validation = await validateLibraryAccess(libraryName);
-  if (validation.error) {
-    throw new Error(validation.error);
-  }
-  return getPrismaClient(validation.libraryInfo!.path);
 }
