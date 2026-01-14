@@ -2,7 +2,8 @@ import { Document } from '../generated/prisma/client';
 import { LibraryDocument, LibraryCategory, getLibrary } from './index';
 import { getPrismaClient } from '../db';
 
-export function dbDocumentToLibraryDocument(dbDoc: Document, library: string): LibraryDocument {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function dbDocumentToLibraryDocument(dbDoc: Document, _library: string): LibraryDocument {
   const path = dbDoc.url.startsWith('lib://') ? dbDoc.url.substring(6) : dbDoc.url;
   return {
     id: dbDoc.id,

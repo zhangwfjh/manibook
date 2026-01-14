@@ -104,7 +104,7 @@ export function BulkMoveDropdown({
                 id="sub-category"
                 value={selectedSubCategory}
                 onChange={(e) => setSelectedSubCategory(e.target.value)}
-                placeholder="Enter subcategory (optional)..."
+                placeholder="Enter subcategory..."
                 className="mt-1"
               />
             </div>

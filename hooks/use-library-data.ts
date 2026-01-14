@@ -1,15 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { LibraryDocument, LibraryCategory } from "@/lib/library";
 import { Library } from "@/lib/library";
-
-interface PaginationInfo {
-  page: number;
-  limit: number;
-  totalCount: number;
-  totalPages: number;
-  hasNextPage: boolean;
-  hasPrevPage: boolean;
-}
+import { PaginationInfo } from "@/lib/types/common";
 
 interface CacheEntry {
   documents: LibraryDocument[];

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { toast } from "sonner";
 import { DocumentDetailDialog } from "@/components/library/dialogs/detail-dialog";
 import { Sidebar } from "@/components/library/layout";
 import { Controls } from "@/components/library/layout";
@@ -25,9 +24,11 @@ import { useLibraryData } from "@/hooks/use-library-data";
 import { useDocumentFilters } from "@/hooks/use-document-filters";
 import { useDocumentSorting } from "@/hooks/use-document-sorting";
 import { useLibraryOperations } from "@/hooks/use-library-operations";
+import { useDocumentHandlers } from "@/hooks/use-document-handlers";
+import { useBulkOperations } from "@/hooks/use-bulk-operations";
 import { LibraryDocument } from "@/lib/library";
-
-type ViewMode = "card" | "list";
+import { ViewMode } from "@/lib/types/common";
+import { combineSearchParams } from "@/lib/utils/url-params";
 
 export default function Home() {
   const [viewMode, setViewMode] = useState<ViewMode>("card");
@@ -35,11 +36,6 @@ export default function Home() {
     useState<LibraryDocument | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
-  const [selectionMode, setSelectionMode] = useState(false);
-  const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(
-    new Set()
-  );
-  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
 
   // Custom hooks
   const {
@@ -113,222 +109,38 @@ export default function Home() {
     onLibrariesChange: refreshLibraries,
   });
 
-  // Event handlers
-  const handleOpen = useCallback(
-    (doc: LibraryDocument) => {
-      // Create a safe filename for download by combining title and format
-      const safeTitle = doc.metadata.title.replace(/[\/\\?%*:|"<>]/g, "_");
-      const filename = `${safeTitle}.${doc.metadata.format}`;
-      const fileUrl = `/api/libraries/${currentLibrary}/documents/${doc.id}/${filename}`;
-      window.open(fileUrl, "_blank");
-    },
-    [currentLibrary]
-  );
-
-  const handleDocumentDelete = useCallback(
-    async (document: LibraryDocument) => {
-      try {
-        await fetch(
-          `/api/libraries/${currentLibrary}/documents/${document.id}`,
-          {
-            method: "DELETE",
-          }
-        );
-      } catch (error) {
-        console.error("Error deleting document:", error);
-      }
-      const combinedParams = new URLSearchParams();
-      filterParams.forEach((value, key) => {
-        combinedParams.set(key, value);
-      });
-      sortParams.forEach((value, key) => {
-        combinedParams.set(key, value);
-      });
-      loadFilteredData(combinedParams, true);
-    },
-    [currentLibrary, filterParams, sortParams, loadFilteredData]
-  );
-
-  const handleDocumentUpdate = useCallback(
-    async (updatedDoc: LibraryDocument) => {
-      try {
-        const response = await fetch(
-          `/api/libraries/${currentLibrary}/documents/${updatedDoc.id}`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              metadata: updatedDoc.metadata,
-            }),
-          }
-        );
-        if (response.ok) {
-          const result = await response.json();
-          setSelectedDocument(result.document);
-          const combinedParams = new URLSearchParams();
-          filterParams.forEach((value, key) => {
-            combinedParams.set(key, value);
-          });
-          sortParams.forEach((value, key) => {
-            combinedParams.set(key, value);
-          });
-          loadFilteredData(combinedParams, true);
-        } else {
-          console.error("Error updating document");
-        }
-      } catch (error) {
-        console.error("Error updating document:", error);
-      }
-    },
-    [currentLibrary, filterParams, sortParams, loadFilteredData]
-  );
-
-  const handleFavoriteToggle = useCallback(
-    async (document: LibraryDocument) => {
-      try {
-        await fetch(
-          `/api/libraries/${currentLibrary}/documents/${document.id}`,
-          {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ favorite: !document.metadata.favorite }),
-          }
-        );
-      } catch (error) {
-        console.error("Error toggling favorite:", error);
-      }
-      const combinedParams = new URLSearchParams();
-      filterParams.forEach((value, key) => {
-        combinedParams.set(key, value);
-      });
-      sortParams.forEach((value, key) => {
-        combinedParams.set(key, value);
-      });
-      loadFilteredData(combinedParams, true);
-    },
-    [currentLibrary, filterParams, sortParams, loadFilteredData]
-  );
-
-  const handleToggleSelectionMode = useCallback(() => {
-    setSelectionMode((prev) => !prev);
-    setSelectedDocuments(new Set());
-  }, []);
-
-  const handleToggleDocumentSelection = useCallback((documentId: string) => {
-    setSelectedDocuments((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(documentId)) {
-        newSet.delete(documentId);
-      } else {
-        newSet.add(documentId);
-      }
-      return newSet;
-    });
-  }, []);
-
-  const handleSelectAllDocuments = useCallback(() => {
-    const allIds = documents.map((doc) => doc.id);
-    setSelectedDocuments(new Set(allIds));
-  }, [documents]);
-
-  const handleClearSelection = useCallback(() => {
-    setSelectedDocuments(new Set());
-  }, []);
-
-  const handleBulkDelete = useCallback(async () => {
-    if (selectedDocuments.size === 0) return;
-
-    try {
-      const response = await fetch(
-        `/api/libraries/${currentLibrary}/documents`,
-        {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ documentIds: Array.from(selectedDocuments) }),
-        }
-      );
-
-      const result = await response.json();
-
-      if (response.ok) {
-        toast.success(
-          `Successfully deleted ${result.deletedCount} document(s)`
-        );
-        setBulkDeleteDialogOpen(false);
-        setSelectedDocuments(new Set());
-        setSelectionMode(false);
-        const combinedParams = new URLSearchParams();
-        filterParams.forEach((value, key) => {
-          combinedParams.set(key, value);
-        });
-        sortParams.forEach((value, key) => {
-          combinedParams.set(key, value);
-        });
-        loadFilteredData(combinedParams, true);
-      } else {
-        toast.error(result.error || "Failed to delete documents");
-      }
-    } catch (error) {
-      console.error("Error bulk deleting documents:", error);
-      toast.error("Failed to delete documents");
-    }
-  }, [
-    selectedDocuments,
+  const { handleOpen, handleDocumentDelete, handleDocumentUpdate: baseHandleDocumentUpdate, handleFavoriteToggle } = useDocumentHandlers({
     currentLibrary,
     filterParams,
     sortParams,
     loadFilteredData,
-  ]);
+  });
 
-  const handleBulkMove = useCallback(
-    async (doctype: string, category: string) => {
-      if (selectedDocuments.size === 0) return;
+  const handleDocumentUpdate = useCallback(async (updatedDoc: LibraryDocument) => {
+    const resultDoc = await baseHandleDocumentUpdate(updatedDoc);
+    if (resultDoc) {
+      setSelectedDocument(resultDoc);
+    }
+  }, [baseHandleDocumentUpdate]);
 
-      try {
-        const response = await fetch(
-          `/api/libraries/${currentLibrary}/documents`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              documentIds: Array.from(selectedDocuments),
-              metadata: { doctype, category },
-            }),
-          }
-        );
-
-        const result = await response.json();
-
-        if (response.ok) {
-          toast.success(
-            `Successfully moved ${result.updatedCount} document(s)`
-          );
-          setSelectedDocuments(new Set());
-          setSelectionMode(false);
-          const combinedParams = new URLSearchParams();
-          filterParams.forEach((value, key) => {
-            combinedParams.set(key, value);
-          });
-          sortParams.forEach((value, key) => {
-            combinedParams.set(key, value);
-          });
-          loadFilteredData(combinedParams, true);
-        } else {
-          toast.error(result.error || "Failed to move documents");
-        }
-      } catch (error) {
-        console.error("Error bulk moving documents:", error);
-        toast.error("Failed to move documents");
-      }
-    },
-    [
-      selectedDocuments,
-      currentLibrary,
-      filterParams,
-      sortParams,
-      loadFilteredData,
-    ]
-  );
+  const {
+    selectionMode,
+    selectedDocuments,
+    bulkDeleteDialogOpen,
+    setBulkDeleteDialogOpen,
+    handleToggleSelectionMode,
+    handleToggleDocumentSelection,
+    handleSelectAllDocuments,
+    handleClearSelection,
+    handleBulkDelete,
+    handleBulkMove,
+  } = useBulkOperations({
+    documents,
+    currentLibrary,
+    filterParams,
+    sortParams,
+    loadFilteredData,
+  });
 
   const handleDocumentClick = useCallback(
     (document: LibraryDocument) => {
@@ -351,23 +163,16 @@ export default function Home() {
 
   useEffect(() => {
     if (currentLibrary) {
-      const combinedParams = new URLSearchParams();
-      filterParams.forEach((value, key) => {
-        combinedParams.set(key, value);
-      });
-      sortParams.forEach((value, key) => {
-        combinedParams.set(key, value);
-      });
+      const combinedParams = combineSearchParams(filterParams, sortParams);
       loadFilteredData(combinedParams);
     }
   }, [filterParams, sortParams, currentLibrary, loadFilteredData]);
 
   useEffect(() => {
     setTimeout(() => {
-      setSelectedDocuments(new Set());
-      setSelectionMode(false);
+      handleClearSelection();
     }, 0);
-  }, [currentLibrary, selectedCategory]);
+  }, [currentLibrary, selectedCategory, handleClearSelection]);
 
   return (
     <div className="min-h-screen bg-linear-to-br from-background via-background to-muted/10">
