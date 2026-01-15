@@ -2,13 +2,11 @@ import React, { createContext, useContext, ReactNode } from "react";
 import { LibraryDocument } from "@/lib/library";
 
 interface DialogContextType {
-  // Document detail dialog
   selectedDocument: LibraryDocument | null;
   setSelectedDocument: (document: LibraryDocument | null) => void;
   documentDialogOpen: boolean;
   setDocumentDialogOpen: (open: boolean) => void;
 
-  // Library dialogs
   createLibraryOpen: boolean;
   setCreateLibraryOpen: (open: boolean) => void;
   newLibraryName: string;
@@ -34,15 +32,12 @@ interface DialogContextType {
   archiveLibraryOpen: boolean;
   setArchiveLibraryOpen: (open: boolean) => void;
 
-  // Import dialog
   importDialogOpen: boolean;
   setImportDialogOpen: (open: boolean) => void;
 
-  // Bulk delete
   bulkDeleteDialogOpen: boolean;
   setBulkDeleteDialogOpen: (open: boolean) => void;
 
-  // Reset functions
   resetCreateDialog: () => void;
   resetRenameDialog: () => void;
   resetMoveDialog: () => void;
@@ -55,36 +50,28 @@ interface DialogProviderProps {
 }
 
 export function DialogProvider({ children }: DialogProviderProps) {
-  // Document detail dialog state
   const [selectedDocument, setSelectedDocument] =
     React.useState<LibraryDocument | null>(null);
   const [documentDialogOpen, setDocumentDialogOpen] = React.useState(false);
 
-  // Create library dialog state
   const [createLibraryOpen, setCreateLibraryOpen] = React.useState(false);
   const [newLibraryName, setNewLibraryName] = React.useState("");
   const [newLibraryPath, setNewLibraryPath] = React.useState("");
 
-  // Rename library dialog state
   const [renameLibraryOpen, setRenameLibraryOpen] = React.useState(false);
   const [selectedLibraryForOperation, setSelectedLibraryForOperation] =
     React.useState<{ name: string; path?: string }>({ name: "" });
   const [renameLibraryName, setRenameLibraryName] = React.useState("");
 
-  // Move library dialog state
   const [moveLibraryOpen, setMoveLibraryOpen] = React.useState(false);
   const [moveLibraryPath, setMoveLibraryPath] = React.useState("");
 
-  // Archive library dialog state
   const [archiveLibraryOpen, setArchiveLibraryOpen] = React.useState(false);
 
-  // Import dialog state
   const [importDialogOpen, setImportDialogOpen] = React.useState(false);
 
-  // Bulk delete dialog state
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = React.useState(false);
 
-  // Reset functions
   const resetCreateDialog = () => {
     setNewLibraryName("");
     setNewLibraryPath("");
@@ -104,13 +91,11 @@ export function DialogProvider({ children }: DialogProviderProps) {
   };
 
   const value: DialogContextType = {
-    // Document detail dialog
     selectedDocument,
     setSelectedDocument,
     documentDialogOpen,
     setDocumentDialogOpen,
 
-    // Library dialogs
     createLibraryOpen,
     setCreateLibraryOpen,
     newLibraryName,
@@ -133,15 +118,12 @@ export function DialogProvider({ children }: DialogProviderProps) {
     archiveLibraryOpen,
     setArchiveLibraryOpen,
 
-    // Import dialog
     importDialogOpen,
     setImportDialogOpen,
 
-    // Bulk delete
     bulkDeleteDialogOpen,
     setBulkDeleteDialogOpen,
 
-    // Reset functions
     resetCreateDialog,
     resetRenameDialog,
     resetMoveDialog,

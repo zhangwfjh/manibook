@@ -8,6 +8,7 @@ import { useDocumentSorting } from "@/hooks/use-document-sorting";
 import { useLibraryOperations } from "@/hooks/use-library-operations";
 import { useDocumentHandlers } from "@/hooks/use-document-handlers";
 import { useBulkOperations } from "@/hooks/use-bulk-operations";
+import { useDialogContext } from "@/contexts/DialogContext";
 
 interface LibraryContextType {
   currentLibrary: string;
@@ -114,12 +115,35 @@ export function LibraryProvider({ children }: LibraryProviderProps) {
   const libraryData = useLibraryData();
   const documentFilters = useDocumentFilters();
   const documentSorting = useDocumentSorting();
+  const dialogContext = useDialogContext();
 
   const libraryOperations = useLibraryOperations({
     currentLibrary: libraryData.currentLibrary,
     setCurrentLibrary: libraryData.setCurrentLibrary,
     libraries: libraryData.libraries,
     onLibrariesChange: libraryData.refreshLibraries,
+    // Pass dialog context states and setters
+    createLibraryOpen: dialogContext.createLibraryOpen,
+    setCreateLibraryOpen: dialogContext.setCreateLibraryOpen,
+    newLibraryName: dialogContext.newLibraryName,
+    setNewLibraryName: dialogContext.setNewLibraryName,
+    newLibraryPath: dialogContext.newLibraryPath,
+    setNewLibraryPath: dialogContext.setNewLibraryPath,
+    renameLibraryOpen: dialogContext.renameLibraryOpen,
+    setRenameLibraryOpen: dialogContext.setRenameLibraryOpen,
+    selectedLibraryForOperation: dialogContext.selectedLibraryForOperation,
+    setSelectedLibraryForOperation: dialogContext.setSelectedLibraryForOperation,
+    renameLibraryName: dialogContext.renameLibraryName,
+    setRenameLibraryName: dialogContext.setRenameLibraryName,
+    moveLibraryOpen: dialogContext.moveLibraryOpen,
+    setMoveLibraryOpen: dialogContext.setMoveLibraryOpen,
+    moveLibraryPath: dialogContext.moveLibraryPath,
+    setMoveLibraryPath: dialogContext.setMoveLibraryPath,
+    archiveLibraryOpen: dialogContext.archiveLibraryOpen,
+    setArchiveLibraryOpen: dialogContext.setArchiveLibraryOpen,
+    resetCreateDialog: dialogContext.resetCreateDialog,
+    resetRenameDialog: dialogContext.resetRenameDialog,
+    resetMoveDialog: dialogContext.resetMoveDialog,
   });
 
   const documentHandlers = useDocumentHandlers({

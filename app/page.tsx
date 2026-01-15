@@ -98,10 +98,10 @@ function HomeContent() {
 
 export default function Home() {
   return (
-    <LibraryProvider>
-      <DialogProvider>
+    <DialogProvider>
+      <LibraryProvider>
         <HomeContent />
-      </DialogProvider>
-    </LibraryProvider>
+      </LibraryProvider>
+    </DialogProvider>
   );
 }
