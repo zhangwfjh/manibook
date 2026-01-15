@@ -14,13 +14,14 @@ import {
   EmptyDescription,
   EmptyMedia,
 } from "@/components/ui/empty";
+import { Button } from "@/components/ui/button";
 import { DocumentCard } from "@/components/library/documents/card";
 import { DocumentList } from "@/components/library/documents/list";
 import { VirtualList } from "@/components/library/documents/virtual-list";
 import { DocumentCardSkeleton } from "@/components/library/documents/card-skeleton";
 import { DocumentListSkeleton } from "@/components/library/documents/list-skeleton";
 import { Pagination } from "@/components/library/ui/pagination";
-import { BookOpenIcon } from "lucide-react";
+import { BookOpenIcon, LibraryIcon } from "lucide-react";
 import { useLibraryContext } from "@/contexts/LibraryContext";
 import { useDocumentActionsContext } from "@/contexts/DocumentActionsContext";
 
@@ -41,6 +42,8 @@ export function Content({ viewMode }: ContentProps) {
     selectionMode,
     selectedDocuments,
     setSelectedCategory,
+    libraries,
+    setCreateLibraryOpen,
   } = useLibraryContext();
 
   const {
@@ -77,6 +80,29 @@ export function Content({ viewMode }: ContentProps) {
       goToPage(currentPage - 1);
     }
   };
+
+  if (libraries.length === 0) {
+    return (
+      <div className="flex-1 min-w-0">
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <LibraryIcon className="h-12 w-12" />
+            </EmptyMedia>
+            <EmptyTitle>Welcome to ManiBook</EmptyTitle>
+            <EmptyDescription>
+              Create your first library to start organizing your document collection with powerful search and filtering capabilities.
+            </EmptyDescription>
+          </EmptyHeader>
+          <div className="flex justify-center">
+            <Button onClick={() => setCreateLibraryOpen(true)}>
+              Create Library
+            </Button>
+          </div>
+        </Empty>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 min-w-0 space-y-6">
