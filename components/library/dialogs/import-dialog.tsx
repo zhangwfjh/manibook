@@ -3,20 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableHead,
-  TableRow,
-  TableCell,
-} from "@/components/ui/table";
-import {
-  Collapsible,
-  CollapsibleTrigger,
-  CollapsibleContent,
-} from "@/components/ui/collapsible";
+
 import {
   Dialog,
   DialogContent,
@@ -29,27 +16,16 @@ import {
   XIcon,
   PlusIcon,
   FileTextIcon,
-  ChevronDownIcon,
-  SaveIcon,
-  CheckCircle,
-  XCircle,
-  Trash2Icon,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useImportContext } from "@/contexts/ImportContext";
+import { ImportDrawer } from "@/components/ui/import-drawer";
 
 interface ImportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   currentLibrary: string;
   onImportComplete: () => void;
-}
-
-interface LogEntry {
-  filename: string;
-  path: string;
-  status: "success" | "failed";
-  error?: string;
-  timestamp: string;
 }
 
 export function ImportDialog({
@@ -60,10 +36,10 @@ export function ImportDialog({
 }: ImportDialogProps) {
   const [activeTab, setActiveTab] = useState("files");
   const [importing, setImporting] = useState(false);
-  const [importProgress, setImportProgress] = useState("");
-  const [importProgressPercent, setImportProgressPercent] = useState(0);
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [logsOpen, setLogsOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const { addBatch, updateItemStatus, clearBatch, currentBatch } =
+    useImportContext();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
@@ -71,50 +47,6 @@ export function ImportDialog({
 
   const [urls, setUrls] = useState<string[]>([""]);
   const [urlErrors, setUrlErrors] = useState<string[]>([]);
-
-  const addLog = useCallback(
-    (
-      filename: string,
-      path: string,
-      status: "success" | "failed",
-      error?: string
-    ) => {
-      const timestamp = new Date().toISOString();
-      setLogs((prev) => [
-        ...prev,
-        { filename, path, status, error, timestamp },
-      ]);
-    },
-    []
-  );
-
-  const downloadLogs = useCallback(() => {
-    const headers = ["Timestamp", "Filename", "Path", "Status", "Error"];
-    const csvContent = [
-      headers.join(","),
-      ...logs.map(
-        (log) =>
-          `${log.timestamp},"${log.filename}","${log.path}","${log.status}","${
-            log.error || ""
-          }"`
-      ),
-    ].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `import-logs-${new Date()
-      .toISOString()
-      .replace(/[:.]/g, "-")}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, [logs]);
-
-  const clearLogs = useCallback(() => {
-    setLogs([]);
-  }, []);
 
   const handleFileImport = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -134,24 +66,24 @@ export function ImportDialog({
         return;
       }
 
-      setLogs([]);
+      clearBatch();
 
+      const importItems = filteredFiles.map((file) => ({
+        filename: file.name,
+        status: "importing" as const,
+        abortController: new AbortController(),
+      }));
+
+      const batchId = addBatch(importItems);
+      setDrawerOpen(true);
       setImporting(true);
-      setImportProgressPercent(0);
-      setImportProgress(
-        `Importing ${filteredFiles.length} file${
-          filteredFiles.length > 1 ? "s" : ""
-        }...`
-      );
 
       let successCount = 0;
       let errorCount = 0;
 
       for (let i = 0; i < filteredFiles.length; i++) {
         const file = filteredFiles[i];
-        setImportProgress(
-          `Importing ${file.name} (${i + 1}/${filteredFiles.length})...`
-        );
+        const itemId = `${batchId}-item-${i}`;
 
         const formData = new FormData();
         formData.append("file", file);
@@ -162,37 +94,46 @@ export function ImportDialog({
             {
               method: "POST",
               body: formData,
+              signal: importItems[i].abortController?.signal,
             }
           );
 
+          const logPath = file.webkitRelativePath || file.name;
           if (response.ok) {
             successCount++;
-            addLog(file.name, file.webkitRelativePath || file.name, "success");
+            updateItemStatus(itemId, "success", {
+              completedAt: new Date(),
+              path: logPath,
+            });
           } else {
-            errorCount++;
             const errorText = await response.text();
-            addLog(
-              file.name,
-              file.webkitRelativePath || file.name,
-              "failed",
-              errorText
-            );
+            if (
+              errorText.toLowerCase().includes("file") ||
+              errorText.toLowerCase().includes("filename")
+            ) {
+              // Already imported, treat as success
+              successCount++;
+              updateItemStatus(itemId, "success", {
+                completedAt: new Date(),
+                path: logPath,
+              });
+            } else {
+              errorCount++;
+              updateItemStatus(itemId, "failed", { error: errorText });
+            }
           }
         } catch (error) {
-          errorCount++;
-          const errorMessage =
-            error instanceof Error ? error.message : String(error);
-          addLog(
-            file.name,
-            file.webkitRelativePath || file.name,
-            "failed",
-            errorMessage
-          );
-          console.error(`Error importing ${file.name}:`, error);
+          if (error instanceof Error && error.name === "AbortError") {
+            // Import was canceled
+            updateItemStatus(itemId, "canceled");
+          } else {
+            errorCount++;
+            const errorMessage =
+              error instanceof Error ? error.message : String(error);
+            updateItemStatus(itemId, "failed", { error: errorMessage });
+            console.error(`Error importing ${file.name}:`, error);
+          }
         }
-
-        const progress = Math.round(((i + 1) / filteredFiles.length) * 100);
-        setImportProgressPercent(progress);
       }
 
       onImportComplete();
@@ -205,7 +146,6 @@ export function ImportDialog({
       }
 
       setImporting(false);
-      setImportProgressPercent(0);
 
       if (errorCount === 0) {
         toast.success(
@@ -213,20 +153,15 @@ export function ImportDialog({
             successCount > 1 ? "s" : ""
           }!`
         );
-        setImportProgress(`All files imported successfully!`);
       } else if (successCount === 0) {
         toast.error(
           `Failed to import ${errorCount} file${errorCount > 1 ? "s" : ""}`
         );
-        setImportProgress(`Failed to import all files`);
       } else {
         toast.warning(`${successCount} imported, ${errorCount} failed`);
-        setImportProgress(`${successCount} imported, ${errorCount} failed`);
       }
-
-      setTimeout(() => setImportProgress(""), 3000);
     },
-    [currentLibrary, onImportComplete, addLog]
+    [currentLibrary, onImportComplete, clearBatch, addBatch, updateItemStatus]
   );
 
   const handleDrag = useCallback((e: React.DragEvent) => {
@@ -303,13 +238,17 @@ export function ImportDialog({
       return;
     }
 
-    setLogs([]);
+    clearBatch();
 
+    const importItems = validUrls.map((url) => ({
+      filename: url.split("/").pop() || "Unknown",
+      status: "importing" as const,
+      abortController: new AbortController(),
+    }));
+
+    const batchId = addBatch(importItems);
+    setDrawerOpen(true);
     setImporting(true);
-    setImportProgressPercent(0);
-    setImportProgress(
-      `Importing ${validUrls.length} URL${validUrls.length > 1 ? "s" : ""}...`
-    );
 
     try {
       const formData = new FormData();
@@ -326,13 +265,28 @@ export function ImportDialog({
       const result = await response.json();
 
       if (response.ok) {
-        const { successCount, errorCount, errors } = result;
-        if (errors && errors.length > 0) {
-          errors.forEach((err: { url: string; error: string }) => {
-            const filename = err.url.split("/").pop() || "Unknown";
-            addLog(filename, err.url, "failed", err.error);
-          });
-        }
+        const { errors } = result;
+
+        let successCount = 0;
+        let errorCount = 0;
+
+        // Update status for each URL
+        validUrls.forEach((url, index) => {
+          const itemId = `${batchId}-item-${index}`;
+          const urlError = errors?.find(
+            (err: { url: string }) => err.url === url
+          );
+          if (urlError) {
+            errorCount++;
+            updateItemStatus(itemId, "failed", { error: urlError.error });
+          } else {
+            successCount++;
+            updateItemStatus(itemId, "success", {
+              completedAt: new Date(),
+              path: url,
+            });
+          }
+        });
 
         onImportComplete();
 
@@ -342,13 +296,18 @@ export function ImportDialog({
               successCount > 1 ? "s" : ""
             }!`
           );
-          setImportProgress(`All documents imported successfully!`);
         } else {
           toast.warning(`${successCount} imported, ${errorCount} failed`);
-          setImportProgress(`${successCount} imported, ${errorCount} failed`);
 
           if (errors && errors.length > 0) {
-            toast.error(`Import error: ${errors[0].error}`);
+            const firstError = errors.find(
+              (err: { url: string; error: string }) =>
+                !err.error.toLowerCase().includes("file") &&
+                !err.error.toLowerCase().includes("filename")
+            );
+            if (firstError) {
+              toast.error(`Import error: ${firstError.error}`);
+            }
           }
         }
 
@@ -358,18 +317,25 @@ export function ImportDialog({
       } else {
         const error = result.error || "Import failed";
         toast.error(error);
-        setImportProgress("Import failed");
+        // Mark all as failed
+        validUrls.forEach((url, index) => {
+          const itemId = `${batchId}-item-${index}`;
+          updateItemStatus(itemId, "failed", { error: error });
+        });
       }
     } catch (error) {
       console.error("Error importing URLs:", error);
       toast.error("Import failed");
-      setImportProgress("Import failed");
+      // Mark all as failed
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      validUrls.forEach((url, index) => {
+        const itemId = `${batchId}-item-${index}`;
+        updateItemStatus(itemId, "failed", { error: errorMessage });
+      });
     }
 
     setImporting(false);
-    setImportProgressPercent(0);
-
-    setTimeout(() => setImportProgress(""), 3000);
   };
 
   const triggerFileImport = () => {
@@ -511,89 +477,21 @@ export function ImportDialog({
           </Button>
         )}
 
-        {importProgress && (
-          <div className="space-y-2">
-            <div className="text-sm text-blue-600 dark:text-blue-400">
-              {importing && (
-                <div className="flex items-center gap-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                  {importProgress}
-                </div>
-              )}
-              {!importing && importProgress}
-            </div>
-            {importing && importProgressPercent > 0 && (
-              <Progress value={importProgressPercent} className="w-full" />
-            )}
-          </div>
+        {!drawerOpen && currentBatch && (
+          <Button
+            onClick={() => setDrawerOpen(true)}
+            variant="outline"
+            className="w-full"
+          >
+            Show Import Progress
+          </Button>
         )}
 
-        {logs.length > 0 && (
-          <Collapsible open={logsOpen} onOpenChange={setLogsOpen}>
-            <CollapsibleTrigger asChild>
-              <Button variant="outline" className="w-full justify-between">
-                <span>Import Logs ({logs.length} entries)</span>
-                <ChevronDownIcon className="h-4 w-4 transition-transform duration-200" />
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="mt-2 space-y-2">
-              <div className="border rounded-md max-w-116 max-h-75 overflow-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="min-w-16">Status</TableHead>
-                      <TableHead className="min-w-24">Timestamp</TableHead>
-                      <TableHead className="min-w-20">Filename</TableHead>
-                      <TableHead className="min-w-24">Path</TableHead>
-                      <TableHead className="min-w-32">Error</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {logs.map((log, index) => (
-                      <TableRow key={index}>
-                        <TableCell>
-                          {log.status === "success" ? (
-                            <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
-                              <CheckCircle className="h-4 w-4" />
-                              Success
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-1 text-red-600 dark:text-red-400">
-                              <XCircle className="h-4 w-4" />
-                              Failed
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {log.timestamp}
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {log.filename}
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {log.path}
-                        </TableCell>
-                        <TableCell className="text-xs text-red-600 dark:text-red-400">
-                          {log.error || "-"}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" size="sm" onClick={clearLogs}>
-                  <Trash2Icon className="h-4 w-4 mr-2" />
-                  Clear
-                </Button>
-                <Button variant="outline" size="sm" onClick={downloadLogs}>
-                  <SaveIcon className="h-4 w-4 mr-2" />
-                  Save
-                </Button>
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        )}
+        <ImportDrawer
+          open={drawerOpen}
+          onOpenChange={setDrawerOpen}
+          currentLibrary={currentLibrary}
+        />
       </DialogContent>
     </Dialog>
   );

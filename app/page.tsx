@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { LibraryProvider, useLibraryContext } from "@/contexts/LibraryContext";
 import { DialogProvider, useDialogContext } from "@/contexts/DialogContext";
+import { ImportProvider } from "@/contexts/ImportContext";
 import { DocumentActionsProvider } from "@/contexts/DocumentActionsContext";
 import { Sidebar } from "@/components/library/layout/sidebar";
 import { Controls } from "@/components/library/layout/controls";
@@ -98,10 +99,12 @@ function HomeContent() {
 
 export default function Home() {
   return (
-    <DialogProvider>
-      <LibraryProvider>
-        <HomeContent />
-      </LibraryProvider>
-    </DialogProvider>
+    <ImportProvider>
+      <DialogProvider>
+        <LibraryProvider>
+          <HomeContent />
+        </LibraryProvider>
+      </DialogProvider>
+    </ImportProvider>
   );
 }
