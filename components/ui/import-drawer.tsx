@@ -245,7 +245,7 @@ export function ImportDrawer({
                             <>
                               <br />
                               <span className="text-muted-foreground mt-1">
-                                Imported to: {item.path}
+                                Imported from: {item.path}
                               </span>
                             </>
                           )}

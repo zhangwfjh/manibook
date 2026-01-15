@@ -105,10 +105,7 @@ export function ImportDialog({
             return { success: true, index };
           } else {
             const errorText = await response.text();
-            if (
-              errorText.toLowerCase().includes("file") ||
-              errorText.toLowerCase().includes("filename")
-            ) {
+            if (errorText.toLowerCase().includes("file already exists")) {
               // Already imported, treat as success
               updateItemStatus(itemId, "success", {
                 completedAt: new Date(),
@@ -314,8 +311,7 @@ export function ImportDialog({
           if (errors && errors.length > 0) {
             const firstError = errors.find(
               (err: { url: string; error: string }) =>
-                !err.error.toLowerCase().includes("file") &&
-                !err.error.toLowerCase().includes("filename")
+                !err.error.toLowerCase().includes("file already exists")
             );
             if (firstError) {
               toast.error(`Import error: ${firstError.error}`);
