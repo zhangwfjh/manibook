@@ -20,6 +20,7 @@ import {
 import { toast } from "sonner";
 import { useImportContext } from "@/contexts/ImportContext";
 import { ImportDrawer } from "@/components/ui/import-drawer";
+import { executeConcurrent } from "@/lib/utils/concurrency";
 
 interface ImportDialogProps {
   open: boolean;
@@ -78,12 +79,10 @@ export function ImportDialog({
       setDrawerOpen(true);
       setImporting(true);
 
-      let successCount = 0;
-      let errorCount = 0;
-
-      for (let i = 0; i < filteredFiles.length; i++) {
-        const file = filteredFiles[i];
-        const itemId = `${batchId}-item-${i}`;
+      // Create import tasks for concurrent processing
+      const importTasks = filteredFiles.map((file, index) => async () => {
+        const itemId = `${batchId}-item-${index}`;
+        const logPath = file.webkitRelativePath || file.name;
 
         const formData = new FormData();
         formData.append("file", file);
@@ -94,17 +93,16 @@ export function ImportDialog({
             {
               method: "POST",
               body: formData,
-              signal: importItems[i].abortController?.signal,
+              signal: importItems[index].abortController?.signal,
             }
           );
 
-          const logPath = file.webkitRelativePath || file.name;
           if (response.ok) {
-            successCount++;
             updateItemStatus(itemId, "success", {
               completedAt: new Date(),
               path: logPath,
             });
+            return { success: true, index };
           } else {
             const errorText = await response.text();
             if (
@@ -112,29 +110,43 @@ export function ImportDialog({
               errorText.toLowerCase().includes("filename")
             ) {
               // Already imported, treat as success
-              successCount++;
               updateItemStatus(itemId, "success", {
                 completedAt: new Date(),
                 path: logPath,
               });
+              return { success: true, index };
             } else {
-              errorCount++;
               updateItemStatus(itemId, "failed", { error: errorText });
+              return { success: false, index };
             }
           }
         } catch (error) {
           if (error instanceof Error && error.name === "AbortError") {
             // Import was canceled
             updateItemStatus(itemId, "canceled");
+            return { success: false, index, canceled: true };
           } else {
-            errorCount++;
             const errorMessage =
               error instanceof Error ? error.message : String(error);
             updateItemStatus(itemId, "failed", { error: errorMessage });
             console.error(`Error importing ${file.name}:`, error);
+            return { success: false, index };
           }
         }
-      }
+      });
+
+      const results = await executeConcurrent(importTasks);
+
+      // Count results
+      let successCount = 0;
+      let errorCount = 0;
+      results.forEach((result) => {
+        if (result.status === "fulfilled" && result.value.success) {
+          successCount++;
+        } else {
+          errorCount++;
+        }
+      });
 
       onImportComplete();
 
