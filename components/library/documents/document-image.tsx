@@ -39,6 +39,7 @@ export function DocumentImage({ library, document }: DocumentImageProps) {
           <div className="cursor-pointer">
             <div className="bg-muted/50 blur-sm rounded animate-pulse" />
             <Image
+              key={coverUrl}
               ref={imageRef}
               src={coverUrl}
               alt={`${metadata.title} cover`}
@@ -61,6 +62,7 @@ export function DocumentImage({ library, document }: DocumentImageProps) {
           align="start"
         >
           <Image
+            key={coverUrl}
             src={coverUrl}
             alt={`${metadata.title} cover`}
             width={480}
