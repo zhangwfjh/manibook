@@ -1,13 +1,12 @@
 import React, { memo, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { HeartIcon, BookOpenIcon, TrashIcon } from "lucide-react";
 import { formatFileSize } from "@/lib/library";
 import { DocumentMetadata } from "./metadata";
 import { DocumentDisplayProps } from "../types";
 
-interface DocumentRowProps extends Omit<DocumentDisplayProps, 'library'> {
+interface DocumentRowProps extends Omit<DocumentDisplayProps, "library"> {
   style?: React.CSSProperties;
 }
 
@@ -64,15 +63,6 @@ function DocumentRowComponent({
       style={style}
       onClick={handleClick}
     >
-      {selectionMode && (
-        <div className="w-10 shrink-0">
-          <Checkbox
-            checked={selected}
-            onCheckedChange={() => onToggleSelection?.(document.id)}
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
       <div className="flex-1 min-w-0">
         <DocumentMetadata metadata={metadata} compact />
       </div>

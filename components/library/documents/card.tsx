@@ -1,7 +1,6 @@
 import React, { useMemo, memo, useCallback } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Tooltip,
   TooltipContent,
@@ -52,15 +51,6 @@ const DocumentCardComponent = ({
       } ${selected ? "ring-2 ring-primary" : ""}`}
       onClick={handleCardClick}
     >
-      {selectionMode && (
-        <div className="absolute top-2 left-2 z-10">
-          <Checkbox
-            checked={selected}
-            onCheckedChange={() => onToggleSelection?.(document.id)}
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
       <div className="flex-1 flex flex-col min-w-0">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-2">
