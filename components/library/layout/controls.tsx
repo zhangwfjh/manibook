@@ -22,18 +22,15 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { BulkMoveDropdown } from "./bulk-move-dropdown";
 import { ViewMode, SORT_OPTIONS } from "../types";
 import { useLibraryContext } from "@/contexts/LibraryContext";
-
-interface ControlsProps {
-  viewMode: ViewMode;
-  onViewModeChange: (mode: ViewMode) => void;
-  onOpenImportDialog: () => void;
-}
+import { useDialogContext } from "@/contexts/DialogContext";
 
 export function Controls({
   viewMode,
   onViewModeChange,
-  onOpenImportDialog,
-}: ControlsProps) {
+}: {
+  viewMode: ViewMode;
+  onViewModeChange: (mode: ViewMode) => void;
+}) {
   const {
     searchQuery,
     setSearchQuery,
@@ -46,9 +43,10 @@ export function Controls({
     selectedDocuments,
     handleSelectAllDocuments,
     handleClearSelection,
-    setBulkDeleteDialogOpen,
     handleBulkMove,
   } = useLibraryContext();
+
+  const { setImportDialogOpen, setBulkDeleteDialogOpen } = useDialogContext();
   return (
     <div className="mb-6 space-y-4">
       <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
@@ -68,33 +66,45 @@ export function Controls({
         <div className="flex flex-wrap items-center gap-2">
           {selectionMode ? (
             <>
-            <Button variant="outline" size="sm" onClick={handleClearSelection}>
-              <XIcon className="h-4 w-4 mr-2" />
-              Clear
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleSelectAllDocuments}>
-              <CheckSquare2Icon className="h-4 w-4 mr-2" />
-              Select All
-            </Button>
-            {selectedDocuments.size > 0 && (
-              <>
-                <BulkMoveDropdown
-                  selectedCount={selectedDocuments.size}
-                  onBulkMove={handleBulkMove}
-                />
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => setBulkDeleteDialogOpen(true)}
-                >
-                  <TrashIcon className="h-4 w-4 mr-2" />
-                  Delete ({selectedDocuments.size})
-                </Button>
-              </>
-            )}
-            <Button variant="ghost" size="sm" onClick={handleToggleSelectionMode}>
-              Cancel
-            </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleClearSelection}
+              >
+                <XIcon className="h-4 w-4 mr-2" />
+                Clear
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSelectAllDocuments}
+              >
+                <CheckSquare2Icon className="h-4 w-4 mr-2" />
+                Select All
+              </Button>
+              {selectedDocuments.size > 0 && (
+                <>
+                  <BulkMoveDropdown
+                    selectedCount={selectedDocuments.size}
+                    onBulkMove={handleBulkMove}
+                  />
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setBulkDeleteDialogOpen(true)}
+                  >
+                    <TrashIcon className="h-4 w-4 mr-2" />
+                    Delete ({selectedDocuments.size})
+                  </Button>
+                </>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleToggleSelectionMode}
+              >
+                Cancel
+              </Button>
             </>
           ) : (
             <>
@@ -106,13 +116,13 @@ export function Controls({
                 <SelectTrigger className="w-48">
                   <SelectValue placeholder="Sort by..." />
                 </SelectTrigger>
-                 <SelectContent>
-                   {SORT_OPTIONS.map(option => (
-                     <SelectItem key={option.value} value={option.value}>
-                       {option.label}
-                     </SelectItem>
-                   ))}
-                 </SelectContent>
+                <SelectContent>
+                  {SORT_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
               <Button
                 variant={viewMode === "card" ? "default" : "outline"}
@@ -133,7 +143,7 @@ export function Controls({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={onOpenImportDialog}
+                onClick={() => setImportDialogOpen(true)}
                 disabled={libraries.length === 0}
               >
                 <UploadIcon className="h-4 w-4 mr-2" />

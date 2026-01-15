@@ -2,73 +2,53 @@
 
 import { useState, useEffect } from "react";
 import { LibraryProvider, useLibraryContext } from "@/contexts/LibraryContext";
-import { HomeHeader } from "@/components/HomeHeader";
-import { HomeMain } from "@/components/HomeMain";
-import { HomeDialogs } from "@/components/HomeDialogs";
+import { DialogProvider, useDialogContext } from "@/contexts/DialogContext";
+import { DocumentActionsProvider } from "@/contexts/DocumentActionsContext";
+import { Sidebar } from "@/components/library/layout/sidebar";
+import { Controls } from "@/components/library/layout/controls";
+import { Content } from "@/components/library/core/content";
+import { DialogManager } from "@/components/library/dialogs/dialog-manager";
 import { useHomeHandlers } from "@/hooks/use-home-handlers";
-import { LibraryDocument } from "@/lib/library";
 import { ViewMode } from "@/lib/types/common";
 
 function HomeContent() {
   const [viewMode, setViewMode] = useState<ViewMode>("card");
-  const [selectedDocument, setSelectedDocument] =
-    useState<LibraryDocument | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const {
     currentLibrary,
     selectedCategory,
     selectionMode,
-    selectedDocuments,
     setSelectedCategory,
     handleClearSelection,
     combinedParams,
     loadFilteredData,
-    // Dialog props
-    createLibraryOpen,
-    setCreateLibraryOpen,
-    newLibraryName,
-    setNewLibraryName,
-    newLibraryPath,
-    setNewLibraryPath,
-    handleCreateLibrary,
-    resetCreateDialog,
-    renameLibraryOpen,
-    setRenameLibraryOpen,
-    selectedLibraryForOperation,
-    renameLibraryName,
-    setRenameLibraryName,
-    handleRenameLibrary,
-    resetRenameDialog,
-    moveLibraryOpen,
-    setMoveLibraryOpen,
-    moveLibraryPath,
-    setMoveLibraryPath,
-    handleMoveLibrary,
-    resetMoveDialog,
-    archiveLibraryOpen,
-    setArchiveLibraryOpen,
-    handleArchiveLibrary,
-    refreshLibraryData,
-    bulkDeleteDialogOpen,
-    setBulkDeleteDialogOpen,
-    handleBulkDelete,
     handleOpen,
     handleDocumentDelete,
     handleToggleDocumentSelection,
+    handleFavoriteToggle,
   } = useLibraryContext();
+
+  const { setSelectedDocument, setDocumentDialogOpen } = useDialogContext();
 
   const {
     handleDocumentClick,
     handleDocumentUpdate: handleDocumentUpdateWrapper,
   } = useHomeHandlers(
     setSelectedDocument,
-    setDialogOpen,
+    setDocumentDialogOpen,
     selectionMode,
     handleToggleDocumentSelection,
     setSelectedCategory
   );
+
+  const documentActionsValue = {
+    handleOpen,
+    handleFavoriteToggle,
+    handleDocumentDelete,
+    handleDocumentUpdate: handleDocumentUpdateWrapper,
+    handleToggleDocumentSelection,
+    onDocumentClick: handleDocumentClick,
+  };
 
   useEffect(() => {
     if (currentLibrary) {
@@ -83,67 +63,45 @@ function HomeContent() {
   }, [currentLibrary, selectedCategory, handleClearSelection]);
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-background via-background to-muted/10">
-      <div className="container mx-auto px-6 py-8">
-        <HomeHeader />
+    <DocumentActionsProvider value={documentActionsValue}>
+      <div className="min-h-screen bg-linear-to-br from-background via-background to-muted/10">
+        <div className="container mx-auto px-6 py-8">
+          {/* Header */}
+          <div className="mb-8 space-y-6">
+            <div className="space-y-2">
+              <h1 className="text-4xl font-bold tracking-tight bg-linear-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                ManiBook
+              </h1>
+              <p className="text-muted-foreground text-lg max-w-md">
+                Organize and browse your collection of books with powerful
+                search and filtering
+              </p>
+            </div>
+          </div>
 
-        <HomeMain
-          viewMode={viewMode}
-          setViewMode={setViewMode}
-          setImportDialogOpen={setImportDialogOpen}
-          handleDocumentClick={handleDocumentClick}
-        />
+          {/* Main */}
+          <div className="flex gap-10 lg:gap-12">
+            <Sidebar />
+            <div className="flex-1 min-w-0">
+              <Controls viewMode={viewMode} onViewModeChange={setViewMode} />
+              <Content viewMode={viewMode} />
+            </div>
+          </div>
 
-        <HomeDialogs
-          selectedDocument={selectedDocument}
-          dialogOpen={dialogOpen}
-          setDialogOpen={setDialogOpen}
-          onOpen={handleOpen}
-          onDelete={handleDocumentDelete}
-          handleDocumentUpdate={handleDocumentUpdateWrapper}
-          createLibraryOpen={createLibraryOpen}
-          setCreateLibraryOpen={setCreateLibraryOpen}
-          newLibraryName={newLibraryName}
-          setNewLibraryName={setNewLibraryName}
-          newLibraryPath={newLibraryPath}
-          setNewLibraryPath={setNewLibraryPath}
-          handleCreateLibrary={handleCreateLibrary}
-          resetCreateDialog={resetCreateDialog}
-          renameLibraryOpen={renameLibraryOpen}
-          setRenameLibraryOpen={setRenameLibraryOpen}
-          currentName={selectedLibraryForOperation.name}
-          renameLibraryName={renameLibraryName}
-          setRenameLibraryName={setRenameLibraryName}
-          handleRenameLibrary={handleRenameLibrary}
-          resetRenameDialog={resetRenameDialog}
-          moveLibraryOpen={moveLibraryOpen}
-          setMoveLibraryOpen={setMoveLibraryOpen}
-          currentPath={selectedLibraryForOperation.path || ""}
-          moveLibraryPath={moveLibraryPath}
-          setMoveLibraryPath={setMoveLibraryPath}
-          handleMoveLibrary={handleMoveLibrary}
-          resetMoveDialog={resetMoveDialog}
-          archiveLibraryOpen={archiveLibraryOpen}
-          setArchiveLibraryOpen={setArchiveLibraryOpen}
-          currentLibrary={currentLibrary}
-          handleArchiveLibrary={handleArchiveLibrary}
-          importDialogOpen={importDialogOpen}
-          setImportDialogOpen={setImportDialogOpen}
-          onImportComplete={refreshLibraryData}
-          bulkDeleteDialogOpen={bulkDeleteDialogOpen}
-          setBulkDeleteDialogOpen={setBulkDeleteDialogOpen}
-          selectedDocuments={selectedDocuments}
-          handleBulkDelete={handleBulkDelete}
-        />
+          {/* Dialogs */}
+          <DialogManager />
+        </div>
       </div>
-    </div>
+    </DocumentActionsProvider>
   );
 }
 
 export default function Home() {
   return (
     <LibraryProvider>
-      <HomeContent />
+      <DialogProvider>
+        <HomeContent />
+      </DialogProvider>
     </LibraryProvider>
   );
 }

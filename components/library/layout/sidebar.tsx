@@ -7,42 +7,22 @@ import { useLibraryContext } from "@/contexts/LibraryContext";
 
 export function Sidebar() {
   const {
-    libraries,
-    currentLibrary,
-    categories,
-    selectedCategory,
     selectedKeywords,
     selectedFormats,
     selectedAuthors,
     selectedPublishers,
     showFavoritesOnly,
     filterOptions,
-    setCurrentLibrary,
-    setSelectedCategory,
-    setCreateLibraryOpen,
-    handleOpenRenameDialog,
-    handleOpenMoveDialog,
-    handleOpenArchiveDialog,
     setSelectedKeywords,
     setSelectedFormats,
     setSelectedAuthors,
     setSelectedPublishers,
     setShowFavoritesOnly,
   } = useLibraryContext();
+
   return (
     <div className="w-80 shrink-0 space-y-6">
-      <Shelf
-        libraries={libraries}
-        currentLibrary={currentLibrary}
-        categories={categories}
-        selectedCategory={selectedCategory}
-        onLibrarySelect={setCurrentLibrary}
-        onCategorySelect={setSelectedCategory}
-        onCreateLibrary={() => setCreateLibraryOpen(true)}
-        onRenameLibrary={handleOpenRenameDialog}
-        onMoveLibrary={handleOpenMoveDialog}
-        onArchiveLibrary={handleOpenArchiveDialog}
-      />
+      <Shelf />
 
       <Separator />
 

@@ -22,19 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { LibraryCategory } from "@/lib/library";
 import { Library } from "@/lib/library";
-
-interface ShelfProps {
-  libraries: Library[];
-  currentLibrary: string;
-  categories: LibraryCategory[];
-  selectedCategory: string;
-  onLibrarySelect: (libraryName: string) => void;
-  onCategorySelect: (categoryPath: string) => void;
-  onCreateLibrary: () => void;
-  onRenameLibrary: (libraryName: string) => void;
-  onMoveLibrary: (libraryName: string, currentPath: string) => void;
-  onArchiveLibrary: (libraryName: string) => void;
-}
+import { useLibraryContext } from "@/contexts/LibraryContext";
 
 interface LibraryNodeProps {
   library: Library;
@@ -246,24 +234,26 @@ function LibraryNode({
   );
 }
 
-export function Shelf({
-  libraries,
-  currentLibrary,
-  categories,
-  selectedCategory,
-  onLibrarySelect,
-  onCategorySelect,
-  onCreateLibrary,
-  onRenameLibrary,
-  onMoveLibrary,
-  onArchiveLibrary: onArchiveLibrary,
-}: ShelfProps) {
+export function Shelf() {
+  const {
+    libraries,
+    currentLibrary,
+    categories,
+    selectedCategory,
+    setCurrentLibrary,
+    setSelectedCategory,
+    setCreateLibraryOpen,
+    handleOpenRenameDialog,
+    handleOpenMoveDialog,
+    handleOpenArchiveDialog,
+  } = useLibraryContext();
+
   const [expandedLibraries, setExpandedLibraries] = useState<Set<string>>(
     new Set([currentLibrary])
   );
 
   const handleLibraryToggle = (libraryName: string) => {
-    onLibrarySelect(libraryName);
+    setCurrentLibrary(libraryName);
 
     setExpandedLibraries((prev) => {
       const newSet = new Set(prev);
@@ -295,10 +285,10 @@ export function Shelf({
                 library.name === currentLibrary ? selectedCategory : ""
               }
               onToggleExpanded={handleLibraryToggle}
-              onCategorySelect={onCategorySelect}
-              onRenameLibrary={onRenameLibrary}
-              onMoveLibrary={onMoveLibrary}
-              onArchiveLibrary={onArchiveLibrary}
+              onCategorySelect={setSelectedCategory}
+              onRenameLibrary={handleOpenRenameDialog}
+              onMoveLibrary={handleOpenMoveDialog}
+              onArchiveLibrary={handleOpenArchiveDialog}
             />
           ))}
 
@@ -306,7 +296,7 @@ export function Shelf({
             variant="ghost"
             size="sm"
             className="w-full justify-start h-8 text-left text-muted-foreground"
-            onClick={onCreateLibrary}
+            onClick={() => setCreateLibraryOpen(true)}
           >
             <PlusIcon className="h-4 w-4 mr-1" />
             Create New Library

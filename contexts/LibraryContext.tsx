@@ -1,13 +1,13 @@
-import React, { createContext, useContext, ReactNode } from 'react';
-import { LibraryDocument, Library } from '@/lib/library';
-import { LibraryCategory } from '@/lib/library';
-import { PaginationInfo } from '@/lib/types/common';
-import { useLibraryData } from '@/hooks/use-library-data';
-import { useDocumentFilters } from '@/hooks/use-document-filters';
-import { useDocumentSorting } from '@/hooks/use-document-sorting';
-import { useLibraryOperations } from '@/hooks/use-library-operations';
-import { useDocumentHandlers } from '@/hooks/use-document-handlers';
-import { useBulkOperations } from '@/hooks/use-bulk-operations';
+import React, { createContext, useContext, ReactNode } from "react";
+import { LibraryDocument, Library } from "@/lib/library";
+import { LibraryCategory } from "@/lib/library";
+import { PaginationInfo } from "@/lib/types/common";
+import { useLibraryData } from "@/hooks/use-library-data";
+import { useDocumentFilters } from "@/hooks/use-document-filters";
+import { useDocumentSorting } from "@/hooks/use-document-sorting";
+import { useLibraryOperations } from "@/hooks/use-library-operations";
+import { useDocumentHandlers } from "@/hooks/use-document-handlers";
+import { useBulkOperations } from "@/hooks/use-bulk-operations";
 
 interface LibraryContextType {
   currentLibrary: string;
@@ -24,7 +24,10 @@ interface LibraryContextType {
   loadPage: (page: number, filters?: URLSearchParams) => Promise<void>;
   loadNextPage: () => Promise<void>;
   loadPrevPage: () => Promise<void>;
-  loadFilteredData: (params: URLSearchParams, forceRefresh?: boolean) => Promise<void>;
+  loadFilteredData: (
+    params: URLSearchParams,
+    forceRefresh?: boolean
+  ) => Promise<void>;
   refreshLibraries: () => Promise<void>;
   refreshLibraryData: () => Promise<void>;
   filterOptions: Record<string, Record<string, number>>;
@@ -82,7 +85,9 @@ interface LibraryContextType {
 
   handleOpen: (doc: LibraryDocument) => void;
   handleDocumentDelete: (document: LibraryDocument) => Promise<void>;
-  handleDocumentUpdate: (updatedDoc: LibraryDocument) => Promise<LibraryDocument | undefined>;
+  handleDocumentUpdate: (
+    updatedDoc: LibraryDocument
+  ) => Promise<LibraryDocument | undefined>;
   handleFavoriteToggle: (document: LibraryDocument) => Promise<void>;
 
   selectionMode: boolean;
@@ -96,7 +101,6 @@ interface LibraryContextType {
   handleBulkDelete: () => Promise<void>;
   handleBulkMove: (doctype: string, category: string) => Promise<void>;
 
-  // Additional computed values
   combinedParams: URLSearchParams;
 }
 
@@ -135,7 +139,9 @@ export function LibraryProvider({ children }: LibraryProviderProps) {
 
   const combinedParams = React.useMemo(() => {
     const params = new URLSearchParams();
-    documentFilters.filterParams.forEach((value, key) => params.set(key, value));
+    documentFilters.filterParams.forEach((value, key) =>
+      params.set(key, value)
+    );
     documentSorting.sortParams.forEach((value, key) => params.set(key, value));
     return params;
   }, [documentFilters.filterParams, documentSorting.sortParams]);
@@ -151,16 +157,14 @@ export function LibraryProvider({ children }: LibraryProviderProps) {
   };
 
   return (
-    <LibraryContext.Provider value={value}>
-      {children}
-    </LibraryContext.Provider>
+    <LibraryContext.Provider value={value}>{children}</LibraryContext.Provider>
   );
 }
 
 export function useLibraryContext(): LibraryContextType {
   const context = useContext(LibraryContext);
   if (context === undefined) {
-    throw new Error('useLibraryContext must be used within a LibraryProvider');
+    throw new Error("useLibraryContext must be used within a LibraryProvider");
   }
   return context;
 }

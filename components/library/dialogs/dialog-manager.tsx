@@ -12,110 +12,64 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { LibraryDocument } from "@/lib/library";
+import { useDialogContext } from "@/contexts/DialogContext";
+import { useLibraryContext } from "@/contexts/LibraryContext";
+import { useDocumentActionsContext } from "@/contexts/DocumentActionsContext";
 
-interface HomeDialogsProps {
-  // Document detail
-  selectedDocument: LibraryDocument | null;
-  dialogOpen: boolean;
-  setDialogOpen: (open: boolean) => void;
-  onOpen: (doc: LibraryDocument) => void;
-  onDelete: (document: LibraryDocument) => Promise<void>;
-  handleDocumentUpdate: (updatedDoc: LibraryDocument) => Promise<void>;
+export function DialogManager() {
+  const {
+    selectedDocument,
+    documentDialogOpen,
+    setDocumentDialogOpen,
+    createLibraryOpen,
+    setCreateLibraryOpen,
+    newLibraryName,
+    setNewLibraryName,
+    newLibraryPath,
+    setNewLibraryPath,
+    renameLibraryOpen,
+    setRenameLibraryOpen,
+    selectedLibraryForOperation,
+    renameLibraryName,
+    setRenameLibraryName,
+    moveLibraryOpen,
+    setMoveLibraryOpen,
+    moveLibraryPath,
+    setMoveLibraryPath,
+    archiveLibraryOpen,
+    setArchiveLibraryOpen,
+    importDialogOpen,
+    setImportDialogOpen,
+    bulkDeleteDialogOpen,
+    setBulkDeleteDialogOpen,
+    resetCreateDialog,
+    resetRenameDialog,
+    resetMoveDialog,
+  } = useDialogContext();
 
-  // Library dialogs
-  createLibraryOpen: boolean;
-  setCreateLibraryOpen: (open: boolean) => void;
-  newLibraryName: string;
-  setNewLibraryName: (name: string) => void;
-  newLibraryPath: string;
-  setNewLibraryPath: (path: string) => void;
-  handleCreateLibrary: () => Promise<void>;
-  resetCreateDialog: () => void;
+  const {
+    currentLibrary,
+    handleCreateLibrary,
+    handleRenameLibrary,
+    handleMoveLibrary,
+    handleArchiveLibrary,
+    refreshLibraryData,
+    selectedDocuments,
+    handleBulkDelete,
+  } = useLibraryContext();
 
-  renameLibraryOpen: boolean;
-  setRenameLibraryOpen: (open: boolean) => void;
-  currentName: string;
-  renameLibraryName: string;
-  setRenameLibraryName: (name: string) => void;
-  handleRenameLibrary: () => Promise<void>;
-  resetRenameDialog: () => void;
+  const { handleOpen, handleDocumentDelete, handleDocumentUpdate } =
+    useDocumentActionsContext();
 
-  moveLibraryOpen: boolean;
-  setMoveLibraryOpen: (open: boolean) => void;
-  currentPath: string;
-  moveLibraryPath: string;
-  setMoveLibraryPath: (path: string) => void;
-  handleMoveLibrary: () => Promise<void>;
-  resetMoveDialog: () => void;
-
-  archiveLibraryOpen: boolean;
-  setArchiveLibraryOpen: (open: boolean) => void;
-  currentLibrary: string;
-  handleArchiveLibrary: () => Promise<void>;
-
-  // Import dialog
-  importDialogOpen: boolean;
-  setImportDialogOpen: (open: boolean) => void;
-  onImportComplete: () => Promise<void>;
-
-  // Bulk delete
-  bulkDeleteDialogOpen: boolean;
-  setBulkDeleteDialogOpen: (open: boolean) => void;
-  selectedDocuments: Set<string>;
-  handleBulkDelete: () => Promise<void>;
-}
-
-export function HomeDialogs({
-  selectedDocument,
-  dialogOpen,
-  setDialogOpen,
-  onOpen,
-  onDelete,
-  handleDocumentUpdate,
-  createLibraryOpen,
-  setCreateLibraryOpen,
-  newLibraryName,
-  setNewLibraryName,
-  newLibraryPath,
-  setNewLibraryPath,
-  handleCreateLibrary,
-  resetCreateDialog,
-  renameLibraryOpen,
-  setRenameLibraryOpen,
-  currentName,
-  renameLibraryName,
-  setRenameLibraryName,
-  handleRenameLibrary,
-  resetRenameDialog,
-  moveLibraryOpen,
-  setMoveLibraryOpen,
-  currentPath,
-  moveLibraryPath,
-  setMoveLibraryPath,
-  handleMoveLibrary,
-  resetMoveDialog,
-  archiveLibraryOpen,
-  setArchiveLibraryOpen,
-  currentLibrary,
-  handleArchiveLibrary,
-  importDialogOpen,
-  setImportDialogOpen,
-  onImportComplete,
-  bulkDeleteDialogOpen,
-  setBulkDeleteDialogOpen,
-  selectedDocuments,
-  handleBulkDelete,
-}: HomeDialogsProps) {
   return (
     <>
       <DocumentDetailDialog
         library={currentLibrary}
         document={selectedDocument}
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        onOpen={onOpen}
-        onDelete={onDelete}
+        open={documentDialogOpen}
+        onOpenChange={setDocumentDialogOpen}
+        onOpen={handleOpen}
+        onDelete={handleDocumentDelete}
         onUpdate={handleDocumentUpdate}
       />
 
@@ -135,7 +89,7 @@ export function HomeDialogs({
         mode="rename"
         open={renameLibraryOpen}
         onOpenChange={setRenameLibraryOpen}
-        currentName={currentName}
+        currentName={selectedLibraryForOperation.name}
         name={renameLibraryName}
         onNameChange={setRenameLibraryName}
         onSubmit={handleRenameLibrary}
@@ -146,7 +100,7 @@ export function HomeDialogs({
         mode="move"
         open={moveLibraryOpen}
         onOpenChange={setMoveLibraryOpen}
-        currentPath={currentPath}
+        currentPath={selectedLibraryForOperation.path || ""}
         path={moveLibraryPath}
         onPathChange={setMoveLibraryPath}
         onSubmit={handleMoveLibrary}
@@ -164,7 +118,7 @@ export function HomeDialogs({
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
         currentLibrary={currentLibrary}
-        onImportComplete={onImportComplete}
+        onImportComplete={refreshLibraryData}
       />
 
       <AlertDialog

@@ -20,36 +20,36 @@ import { VirtualList } from "@/components/library/documents/virtual-list";
 import { DocumentCardSkeleton } from "@/components/library/documents/card-skeleton";
 import { DocumentListSkeleton } from "@/components/library/documents/list-skeleton";
 import { Pagination } from "@/components/library/ui/pagination";
-import { LibraryDocument } from "@/lib/library";
 import { BookOpenIcon } from "lucide-react";
 import { useLibraryContext } from "@/contexts/LibraryContext";
+import { useDocumentActionsContext } from "@/contexts/DocumentActionsContext";
 
 type ViewMode = "card" | "list";
 
 interface ContentProps {
   viewMode: ViewMode;
-  onDocumentClick: (document: LibraryDocument) => void;
 }
 
-export function Content({
-  viewMode,
-  onDocumentClick,
-}: ContentProps) {
+export function Content({ viewMode }: ContentProps) {
   const {
     currentLibrary,
     selectedCategory,
     documents,
     loading,
     pagination,
-    handleOpen,
-    handleFavoriteToggle,
-    handleDocumentDelete,
     loadPage,
     selectionMode,
     selectedDocuments,
-    handleToggleDocumentSelection,
     setSelectedCategory,
   } = useLibraryContext();
+
+  const {
+    handleOpen,
+    handleFavoriteToggle,
+    handleDocumentDelete,
+    handleToggleDocumentSelection,
+    onDocumentClick,
+  } = useDocumentActionsContext();
   const currentPage = pagination?.page || 1;
   const totalPages = pagination?.totalPages || 1;
   const hasNextPage = pagination?.hasNextPage || false;
