@@ -7,9 +7,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  CalendarIcon,
-} from "lucide-react";
+import { CalendarIcon } from "lucide-react";
 import { formatFileSize, getFormatIcon } from "@/lib/library";
 import { DocumentMetadata } from "./metadata";
 import { DocumentActions } from "./document-actions";
@@ -98,7 +96,7 @@ const DocumentCardComponent = ({
         </CardHeader>
 
         <CardContent className="flex flex-row gap-4 justify-between">
-          <div className="space-y-4">
+          <div className="flex flex-col justify-between space-y-4">
             {metadata.abstract ? (
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -122,7 +120,7 @@ const DocumentCardComponent = ({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="flex flex-wrap gap-1 cursor-help">
-                    {metadata.keywords.slice(0, 5).map((keyword, index) => (
+                    {metadata.keywords.slice(0, 4).map((keyword, index) => (
                       <Badge
                         key={index}
                         variant="secondary"
@@ -131,9 +129,9 @@ const DocumentCardComponent = ({
                         {keyword}
                       </Badge>
                     ))}
-                    {metadata.keywords.length > 5 && (
+                    {metadata.keywords.length > 4 && (
                       <Badge variant="secondary" className="text-xs">
-                        +{metadata.keywords.length - 5}
+                        +{metadata.keywords.length - 4}
                       </Badge>
                     )}
                   </div>
@@ -158,7 +156,7 @@ const DocumentCardComponent = ({
             )}
           </div>
 
-           <DocumentImage library={library} document={document} />
+          <DocumentImage library={library} document={document} />
         </CardContent>
       </div>
     </Card>
