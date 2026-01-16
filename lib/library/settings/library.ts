@@ -21,6 +21,7 @@ export async function readLibrarySettings(): Promise<LibrarySettings> {
 
 export async function writeLibrarySettings(settings: LibrarySettings): Promise<void> {
   try {
+    await fs.mkdir(path.dirname(LIBRARY_SETTINGS_FILE), { recursive: true });
     await fs.writeFile(LIBRARY_SETTINGS_FILE, JSON.stringify(settings, null, 2));
   } catch (error) {
     console.error('Error writing library settings:', error);

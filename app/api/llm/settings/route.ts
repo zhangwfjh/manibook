@@ -36,6 +36,7 @@ function loadLLMSettings(): LLMSettings {
 function saveLLMSettings(settings: LLMSettings): void {
   try {
     const settingsPath = path.join(process.cwd(), 'settings/llm.json');
+    fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
     fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
     console.log('LLM settings saved');
   } catch (error) {
