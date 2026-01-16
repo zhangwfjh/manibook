@@ -101,8 +101,7 @@ async function retryFailedItems(
   );
 
   if (failedUrls.length === 0) {
-    // Show toast that only URL retries are supported
-    // For now, just return
+    // No failed URL imports to retry
     return;
   }
 
@@ -179,14 +178,17 @@ export function ImportDrawer({
               size="sm"
               onClick={() => {
                 if (currentBatch) {
-                  currentBatch.items.forEach(item => {
-                    if (item.status === 'importing') {
+                  currentBatch.items.forEach((item) => {
+                    if (item.status === "importing") {
                       cancelItem(item.id);
                     }
                   });
                 }
               }}
-              disabled={!currentBatch || !currentBatch.items.some(item => item.status === 'importing')}
+              disabled={
+                !currentBatch ||
+                !currentBatch.items.some((item) => item.status === "importing")
+              }
             >
               <BanIcon className="h-4 w-4 mr-2" />
               Cancel All
@@ -194,8 +196,18 @@ export function ImportDrawer({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => retryFailedItems(currentBatch, currentLibrary, updateItemStatus)}
-              disabled={!currentBatch || !currentBatch.items.some(item => item.status === 'failed')}
+              onClick={() =>
+                retryFailedItems(currentBatch, currentLibrary, updateItemStatus)
+              }
+              disabled={
+                !currentBatch ||
+                !currentBatch.items.some(
+                  (item) =>
+                    item.status === "failed" &&
+                    item.path &&
+                    item.path.startsWith("http")
+                )
+              }
             >
               <RotateCcwIcon className="h-4 w-4 mr-2" />
               Retry Failed

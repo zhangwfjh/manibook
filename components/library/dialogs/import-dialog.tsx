@@ -287,7 +287,10 @@ export function ImportDialog({
           );
           if (urlError) {
             errorCount++;
-            updateItemStatus(itemId, "failed", { error: urlError.error });
+            updateItemStatus(itemId, "failed", {
+              error: urlError.error,
+              path: url,
+            });
           } else {
             successCount++;
             updateItemStatus(itemId, "success", {
@@ -328,7 +331,7 @@ export function ImportDialog({
         // Mark all as failed
         validUrls.forEach((url, index) => {
           const itemId = `${batchId}-item-${index}`;
-          updateItemStatus(itemId, "failed", { error: error });
+          updateItemStatus(itemId, "failed", { error: error, path: url });
         });
       }
     } catch (error) {
@@ -339,7 +342,7 @@ export function ImportDialog({
         error instanceof Error ? error.message : String(error);
       validUrls.forEach((url, index) => {
         const itemId = `${batchId}-item-${index}`;
-        updateItemStatus(itemId, "failed", { error: errorMessage });
+        updateItemStatus(itemId, "failed", { error: errorMessage, path: url });
       });
     }
 
