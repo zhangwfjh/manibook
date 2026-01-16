@@ -100,9 +100,10 @@ async function processFileImport(
   const safeTitle = metadata.title.replace(/[\/\\?%*:|"<>]/g, '_');
   let newFilename = `${safeTitle}${fileExtension}`;
 
-  // Ensure filename uniqueness
+  // Ensure filename uniqueness on filesystem and in database
   let counter = 1;
-  while (fs.existsSync(path.join(categoryDir, newFilename))) {
+  while (fs.existsSync(path.join(categoryDir, newFilename)) ||
+    await prisma.document.findFirst({ where: { filename: newFilename } })) {
     newFilename = `${safeTitle}_${counter}${fileExtension}`;
     counter++;
   }
@@ -676,7 +677,8 @@ export async function PUT(
           const safeTitle = document.title.replace(/[\/\\?%*:|"<>]/g, '_');
           let newFilename = `${safeTitle}${fileExtension}`;
           let counter = 1;
-          while (fs.existsSync(path.join(categoryDir, newFilename))) {
+          while (fs.existsSync(path.join(categoryDir, newFilename)) ||
+            await prisma.document.findFirst({ where: { filename: newFilename } })) {
             newFilename = `${safeTitle}_${counter}${fileExtension}`;
             counter++;
           }

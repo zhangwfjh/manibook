@@ -95,7 +95,8 @@ export async function PUT(
       const safeTitle = newTitle.replace(/[\/\\?%*:|"<>]/g, '_');
       let newFilename = `${safeTitle}${fileExtension}`;
       let counter = 1;
-      while (fs.existsSync(path.join(categoryDir, newFilename))) {
+      while (fs.existsSync(path.join(categoryDir, newFilename)) ||
+        await prisma.document.findFirst({ where: { filename: newFilename } })) {
         newFilename = `${safeTitle}_${counter}${fileExtension}`;
         counter++;
       }
