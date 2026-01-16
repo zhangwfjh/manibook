@@ -7,6 +7,7 @@ export function useDocumentFilters() {
   const [selectedFormats, setSelectedFormats] = useState<string[]>([]);
   const [selectedAuthors, setSelectedAuthors] = useState<string[]>([]);
   const [selectedPublishers, setSelectedPublishers] = useState<string[]>([]);
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
   // Use debounced search for the search query
@@ -41,6 +42,10 @@ export function useDocumentFilters() {
       params.set('publishers', selectedPublishers.join(','));
     }
 
+    if (selectedLanguages.length > 0) {
+      params.set('languages', selectedLanguages.join(','));
+    }
+
     if (debouncedSearchQuery) {
       params.set('search', debouncedSearchQuery);
     }
@@ -50,7 +55,7 @@ export function useDocumentFilters() {
     }
 
     return params;
-  }, [selectedCategory, selectedKeywords, selectedFormats, selectedAuthors, selectedPublishers, debouncedSearchQuery, showFavoritesOnly]);
+  }, [selectedCategory, selectedKeywords, selectedFormats, selectedAuthors, selectedPublishers, selectedLanguages, debouncedSearchQuery, showFavoritesOnly]);
 
   const resetFilters = useCallback(() => {
     setSelectedCategory("");
@@ -58,6 +63,7 @@ export function useDocumentFilters() {
     setSelectedFormats([]);
     setSelectedAuthors([]);
     setSelectedPublishers([]);
+    setSelectedLanguages([]);
     setSearchQuery("");
     setShowFavoritesOnly(false);
   }, [setSearchQuery]);
@@ -65,8 +71,8 @@ export function useDocumentFilters() {
   // Check if any filters are active
   const hasActiveFilters = useMemo(() => {
     return !!(selectedCategory || selectedKeywords.length || selectedFormats.length ||
-      selectedAuthors.length || selectedPublishers.length || searchQuery || showFavoritesOnly);
-  }, [selectedCategory, selectedKeywords, selectedFormats, selectedAuthors, selectedPublishers, searchQuery, showFavoritesOnly]);
+      selectedAuthors.length || selectedPublishers.length || selectedLanguages.length || searchQuery || showFavoritesOnly);
+  }, [selectedCategory, selectedKeywords, selectedFormats, selectedAuthors, selectedPublishers, selectedLanguages, searchQuery, showFavoritesOnly]);
 
   return {
     selectedCategory,
@@ -79,6 +85,8 @@ export function useDocumentFilters() {
     setSelectedAuthors,
     selectedPublishers,
     setSelectedPublishers,
+    selectedLanguages,
+    setSelectedLanguages,
     searchQuery,
     setSearchQuery,
     showFavoritesOnly,

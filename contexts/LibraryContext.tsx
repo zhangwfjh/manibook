@@ -31,7 +31,9 @@ interface LibraryContextType {
   ) => Promise<void>;
   refreshLibraries: () => Promise<void>;
   refreshLibraryData: () => Promise<void>;
-  filterOptions: Record<string, Record<string, number>>;
+  filterOptions: Record<string, Record<string, number>> & {
+    languages?: Record<string, number>;
+  };
 
   selectedCategory: string;
   setSelectedCategory: (category: string) => void;
@@ -43,6 +45,8 @@ interface LibraryContextType {
   setSelectedAuthors: (authors: string[]) => void;
   selectedPublishers: string[];
   setSelectedPublishers: (publishers: string[]) => void;
+  selectedLanguages: string[];
+  setSelectedLanguages: (languages: string[]) => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   showFavoritesOnly: boolean;

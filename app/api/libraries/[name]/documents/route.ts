@@ -238,6 +238,7 @@ export async function GET(
     const formats = searchParams.get('formats')?.split(',').filter(Boolean) || [];
     const authors = searchParams.get('authors')?.split(',').filter(Boolean) || [];
     const publishers = searchParams.get('publishers')?.split(',').filter(Boolean) || [];
+    const languages = searchParams.get('languages')?.split(',').filter(Boolean) || [];
     const showFavoritesOnly = searchParams.get('favoritesOnly') === 'true';
 
     // Sorting parameters
@@ -313,6 +314,13 @@ export async function GET(
     if (publishers.length > 0) {
       whereConditions.publisher = {
         in: publishers
+      };
+    }
+
+    // Languages filtering
+    if (languages.length > 0) {
+      whereConditions.language = {
+        in: languages
       };
     }
 
@@ -399,6 +407,7 @@ export async function GET(
         keywords: true,
         authors: true,
         publisher: true,
+        language: true,
       },
     });
 
@@ -408,6 +417,7 @@ export async function GET(
     const keywordCounts: Record<string, number> = {};
     const authorCounts: Record<string, number> = {};
     const publisherCounts: Record<string, number> = {};
+    const languageCounts: Record<string, number> = {};
 
     for (const doc of allDbDocuments) {
       if (doc.format) {
@@ -442,6 +452,10 @@ export async function GET(
       if (doc.publisher) {
         publisherCounts[doc.publisher] = (publisherCounts[doc.publisher] || 0) + 1;
       }
+
+      if (doc.language) {
+        languageCounts[doc.language] = (languageCounts[doc.language] || 0) + 1;
+      }
     }
 
     const filterOptions = {
@@ -449,6 +463,7 @@ export async function GET(
       keywords: keywordCounts,
       authors: authorCounts,
       publishers: publisherCounts,
+      languages: languageCounts,
     };
 
     // Calculate pagination info

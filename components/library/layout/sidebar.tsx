@@ -11,12 +11,14 @@ export function Sidebar() {
     selectedFormats,
     selectedAuthors,
     selectedPublishers,
+    selectedLanguages,
     showFavoritesOnly,
     filterOptions,
     setSelectedKeywords,
     setSelectedFormats,
     setSelectedAuthors,
     setSelectedPublishers,
+    setSelectedLanguages,
     setShowFavoritesOnly,
   } = useLibraryContext();
 
@@ -68,6 +70,13 @@ export function Sidebar() {
         selectedItems={selectedPublishers}
         onItemsChange={setSelectedPublishers}
         filterOptions={filterOptions.publishers}
+      />
+
+      <Filter
+        title="Languages"
+        selectedItems={selectedLanguages}
+        onItemsChange={setSelectedLanguages}
+        filterOptions={filterOptions.languages || {}}
       />
     </div>
   );
