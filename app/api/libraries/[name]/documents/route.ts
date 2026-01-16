@@ -321,7 +321,7 @@ export async function GET(
       whereConditions.favorite = true;
     }
 
-    // Search query filtering (full-text search across title, authors, keywords, publisher)
+    // Search query filtering (full-text search across title, authors, keywords, publisher, abstract)
     if (searchQuery) {
       const searchCondition = {
         OR: [
@@ -329,6 +329,7 @@ export async function GET(
           { authors: { contains: searchQuery } },
           { keywords: { contains: searchQuery } },
           { publisher: { contains: searchQuery } },
+          { abstract: { contains: searchQuery } },
         ]
       };
 

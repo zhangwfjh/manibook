@@ -57,7 +57,7 @@ export function Controls({
             <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           )}
           <Input
-            placeholder="Search by title, author, publisher, or keywords..."
+            placeholder="Search by title, author, publisher, keywords, or abstract..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 transition-all duration-200 focus:ring-2 focus:ring-ring focus:ring-offset-2"
