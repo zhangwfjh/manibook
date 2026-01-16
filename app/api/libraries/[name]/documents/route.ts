@@ -27,22 +27,15 @@ async function processFileImport(
   libraryInfo: Library,
   llmSettings: LLMSettings
 ) {
-  // Validate file type
   const allowedExtensions = ['.pdf', '.epub', '.djvu'];
   const fileExtension = path.extname(file.name).toLowerCase();
   if (!allowedExtensions.includes(fileExtension)) {
     throw new Error('Unsupported file type');
   }
 
-  // Get file buffer
   const buffer = Buffer.from(await file.arrayBuffer());
-
-  // Compute SHA256 hash
   const hash = crypto.createHash('sha256').update(buffer).digest('hex');
-
   const prisma = await getLibraryPrisma(libraryName);
-
-  // Check if file already exists
   const existingDoc = await prisma.document.findFirst({
     where: { hash }
   });
@@ -50,10 +43,8 @@ async function processFileImport(
     throw new Error('File already exists');
   }
 
-  // Use library root directory
   const libraryDir = libraryInfo.path;
 
-  // Generate AI-powered metadata
   let metadata: DocumentMetadata;
   let cover: Uint8Array | null = null;
   let numPages = 0;
@@ -88,31 +79,29 @@ async function processFileImport(
     throw new Error(`File parse failed ${error}`);
   }
 
-  // Parse category for folder structure
   const categoryParts = metadata.category.split('>').map(part => part.trim()).filter(part => part);
   const folderPath = [metadata.doctype, ...categoryParts.slice(0, 2)].join('/'); // doctype + 2-level category folders
   const categoryDir = path.join(libraryDir, folderPath);
 
-  // Ensure category directory exists
-  fs.mkdirSync(categoryDir, { recursive: true });
-
-  // Generate filename from title
+  await fs.promises.mkdir(categoryDir, { recursive: true });
   const safeTitle = metadata.title.replace(/[\/\\?%*:|"<>]/g, '_');
   let newFilename = `${safeTitle}${fileExtension}`;
 
-  // Ensure filename uniqueness on filesystem and in database
   let counter = 1;
-  while (fs.existsSync(path.join(categoryDir, newFilename)) ||
-    await prisma.document.findFirst({ where: { filename: newFilename } })) {
+  while (true) {
+    try {
+      await fs.promises.access(path.join(categoryDir, newFilename));
+    } catch {
+      const existingDoc = await prisma.document.findFirst({ where: { filename: newFilename } });
+      if (!existingDoc) break; // Unique
+    }
     newFilename = `${safeTitle}_${counter}${fileExtension}`;
     counter++;
   }
 
-  // Save file to final location
   const finalFilePath = path.join(categoryDir, newFilename);
-  fs.writeFileSync(finalFilePath, buffer);
+  await fs.promises.writeFile(finalFilePath, buffer);
 
-  // Save to database
   const url = `lib://` + `${folderPath}/${newFilename}`.replace(/\/+/g, '/');
   await prisma.document.create({
     data: {
@@ -150,14 +139,12 @@ async function processUrlImport(
   libraryInfo: Library,
   llmSettings: LLMSettings
 ) {
-  // Validate URL format
   try {
     new URL(url);
   } catch {
     throw new Error('Invalid URL format');
   }
 
-  // Download file from URL with timeout
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
 
@@ -176,12 +163,10 @@ async function processUrlImport(
     const contentType = response.headers.get('content-type') || '';
     const contentLength = response.headers.get('content-length');
 
-    // Check file size limit (100MB)
     if (contentLength && parseInt(contentLength) > 100 * 1024 * 1024) {
       throw new Error('File too large (max 100MB)');
     }
 
-    // Get file extension from URL or content-type
     let fileExtension = path.extname(new URL(url).pathname).toLowerCase();
     if (!fileExtension) {
       if (contentType.includes('pdf')) fileExtension = '.pdf';
@@ -190,20 +175,15 @@ async function processUrlImport(
       else throw new Error('Unable to determine file type from URL');
     }
 
-    // Validate file type
     const allowedExtensions = ['.pdf', '.epub', '.djvu'];
     if (!allowedExtensions.includes(fileExtension)) {
       throw new Error('Unsupported file type. Only PDF, EPUB, and DJVU are supported');
     }
 
-    // Get file buffer
     const buffer = Buffer.from(await response.arrayBuffer());
     clearTimeout(timeoutId);
-
-    // Create a File-like object for processing
     const file = new File([buffer], `imported${fileExtension}`, { type: contentType });
 
-    // Process the downloaded file
     return await processFileImport(file, libraryName, libraryInfo, llmSettings);
 
   } catch (error) {
@@ -226,12 +206,10 @@ export async function GET(
     const { name } = await params;
     const { searchParams } = new URL(request.url);
 
-    // Pagination parameters
     const page = parseInt(searchParams.get('page') || '1');
     const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 200); // Max 200 per page
     const offset = (page - 1) * limit;
 
-    // Filter parameters
     const category = searchParams.get('category');
     const searchQuery = searchParams.get('search');
     const keywords = searchParams.get('keywords')?.split(',').filter(Boolean) || [];
@@ -241,11 +219,9 @@ export async function GET(
     const languages = searchParams.get('languages')?.split(',').filter(Boolean) || [];
     const showFavoritesOnly = searchParams.get('favoritesOnly') === 'true';
 
-    // Sorting parameters
     const sortBy = searchParams.get('sortBy') || 'createdAt-desc';
     const [sortField, sortOrder] = sortBy.split('-');
 
-    // Validate library access
     const validation = await validateLibraryAccess(name);
     if (validation.error) {
       return NextResponse.json({ error: validation.error }, { status: validation.status });
@@ -253,7 +229,6 @@ export async function GET(
 
     const prisma = await getLibraryPrisma(name);
 
-    // Build WHERE conditions for filtering
     type WhereCondition = Record<string, unknown>;
     type WhereConditions = {
       AND?: WhereCondition[];
@@ -262,9 +237,7 @@ export async function GET(
     };
     const whereConditions: WhereConditions = {};
 
-    // Category filtering
     if (category) {
-      // Handle the new category structure: category includes doctype prefix
       const categoryParts = category.split(" > ");
       if (categoryParts.length >= 1) {
         const selectedDoctype = categoryParts[0];
@@ -279,7 +252,6 @@ export async function GET(
       }
     }
 
-    // Keywords filtering (JSON array contains any of the selected keywords)
     if (keywords.length > 0) {
       whereConditions.OR = keywords.map(keyword => ({
         keywords: {
@@ -288,14 +260,12 @@ export async function GET(
       }));
     }
 
-    // Format filtering
     if (formats.length > 0) {
       whereConditions.format = {
         in: formats.map(f => f.toLowerCase())
       };
     }
 
-    // Authors filtering (JSON array contains any of the selected authors)
     if (authors.length > 0) {
       const authorConditions = authors.map(author => ({
         authors: {
@@ -310,26 +280,22 @@ export async function GET(
       }
     }
 
-    // Publishers filtering
     if (publishers.length > 0) {
       whereConditions.publisher = {
         in: publishers
       };
     }
 
-    // Languages filtering
     if (languages.length > 0) {
       whereConditions.language = {
         in: languages
       };
     }
 
-    // Favorites filtering
     if (showFavoritesOnly) {
       whereConditions.favorite = true;
     }
 
-    // Search query filtering (full-text search across title, authors, keywords, publisher, abstract)
     if (searchQuery) {
       const searchCondition = {
         OR: [
@@ -341,14 +307,12 @@ export async function GET(
         ]
       };
 
-      // Always combine search with other conditions using AND
       if (!whereConditions.AND) {
         whereConditions.AND = [];
       }
       whereConditions.AND.push(searchCondition);
     }
 
-    // Build ORDER BY clause
     let orderBy: Record<string, 'asc' | 'desc'> | Record<string, 'asc' | 'desc'>[] = { createdAt: 'desc' }; // default
     const sortOrderTyped = sortOrder as 'asc' | 'desc';
     switch (sortField) {
@@ -388,10 +352,8 @@ export async function GET(
         break;
     }
 
-    // Get total count for pagination
     const totalCount = await prisma.document.count({ where: whereConditions });
 
-    // Fetch paginated documents from database
     const dbDocuments = await prisma.document.findMany({
       where: whereConditions,
       orderBy,
@@ -399,32 +361,48 @@ export async function GET(
       take: limit,
     });
 
-    // Fetch ALL matching documents for filter aggregation
-    const allDbDocuments = await prisma.document.findMany({
-      where: whereConditions,
-      select: {
-        format: true,
-        keywords: true,
-        authors: true,
-        publisher: true,
-        language: true,
-      },
-    });
-
     const documents = dbDocuments.map(dbDoc => dbDocumentToLibraryDocument(dbDoc));
 
-    const formatCounts: Record<string, number> = {};
+    const formatCountsResult = await prisma.document.groupBy({
+      by: ['format'],
+      where: whereConditions,
+      _count: { format: true }
+    });
+    const formatCounts = Object.fromEntries(
+      formatCountsResult.map(r => [r.format?.toUpperCase() || 'UNKNOWN', r._count.format])
+    );
+
+    const publisherCountsResult = await prisma.document.groupBy({
+      by: ['publisher'],
+      where: whereConditions,
+      _count: { publisher: true }
+    });
+    const publisherCounts = Object.fromEntries(
+      publisherCountsResult.filter(r => r.publisher).map(r => [r.publisher!, r._count.publisher])
+    );
+
+    const languageCountsResult = await prisma.document.groupBy({
+      by: ['language'],
+      where: whereConditions,
+      _count: { language: true }
+    });
+    const languageCounts = Object.fromEntries(
+      languageCountsResult.filter(r => r.language).map(r => [r.language!, r._count.language])
+    );
+
+    const keywordAuthorDocuments = await prisma.document.findMany({
+      where: whereConditions,
+      select: {
+        keywords: true,
+        authors: true,
+      },
+      take: 5000, // Limit to prevent excessive memory usage
+    });
+
     const keywordCounts: Record<string, number> = {};
     const authorCounts: Record<string, number> = {};
-    const publisherCounts: Record<string, number> = {};
-    const languageCounts: Record<string, number> = {};
 
-    for (const doc of allDbDocuments) {
-      if (doc.format) {
-        const format = doc.format.toUpperCase();
-        formatCounts[format] = (formatCounts[format] || 0) + 1;
-      }
-
+    for (const doc of keywordAuthorDocuments) {
       if (doc.keywords) {
         try {
           const keywordArray = JSON.parse(doc.keywords as string) as string[];
@@ -448,14 +426,6 @@ export async function GET(
           continue;
         }
       }
-
-      if (doc.publisher) {
-        publisherCounts[doc.publisher] = (publisherCounts[doc.publisher] || 0) + 1;
-      }
-
-      if (doc.language) {
-        languageCounts[doc.language] = (languageCounts[doc.language] || 0) + 1;
-      }
     }
 
     const filterOptions = {
@@ -466,7 +436,6 @@ export async function GET(
       languages: languageCounts,
     };
 
-    // Calculate pagination info
     const totalPages = Math.ceil(totalCount / limit);
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
@@ -497,7 +466,6 @@ export async function POST(
   try {
     const { name } = await params;
 
-    // Validate library access
     const validation = await validateLibraryAccess(name);
     if (validation.error) {
       return NextResponse.json({ error: validation.error }, { status: validation.status });
@@ -508,10 +476,8 @@ export async function POST(
     const file = formData.get('file') as File;
     const urlsString = formData.get('urls') as string;
 
-    // Load LLM settings from server
     const llmSettings = loadLLMSettings();
 
-    // Handle URL imports
     if (urlsString) {
       const urls = JSON.parse(urlsString) as string[];
       const results = [];
@@ -537,7 +503,6 @@ export async function POST(
       });
     }
 
-    // Handle file import (existing logic)
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
@@ -595,8 +560,11 @@ export async function DELETE(
           where: { id: document.id },
         });
 
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
+        try {
+          await fs.promises.access(filePath);
+          await fs.promises.unlink(filePath);
+        } catch {
+          // File does not exist or cannot be accessed, continue
         }
       } catch (error) {
         console.error(`Error deleting document ${document.id}:`, error);
@@ -688,13 +656,20 @@ export async function PUT(
           const categoryParts = newCategory.split(' > ').map((part: string) => part.trim()).filter((part: string) => part);
           const folderPath = [newDoctype, ...categoryParts.slice(0, 2)].join('/');
           const categoryDir = path.join(libraryInfo.path, folderPath);
-          fs.mkdirSync(categoryDir, { recursive: true });
+          await fs.promises.mkdir(categoryDir, { recursive: true });
 
           const safeTitle = document.title.replace(/[\/\\?%*:|"<>]/g, '_');
           let newFilename = `${safeTitle}${fileExtension}`;
           let counter = 1;
-          while (fs.existsSync(path.join(categoryDir, newFilename)) ||
-            await prisma.document.findFirst({ where: { filename: newFilename } })) {
+          while (true) {
+            try {
+              await fs.promises.access(path.join(categoryDir, newFilename));
+              // File exists on filesystem
+            } catch {
+              // File does not exist on filesystem, check database
+              const existingDoc = await prisma.document.findFirst({ where: { filename: newFilename } });
+              if (!existingDoc) break; // Unique
+            }
             newFilename = `${safeTitle}_${counter}${fileExtension}`;
             counter++;
           }
@@ -703,8 +678,11 @@ export async function PUT(
           const newFilePath = path.join(categoryDir, newFilename);
           const newUrl = `lib://` + `${folderPath}/${newFilename}`.replace(/\/+/g, '/');
 
-          if (fs.existsSync(oldFilePath)) {
-            fs.renameSync(oldFilePath, newFilePath);
+          try {
+            await fs.promises.access(oldFilePath);
+            await fs.promises.rename(oldFilePath, newFilePath);
+          } catch {
+            // File does not exist or cannot be moved, continue
           }
 
           updateData.filename = newFilename;
