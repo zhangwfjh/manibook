@@ -39,9 +39,8 @@ export function useLibraryData() {
   const fetchCategories = useCallback(async () => {
     if (!currentLibrary) return;
     try {
-      const response = await fetch(`/api/libraries/${currentLibrary}/categories`);
-      const data = await response.json();
-      setCategories(data.categories || []);
+      const categories = await invoke<LibraryCategory[]>("get_library_categories", { libraryName: currentLibrary });
+      setCategories(categories);
     } catch (error) {
       console.error("Error fetching categories:", error);
       setCategories([]);

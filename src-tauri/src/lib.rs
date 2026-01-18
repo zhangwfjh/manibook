@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
+use std::collections::HashMap;
+use rusqlite::params;
 
 #[derive(Serialize, Deserialize, Clone)]
 struct LLMProvider {
@@ -22,6 +24,22 @@ struct Jobs {
 struct LLMSettings {
     providers: Vec<LLMProvider>,
     jobs: Jobs,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+struct LibraryDocument {
+    id: String,
+    path: String,
+    filename: String,
+    url: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+struct LibraryCategory {
+    name: String,
+    path: Vec<String>,
+    children: Vec<LibraryCategory>,
+    documents: Vec<Option<LibraryDocument>>, // Using Option to allow null for count representation
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -231,6 +249,96 @@ fn create_library(name: String, path: String) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+fn get_library_categories(library_name: String) -> Result<Vec<LibraryCategory>, String> {
+    // First validate that the library exists
+    let settings_path = Path::new("settings").join("library.json");
+    let settings: LibrarySettings = match fs::read_to_string(&settings_path) {
+        Ok(data) => {
+            serde_json::from_str(&data).map_err(|e| format!("Failed to parse settings: {}", e))?
+        }
+        Err(_) => return Err("No settings file found".to_string()),
+    };
+
+    let library = settings.libraries.iter().find(|lib| lib.name == library_name)
+        .ok_or_else(|| "Library not found".to_string())?;
+
+    // Open the database
+    let db_path = Path::new(&library.path).join("db.sqlite");
+    let conn = rusqlite::Connection::open(&db_path)
+        .map_err(|e| format!("Failed to open database: {}", e))?;
+
+    // Run the aggregation query
+    let mut stmt = conn.prepare(
+        "SELECT doctype, category, COUNT(*) as count
+         FROM documents
+         WHERE category IS NOT NULL AND category != ''
+         GROUP BY doctype, category
+         ORDER BY doctype, category"
+    ).map_err(|e| format!("Failed to prepare query: {}", e))?;
+
+    let category_data: Vec<(String, String, i64)> = stmt.query_map(params![], |row| {
+        Ok((
+            row.get::<_, String>(0)?,
+            row.get::<_, String>(1)?,
+            row.get::<_, i64>(2)?
+        ))
+    }).map_err(|e| format!("Failed to execute query: {}", e))?
+    .collect::<Result<Vec<_>, _>>()
+    .map_err(|e| format!("Failed to collect results: {}", e))?;
+
+    // Build category tree using a simpler approach
+    let mut doctype_map: HashMap<String, LibraryCategory> = HashMap::new();
+
+    for (doctype, category, count) in category_data {
+        let doctype_category = doctype_map.entry(doctype.clone()).or_insert_with(|| LibraryCategory {
+            name: doctype.clone(),
+            path: vec![doctype.clone()],
+            children: vec![],
+            documents: vec![],
+        });
+
+        // Build nested categories
+        build_nested_categories(doctype_category, &category, count as usize);
+    }
+
+    fn build_nested_categories(parent: &mut LibraryCategory, category_path: &str, count: usize) {
+        let parts: Vec<String> = category_path.split('>').map(|s| s.trim().to_string()).collect();
+        let mut current = parent;
+
+        for (i, part) in parts.iter().enumerate() {
+            // Find or create child category
+            let child_index = current.children.iter().position(|c| c.name == *part);
+            let child_index = match child_index {
+                Some(idx) => idx,
+                None => {
+                    let mut child_path = current.path.clone();
+                    child_path.push(part.clone());
+                    let new_child = LibraryCategory {
+                        name: part.clone(),
+                        path: child_path,
+                        children: vec![],
+                        documents: vec![],
+                    };
+                    current.children.push(new_child);
+                    current.children.len() - 1
+                }
+            };
+
+            current = &mut current.children[child_index];
+
+            // Set count on the deepest level
+            if i == parts.len() - 1 {
+                current.documents = vec![None; count];
+            }
+        }
+    }
+
+    let categories: Vec<LibraryCategory> = doctype_map.into_iter().map(|(_, cat)| cat).collect();
+
+    Ok(categories)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -250,7 +358,8 @@ pub fn run() {
             get_default_library,
             set_default_library,
             get_libraries,
-            create_library
+            create_library,
+            get_library_categories
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
