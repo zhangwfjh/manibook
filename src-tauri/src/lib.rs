@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
+use std::process::Command;
 
 #[derive(Serialize, Deserialize, Clone)]
 struct LLMProvider {
@@ -510,6 +511,84 @@ fn get_document_cover(library_name: String, document_id: String) -> Result<Strin
     }
 }
 
+#[tauri::command]
+fn open_document(library_name: String, document_id: String) -> Result<(), String> {
+    let settings_path = Path::new("settings").join("library.json");
+    let settings: LibrarySettings = match fs::read_to_string(&settings_path) {
+        Ok(data) => {
+            serde_json::from_str(&data).map_err(|e| format!("Failed to parse settings: {}", e))?
+        }
+        Err(_) => return Err("No settings file found".to_string()),
+    };
+
+    let library = settings
+        .libraries
+        .iter()
+        .find(|lib| lib.name == library_name)
+        .ok_or_else(|| "Library not found".to_string())?;
+
+    let db_path = Path::new(&library.path).join("db.sqlite");
+    let conn = rusqlite::Connection::open(&db_path)
+        .map_err(|e| format!("Failed to open database: {}", e))?;
+
+    let mut stmt = conn
+        .prepare("SELECT url FROM documents WHERE id = ?")
+        .map_err(|e| format!("Failed to prepare query: {}", e))?;
+
+    let url_result: Result<String, rusqlite::Error> =
+        stmt.query_row(params![document_id], |row| row.get::<_, String>(0));
+
+    let url = match url_result {
+        Ok(url) => url,
+        Err(rusqlite::Error::QueryReturnedNoRows) => return Err("Document not found".to_string()),
+        Err(e) => return Err(format!("Database error: {}", e)),
+    };
+
+    let relative_path = if url.starts_with("lib://") {
+        &url[6..]
+    } else {
+        &url
+    };
+
+    let file_path = Path::new(&library.path).join(relative_path);
+    if !file_path.exists() {
+        return Err("File not found".to_string());
+    }
+
+    let file_path_str = file_path.to_string_lossy();
+
+    #[cfg(target_os = "windows")]
+    {
+        Command::new("cmd")
+            .args(&["/c", "start", "", &file_path_str])
+            .spawn()
+            .map_err(|e| format!("Failed to open file: {}", e))?;
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        Command::new("open")
+            .arg(&file_path_str)
+            .spawn()
+            .map_err(|e| format!("Failed to open file: {}", e))?;
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        Command::new("xdg-open")
+            .arg(&file_path_str)
+            .spawn()
+            .map_err(|e| format!("Failed to open file: {}", e))?;
+    }
+
+    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+    {
+        return Err("Unsupported platform".to_string());
+    }
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -535,7 +614,8 @@ pub fn run() {
             rename_library,
             move_library,
             archive_library,
-            get_document_cover
+            get_document_cover,
+            open_document
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

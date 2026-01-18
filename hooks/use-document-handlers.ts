@@ -1,4 +1,6 @@
 import { useCallback } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { toast } from "sonner";
 import { LibraryDocument } from "@/lib/library";
 import { combineSearchParams } from "@/lib/utils/url-params";
 
@@ -16,11 +18,16 @@ export function useDocumentHandlers({
   loadFilteredData,
 }: UseDocumentHandlersProps) {
   const handleOpen = useCallback(
-    (doc: LibraryDocument) => {
-      const safeTitle = doc.metadata.title.replace(/[\/\\?%*:|"<>]/g, "_");
-      const filename = `${safeTitle}.${doc.metadata.format}`;
-      const fileUrl = `/api/libraries/${currentLibrary}/documents/${doc.id}/${filename}`;
-      window.open(fileUrl, "_blank");
+    async (doc: LibraryDocument) => {
+      try {
+        await invoke("open_document", {
+          libraryName: currentLibrary,
+          documentId: doc.id
+        });
+      } catch (error) {
+        console.error("Error opening document:", error);
+        toast.error("Failed to open document");
+      }
     },
     [currentLibrary]
   );
