@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { LibraryDocument, LibraryCategory } from "@/lib/library";
 import { Library } from "@/lib/library";
 import { PaginationInfo } from "@/lib/types/common";
@@ -142,13 +143,10 @@ export function useLibraryData() {
       // Try to load default library from settings, fallback to first library
       const loadDefaultLibrary = async () => {
         try {
-          const response = await fetch('/api/libraries/settings');
-          if (response.ok) {
-            const data = await response.json();
-            if (data.defaultLibrary && libraries.some(lib => lib.name === data.defaultLibrary)) {
-              setCurrentLibrary(data.defaultLibrary);
-              return;
-            }
+          const defaultLibrary = await invoke<string | null>('get_default_library');
+          if (defaultLibrary && libraries.some(lib => lib.name === defaultLibrary)) {
+            setCurrentLibrary(defaultLibrary);
+            return;
           }
         } catch (error) {
           console.error('Error loading default library:', error);

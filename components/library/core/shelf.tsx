@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -137,16 +138,7 @@ function LibraryNode({
 
   const handleSetAsDefault = async () => {
     try {
-      const response = await fetch("/api/libraries/settings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ defaultLibrary: library.name }),
-      });
-      if (!response.ok) {
-        console.error("Failed to set default library");
-      }
+      await invoke('set_default_library', { defaultLibrary: library.name });
     } catch (error) {
       console.error("Error setting default library:", error);
     }
