@@ -1,10 +1,9 @@
+use base64::{engine::general_purpose::STANDARD, Engine as _};
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
-use std::thread;
-use std::time::Duration;
 
 #[derive(Serialize, Deserialize, Clone)]
 struct LLMProvider {
@@ -473,6 +472,44 @@ fn move_library(library_name: String, new_path: String) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+fn get_document_cover(library_name: String, document_id: String) -> Result<String, String> {
+    let settings_path = Path::new("settings").join("library.json");
+    let settings: LibrarySettings = match fs::read_to_string(&settings_path) {
+        Ok(data) => {
+            serde_json::from_str(&data).map_err(|e| format!("Failed to parse settings: {}", e))?
+        }
+        Err(_) => return Err("No settings file found".to_string()),
+    };
+
+    let library = settings
+        .libraries
+        .iter()
+        .find(|lib| lib.name == library_name)
+        .ok_or_else(|| "Library not found".to_string())?;
+
+    let db_path = Path::new(&library.path).join("db.sqlite");
+    let conn = rusqlite::Connection::open(&db_path)
+        .map_err(|e| format!("Failed to open database: {}", e))?;
+
+    let mut stmt = conn
+        .prepare("SELECT cover FROM documents WHERE id = ?")
+        .map_err(|e| format!("Failed to prepare query: {}", e))?;
+
+    let cover_result: Result<Option<Vec<u8>>, rusqlite::Error> =
+        stmt.query_row(params![document_id], |row| row.get::<_, Option<Vec<u8>>>(0));
+
+    match cover_result {
+        Ok(Some(cover_data)) => {
+            let base64 = STANDARD.encode(&cover_data);
+            Ok(format!("data:image/webp;base64,{}", base64))
+        }
+        Ok(None) => Err("Cover not found".to_string()),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Err("Document not found".to_string()),
+        Err(e) => Err(format!("Database error: {}", e)),
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -497,7 +534,8 @@ pub fn run() {
             get_library,
             rename_library,
             move_library,
-            archive_library
+            archive_library,
+            get_document_cover
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

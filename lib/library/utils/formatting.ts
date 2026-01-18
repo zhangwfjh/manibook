@@ -5,7 +5,6 @@ import {
     FileIcon,
     LucideIcon,
 } from "lucide-react";
-import { LibraryDocument } from "../types";
 
 export function formatFileSize(bytes: number): string {
     if (bytes === 0) return "0 B";
@@ -26,10 +25,6 @@ export function getFormatIcon(format: string): LucideIcon {
         default:
             return FileIcon;
     }
-}
-
-export function getCoverUrl(library: string, document: LibraryDocument): string {
-    return `/api/libraries/${library}/documents/${document.id}/cover`;
 }
 
 const SMALL_WORDS = new Set([
