@@ -4,6 +4,8 @@ import path from 'path';
 import { validateLibraryAccess, dbDocumentToLibraryDocument, getLibraryPrisma, normalizeMetadata } from '@/lib/library/utils';
 import { DocumentMetadata } from '@/lib/library';
 
+export const dynamic = "force-static";
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ name: string; fileid: string }> }
