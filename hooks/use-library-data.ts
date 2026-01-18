@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { LibraryDocument, LibraryCategory } from "@/lib/library";
-import { Library } from "@/lib/library";
+import { LibraryDocument, LibraryCategory, Library } from "@/lib/library";
 import { PaginationInfo } from "@/lib/types/common";
 
 interface CacheEntry {
@@ -30,9 +29,7 @@ export function useLibraryData() {
 
   const fetchLibraries = useCallback(async () => {
     try {
-      const response = await fetch("/api/libraries");
-      const data = await response.json();
-      const libs = data.libraries || [];
+      const libs = await invoke<Library[]>("get_libraries");
       setLibraries(libs);
     } catch (error) {
       console.error("Error fetching libraries:", error);

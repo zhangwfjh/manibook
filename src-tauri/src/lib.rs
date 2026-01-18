@@ -119,6 +119,118 @@ fn set_default_library(default_library: String) -> Result<(), String> {
     fs::write(&settings_path, data).map_err(|e| format!("Failed to write settings: {}", e))
 }
 
+#[tauri::command]
+fn get_libraries() -> Result<Vec<Library>, String> {
+    let settings_path = Path::new("settings").join("library.json");
+    match fs::read_to_string(&settings_path) {
+        Ok(data) => match serde_json::from_str::<LibrarySettings>(&data) {
+            Ok(settings) => Ok(settings.libraries),
+            Err(e) => Err(format!("Failed to parse settings: {}", e)),
+        },
+        Err(_) => Ok(vec![]), // No settings file yet
+    }
+}
+
+#[tauri::command]
+fn create_library(name: String, path: String) -> Result<(), String> {
+    // Validate input
+    if name.trim().is_empty() || path.trim().is_empty() {
+        return Err("Name and path are required".to_string());
+    }
+
+    // Validate path format (basic check)
+    if !path.starts_with('/') && !path.chars().nth(1).map_or(false, |c| c == ':') {
+        return Err("Invalid path format".to_string());
+    }
+
+    // Read current settings
+    let settings_path = Path::new("settings").join("library.json");
+    let mut settings: LibrarySettings = match fs::read_to_string(&settings_path) {
+        Ok(data) => {
+            serde_json::from_str(&data).map_err(|e| format!("Failed to parse settings: {}", e))?
+        }
+        Err(_) => LibrarySettings {
+            libraries: vec![],
+            default_library: None,
+        },
+    };
+
+    // Check if library name already exists
+    if settings.libraries.iter().any(|lib| lib.name == name) {
+        return Err("Library name already exists".to_string());
+    }
+
+    // Create library directory structure
+    fs::create_dir_all(&path).map_err(|e| format!("Failed to create library directory: {}", e))?;
+
+    // Create database file and initialize schema
+    let db_path = Path::new(&path).join("db.sqlite");
+    if !db_path.exists() {
+        // Initialize database schema using rusqlite
+        let conn = rusqlite::Connection::open(&db_path)
+            .map_err(|e| format!("Failed to create database: {}", e))?;
+
+        conn.execute(
+            r#"
+            CREATE TABLE "documents" (
+                "id" TEXT NOT NULL PRIMARY KEY,
+                "filename" TEXT NOT NULL UNIQUE,
+                "url" TEXT NOT NULL,
+                "doctype" TEXT NOT NULL,
+                "title" TEXT NOT NULL,
+                "authors" TEXT NOT NULL,
+                "publicationYear" INTEGER,
+                "publisher" TEXT,
+                "category" TEXT NOT NULL,
+                "language" TEXT,
+                "keywords" TEXT NOT NULL,
+                "abstract" TEXT,
+                "favorite" INTEGER NOT NULL DEFAULT 0,
+                "metadata" TEXT,
+                "hash" TEXT UNIQUE,
+                "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                "numPages" INTEGER NOT NULL DEFAULT 0,
+                "filesize" INTEGER NOT NULL DEFAULT 0,
+                "format" TEXT NOT NULL DEFAULT 'unknown',
+                "cover" BLOB
+            )
+            "#,
+            [],
+        )
+        .map_err(|e| format!("Failed to create documents table: {}", e))?;
+
+        conn.execute(
+            r#"
+            CREATE TRIGGER update_documents_updated_at
+            AFTER UPDATE ON documents
+            FOR EACH ROW
+            BEGIN
+                UPDATE documents SET updatedAt = CURRENT_TIMESTAMP WHERE id = NEW.id;
+            END
+            "#,
+            [],
+        )
+        .map_err(|e| format!("Failed to create update trigger: {}", e))?;
+    }
+
+    // Add library to settings
+    settings.libraries.push(Library {
+        name: name.trim().to_string(),
+        path: path.trim().to_string(),
+    });
+
+    // Save settings
+    if let Some(parent) = settings_path.parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("Failed to create settings dir: {}", e))?;
+    }
+    let data = serde_json::to_string_pretty(&settings)
+        .map_err(|e| format!("Failed to serialize settings: {}", e))?;
+    fs::write(&settings_path, data).map_err(|e| format!("Failed to write settings: {}", e))?;
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -136,7 +248,9 @@ pub fn run() {
             get_llm_settings,
             set_llm_settings,
             get_default_library,
-            set_default_library
+            set_default_library,
+            get_libraries,
+            create_library
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

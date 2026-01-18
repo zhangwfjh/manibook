@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { invoke } from "@tauri-apps/api/core";
 import { Library } from "@/lib/library";
 
 interface UseLibraryOperationsProps {
@@ -66,26 +67,16 @@ export function useLibraryOperations({
     }
 
     try {
-      const response = await fetch("/api/libraries", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newLibraryName, path: newLibraryPath }),
-      });
-
-      if (response.ok) {
-        toast.success("Library created successfully");
-        setCreateLibraryOpen(false);
-        setCurrentLibrary(newLibraryName);
-        setNewLibraryName("");
-        setNewLibraryPath("");
-        onLibrariesChange();
-      } else {
-        const error = await response.json();
-        toast.error(error.error || "Failed to create library");
-      }
+      await invoke("create_library", { name: newLibraryName, path: newLibraryPath });
+      toast.success("Library created successfully");
+      setCreateLibraryOpen(false);
+      setCurrentLibrary(newLibraryName);
+      setNewLibraryName("");
+      setNewLibraryPath("");
+      onLibrariesChange();
     } catch (error) {
       console.error("Error creating library:", error);
-      toast.error("Failed to create library");
+      toast.error(typeof error === 'string' ? error : "Failed to create library");
     }
   };
 
