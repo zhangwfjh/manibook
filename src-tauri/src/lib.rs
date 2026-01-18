@@ -1,8 +1,10 @@
+use rusqlite::params;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
-use std::collections::HashMap;
-use rusqlite::params;
+use std::thread;
+use std::time::Duration;
 
 #[derive(Serialize, Deserialize, Clone)]
 struct LLMProvider {
@@ -39,7 +41,7 @@ struct LibraryCategory {
     name: String,
     path: Vec<String>,
     children: Vec<LibraryCategory>,
-    documents: Vec<Option<LibraryDocument>>, // Using Option to allow null for count representation
+    documents: Vec<Option<LibraryDocument>>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -75,7 +77,6 @@ fn get_llm_settings() -> Result<LLMSettings, String> {
 
 #[tauri::command]
 fn set_llm_settings(settings: LLMSettings) -> Result<(), String> {
-    // Validate
     if !settings.jobs.metadataExtraction.is_empty()
         && !settings
             .providers
@@ -110,7 +111,7 @@ fn get_default_library() -> Result<Option<String>, String> {
             Ok(settings) => Ok(settings.default_library),
             Err(e) => Err(format!("Failed to parse settings: {}", e)),
         },
-        Err(_) => Ok(None), // No settings file yet
+        Err(_) => Ok(None),
     }
 }
 
@@ -145,23 +146,20 @@ fn get_libraries() -> Result<Vec<Library>, String> {
             Ok(settings) => Ok(settings.libraries),
             Err(e) => Err(format!("Failed to parse settings: {}", e)),
         },
-        Err(_) => Ok(vec![]), // No settings file yet
+        Err(_) => Ok(vec![]),
     }
 }
 
 #[tauri::command]
 fn create_library(name: String, path: String) -> Result<(), String> {
-    // Validate input
     if name.trim().is_empty() || path.trim().is_empty() {
         return Err("Name and path are required".to_string());
     }
 
-    // Validate path format (basic check)
     if !path.starts_with('/') && !path.chars().nth(1).map_or(false, |c| c == ':') {
         return Err("Invalid path format".to_string());
     }
 
-    // Read current settings
     let settings_path = Path::new("settings").join("library.json");
     let mut settings: LibrarySettings = match fs::read_to_string(&settings_path) {
         Ok(data) => {
@@ -173,18 +171,14 @@ fn create_library(name: String, path: String) -> Result<(), String> {
         },
     };
 
-    // Check if library name already exists
     if settings.libraries.iter().any(|lib| lib.name == name) {
         return Err("Library name already exists".to_string());
     }
 
-    // Create library directory structure
     fs::create_dir_all(&path).map_err(|e| format!("Failed to create library directory: {}", e))?;
 
-    // Create database file and initialize schema
     let db_path = Path::new(&path).join("db.sqlite");
     if !db_path.exists() {
-        // Initialize database schema using rusqlite
         let conn = rusqlite::Connection::open(&db_path)
             .map_err(|e| format!("Failed to create database: {}", e))?;
 
@@ -232,13 +226,11 @@ fn create_library(name: String, path: String) -> Result<(), String> {
         .map_err(|e| format!("Failed to create update trigger: {}", e))?;
     }
 
-    // Add library to settings
     settings.libraries.push(Library {
         name: name.trim().to_string(),
         path: path.trim().to_string(),
     });
 
-    // Save settings
     if let Some(parent) = settings_path.parent() {
         fs::create_dir_all(parent).map_err(|e| format!("Failed to create settings dir: {}", e))?;
     }
@@ -251,7 +243,6 @@ fn create_library(name: String, path: String) -> Result<(), String> {
 
 #[tauri::command]
 fn get_library_categories(library_name: String) -> Result<Vec<LibraryCategory>, String> {
-    // First validate that the library exists
     let settings_path = Path::new("settings").join("library.json");
     let settings: LibrarySettings = match fs::read_to_string(&settings_path) {
         Ok(data) => {
@@ -260,54 +251,62 @@ fn get_library_categories(library_name: String) -> Result<Vec<LibraryCategory>, 
         Err(_) => return Err("No settings file found".to_string()),
     };
 
-    let library = settings.libraries.iter().find(|lib| lib.name == library_name)
+    let library = settings
+        .libraries
+        .iter()
+        .find(|lib| lib.name == library_name)
         .ok_or_else(|| "Library not found".to_string())?;
 
-    // Open the database
     let db_path = Path::new(&library.path).join("db.sqlite");
     let conn = rusqlite::Connection::open(&db_path)
         .map_err(|e| format!("Failed to open database: {}", e))?;
 
-    // Run the aggregation query
-    let mut stmt = conn.prepare(
-        "SELECT doctype, category, COUNT(*) as count
+    let mut stmt = conn
+        .prepare(
+            "SELECT doctype, category, COUNT(*) as count
          FROM documents
          WHERE category IS NOT NULL AND category != ''
          GROUP BY doctype, category
-         ORDER BY doctype, category"
-    ).map_err(|e| format!("Failed to prepare query: {}", e))?;
+         ORDER BY doctype, category",
+        )
+        .map_err(|e| format!("Failed to prepare query: {}", e))?;
 
-    let category_data: Vec<(String, String, i64)> = stmt.query_map(params![], |row| {
-        Ok((
-            row.get::<_, String>(0)?,
-            row.get::<_, String>(1)?,
-            row.get::<_, i64>(2)?
-        ))
-    }).map_err(|e| format!("Failed to execute query: {}", e))?
-    .collect::<Result<Vec<_>, _>>()
-    .map_err(|e| format!("Failed to collect results: {}", e))?;
+    let category_data: Vec<(String, String, i64)> = stmt
+        .query_map(params![], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, i64>(2)?,
+            ))
+        })
+        .map_err(|e| format!("Failed to execute query: {}", e))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| format!("Failed to collect results: {}", e))?;
 
-    // Build category tree using a simpler approach
     let mut doctype_map: HashMap<String, LibraryCategory> = HashMap::new();
 
     for (doctype, category, count) in category_data {
-        let doctype_category = doctype_map.entry(doctype.clone()).or_insert_with(|| LibraryCategory {
-            name: doctype.clone(),
-            path: vec![doctype.clone()],
-            children: vec![],
-            documents: vec![],
-        });
+        let doctype_category =
+            doctype_map
+                .entry(doctype.clone())
+                .or_insert_with(|| LibraryCategory {
+                    name: doctype.clone(),
+                    path: vec![doctype.clone()],
+                    children: vec![],
+                    documents: vec![],
+                });
 
-        // Build nested categories
         build_nested_categories(doctype_category, &category, count as usize);
     }
 
     fn build_nested_categories(parent: &mut LibraryCategory, category_path: &str, count: usize) {
-        let parts: Vec<String> = category_path.split('>').map(|s| s.trim().to_string()).collect();
+        let parts: Vec<String> = category_path
+            .split('>')
+            .map(|s| s.trim().to_string())
+            .collect();
         let mut current = parent;
 
         for (i, part) in parts.iter().enumerate() {
-            // Find or create child category
             let child_index = current.children.iter().position(|c| c.name == *part);
             let child_index = match child_index {
                 Some(idx) => idx,
@@ -327,7 +326,6 @@ fn get_library_categories(library_name: String) -> Result<Vec<LibraryCategory>, 
 
             current = &mut current.children[child_index];
 
-            // Set count on the deepest level
             if i == parts.len() - 1 {
                 current.documents = vec![None; count];
             }
@@ -337,6 +335,142 @@ fn get_library_categories(library_name: String) -> Result<Vec<LibraryCategory>, 
     let categories: Vec<LibraryCategory> = doctype_map.into_iter().map(|(_, cat)| cat).collect();
 
     Ok(categories)
+}
+
+#[tauri::command]
+fn get_library(library_name: String) -> Result<Library, String> {
+    let settings_path = Path::new("settings").join("library.json");
+    let settings: LibrarySettings = match fs::read_to_string(&settings_path) {
+        Ok(data) => {
+            serde_json::from_str(&data).map_err(|e| format!("Failed to parse settings: {}", e))?
+        }
+        Err(_) => return Err("No settings file found".to_string()),
+    };
+
+    settings
+        .libraries
+        .into_iter()
+        .find(|lib| lib.name == library_name)
+        .ok_or_else(|| "Library not found".to_string())
+}
+
+#[tauri::command]
+fn rename_library(old_name: String, new_name: String) -> Result<(), String> {
+    if old_name.trim().is_empty() || new_name.trim().is_empty() {
+        return Err("Library names cannot be empty".to_string());
+    }
+
+    let settings_path = Path::new("settings").join("library.json");
+    let mut settings: LibrarySettings = match fs::read_to_string(&settings_path) {
+        Ok(data) => {
+            serde_json::from_str(&data).map_err(|e| format!("Failed to parse settings: {}", e))?
+        }
+        Err(_) => return Err("No settings file found".to_string()),
+    };
+
+    if settings.libraries.iter().any(|lib| lib.name == new_name) {
+        return Err("New library name already exists".to_string());
+    }
+
+    let library = settings
+        .libraries
+        .iter_mut()
+        .find(|lib| lib.name == old_name)
+        .ok_or_else(|| "Library not found".to_string())?;
+
+    library.name = new_name.trim().to_string();
+
+    if let Some(parent) = settings_path.parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("Failed to create settings dir: {}", e))?;
+    }
+    let data = serde_json::to_string_pretty(&settings)
+        .map_err(|e| format!("Failed to serialize settings: {}", e))?;
+    fs::write(&settings_path, data).map_err(|e| format!("Failed to write settings: {}", e))?;
+
+    Ok(())
+}
+
+#[tauri::command]
+fn archive_library(library_name: String) -> Result<(), String> {
+    let settings_path = Path::new("settings").join("library.json");
+    let mut settings: LibrarySettings = match fs::read_to_string(&settings_path) {
+        Ok(data) => {
+            serde_json::from_str(&data).map_err(|e| format!("Failed to parse settings: {}", e))?
+        }
+        Err(_) => return Err("No settings file found".to_string()),
+    };
+
+    let index = settings
+        .libraries
+        .iter()
+        .position(|lib| lib.name == library_name)
+        .ok_or_else(|| "Library not found".to_string())?;
+
+    settings.libraries.remove(index);
+
+    if let Some(parent) = settings_path.parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("Failed to create settings dir: {}", e))?;
+    }
+    let data = serde_json::to_string_pretty(&settings)
+        .map_err(|e| format!("Failed to serialize settings: {}", e))?;
+    fs::write(&settings_path, data).map_err(|e| format!("Failed to write settings: {}", e))?;
+
+    Ok(())
+}
+
+#[tauri::command]
+fn move_library(library_name: String, new_path: String) -> Result<(), String> {
+    if library_name.trim().is_empty() || new_path.trim().is_empty() {
+        return Err("Library name and path cannot be empty".to_string());
+    }
+
+    if !new_path.starts_with('/') && !new_path.chars().nth(1).map_or(false, |c| c == ':') {
+        return Err("Invalid path format".to_string());
+    }
+
+    let settings_path = Path::new("settings").join("library.json");
+    let mut settings: LibrarySettings = match fs::read_to_string(&settings_path) {
+        Ok(data) => {
+            serde_json::from_str(&data).map_err(|e| format!("Failed to parse settings: {}", e))?
+        }
+        Err(_) => return Err("No settings file found".to_string()),
+    };
+
+    let library = settings
+        .libraries
+        .iter_mut()
+        .find(|lib| lib.name == library_name)
+        .ok_or_else(|| "Library not found".to_string())?;
+
+    let old_path = &library.path;
+
+    if old_path == &new_path {
+        return Err("New path is the same as the current path".to_string());
+    }
+
+    if Path::new(&new_path).exists() {
+        let entries = fs::read_dir(&new_path)
+            .map_err(|e| format!("Failed to read target directory: {}", e))?;
+        if entries.count() > 0 {
+            return Err("Target directory is not empty".to_string());
+        }
+        fs::remove_dir(&new_path)
+            .map_err(|e| format!("Failed to remove target directory: {}", e))?;
+    }
+
+    fs::rename(&old_path, &new_path.trim())
+        .map_err(|e| format!("Failed to move library directory: {}", e))?;
+
+    library.path = new_path.trim().to_string();
+
+    if let Some(parent) = settings_path.parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("Failed to create settings dir: {}", e))?;
+    }
+    let data = serde_json::to_string_pretty(&settings)
+        .map_err(|e| format!("Failed to serialize settings: {}", e))?;
+    fs::write(&settings_path, data).map_err(|e| format!("Failed to write settings: {}", e))?;
+
+    Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -359,7 +493,11 @@ pub fn run() {
             set_default_library,
             get_libraries,
             create_library,
-            get_library_categories
+            get_library_categories,
+            get_library,
+            rename_library,
+            move_library,
+            archive_library
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

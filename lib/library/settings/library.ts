@@ -3,7 +3,7 @@ import path from 'path';
 import { Library, LibrarySettings } from '../types';
 import { initializeDatabaseSchema } from '../database/schema';
 
-const LIBRARY_SETTINGS_FILE = path.join(process.cwd(), 'settings', 'library.json');
+const LIBRARY_SETTINGS_FILE = path.join(process.cwd(), 'src-tauri/settings', 'library.json');
 
 export async function readLibrarySettings(): Promise<LibrarySettings> {
   try {
