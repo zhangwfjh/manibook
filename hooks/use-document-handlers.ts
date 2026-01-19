@@ -35,14 +35,13 @@ export function useDocumentHandlers({
   const handleDocumentDelete = useCallback(
     async (document: LibraryDocument) => {
       try {
-        await fetch(
-          `/api/libraries/${currentLibrary}/documents/${document.id}`,
-          {
-            method: "DELETE",
-          }
-        );
+        await invoke("delete_documents", {
+          libraryName: currentLibrary,
+          documentIds: [document.id]
+        });
       } catch (error) {
         console.error("Error deleting document:", error);
+        toast.error("Failed to delete document");
       }
       const combinedParams = combineSearchParams(filterParams, sortParams);
       await loadFilteredData(combinedParams, true);
@@ -53,27 +52,17 @@ export function useDocumentHandlers({
   const handleDocumentUpdate = useCallback(
     async (updatedDoc: LibraryDocument) => {
       try {
-        const response = await fetch(
-          `/api/libraries/${currentLibrary}/documents/${updatedDoc.id}`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              metadata: updatedDoc.metadata,
-            }),
-          }
-        );
-        if (response.ok) {
-          const result = await response.json();
-          const combinedParams = combineSearchParams(filterParams, sortParams);
-          await loadFilteredData(combinedParams, true);
-          return result.document;
-        } else {
-          console.error("Error updating document");
-          return updatedDoc;
-        }
+        const result = await invoke("update_document", {
+          libraryName: currentLibrary,
+          documentId: updatedDoc.id,
+          metadata: updatedDoc.metadata,
+        });
+        const combinedParams = combineSearchParams(filterParams, sortParams);
+        await loadFilteredData(combinedParams, true);
+        return result;
       } catch (error) {
         console.error("Error updating document:", error);
+        toast.error("Failed to update document");
         return updatedDoc;
       }
     },
@@ -82,22 +71,16 @@ export function useDocumentHandlers({
 
   const handleFavoriteToggle = useCallback(
     async (document: LibraryDocument) => {
-      try {
-        await fetch(
-          `/api/libraries/${currentLibrary}/documents/${document.id}`,
-          {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ favorite: !document.metadata.favorite }),
-          }
-        );
-      } catch (error) {
-        console.error("Error toggling favorite:", error);
-      }
-      const combinedParams = combineSearchParams(filterParams, sortParams);
-      await loadFilteredData(combinedParams, true);
+      const updatedDoc = {
+        ...document,
+        metadata: {
+          ...document.metadata,
+          favorite: !document.metadata.favorite
+        }
+      };
+      await handleDocumentUpdate(updatedDoc);
     },
-    [currentLibrary, filterParams, sortParams, loadFilteredData]
+    [handleDocumentUpdate]
   );
 
   return {

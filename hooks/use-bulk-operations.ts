@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { toast } from "sonner";
 import { LibraryDocument } from "@/lib/library";
 import { combineSearchParams } from "@/lib/utils/url-params";
@@ -54,29 +55,19 @@ export function useBulkOperations({
     if (selectedDocuments.size === 0) return;
 
     try {
-      const response = await fetch(
-        `/api/libraries/${currentLibrary}/documents`,
-        {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ documentIds: Array.from(selectedDocuments) }),
-        }
+      const result = await invoke<{ deletedCount: number; errors?: unknown }>("delete_documents", {
+        libraryName: currentLibrary,
+        documentIds: Array.from(selectedDocuments)
+      });
+
+      toast.success(
+        `Successfully deleted ${result.deletedCount} document(s)`
       );
-
-      const result = await response.json();
-
-      if (response.ok) {
-        toast.success(
-          `Successfully deleted ${result.deletedCount} document(s)`
-        );
-        setBulkDeleteDialogOpen(false);
-        setSelectedDocuments(new Set());
-        setSelectionMode(false);
-        const combinedParams = combineSearchParams(filterParams, sortParams);
-        await loadFilteredData(combinedParams, true);
-      } else {
-        toast.error(result.error || "Failed to delete documents");
-      }
+      setBulkDeleteDialogOpen(false);
+      setSelectedDocuments(new Set());
+      setSelectionMode(false);
+      const combinedParams = combineSearchParams(filterParams, sortParams);
+      await loadFilteredData(combinedParams, true);
     } catch (error) {
       console.error("Error bulk deleting documents:", error);
       toast.error("Failed to delete documents");
@@ -94,31 +85,23 @@ export function useBulkOperations({
       if (selectedDocuments.size === 0) return;
 
       try {
-        const response = await fetch(
-          `/api/libraries/${currentLibrary}/documents`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              documentIds: Array.from(selectedDocuments),
-              metadata: { doctype, category },
-            }),
-          }
+        const result = await invoke<{ movedCount: number; errorCount: number; errors?: unknown }>("move_documents", {
+          libraryName: currentLibrary,
+          documentIds: Array.from(selectedDocuments),
+          doctype,
+          category,
+        });
+
+        toast.success(
+          `Successfully moved ${result.movedCount} document(s)`
         );
-
-        const result = await response.json();
-
-        if (response.ok) {
-          toast.success(
-            `Successfully moved ${result.updatedCount} document(s)`
-          );
-          setSelectedDocuments(new Set());
-          setSelectionMode(false);
-          const combinedParams = combineSearchParams(filterParams, sortParams);
-          await loadFilteredData(combinedParams, true);
-        } else {
-          toast.error(result.error || "Failed to move documents");
+        if (result.errorCount > 0) {
+          toast.error(`Failed to move ${result.errorCount} document(s)`);
         }
+        setSelectedDocuments(new Set());
+        setSelectionMode(false);
+        const combinedParams = combineSearchParams(filterParams, sortParams);
+        await loadFilteredData(combinedParams, true);
       } catch (error) {
         console.error("Error bulk moving documents:", error);
         toast.error("Failed to move documents");

@@ -1,10 +1,157 @@
 use base64::{engine::general_purpose::STANDARD, Engine as _};
+use chrono;
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use std::process::Command;
+
+fn to_proper_title_case(s: &str) -> String {
+    if s.is_empty() {
+        return s.to_string();
+    }
+
+    let small_words: std::collections::HashSet<&str> = [
+        "a", "an", "the", "and", "but", "or", "for", "nor", "on", "at", "to", "by", "in", "of",
+    ]
+    .into();
+
+    s.to_lowercase()
+        .split_whitespace()
+        .enumerate()
+        .map(|(index, word)| {
+            let is_first_or_last = index == 0 || index == s.split_whitespace().count() - 1;
+            let is_small_word = small_words.contains(word);
+            let is_hyphenated = word.contains('-');
+
+            if is_hyphenated {
+                word.split('-')
+                    .enumerate()
+                    .map(|(i, part)| {
+                        let parts: Vec<&str> = word.split('-').collect();
+                        let is_first_or_last_part = i == 0 || i == parts.len() - 1;
+                        let is_small_part = small_words.contains(part);
+
+                        if is_first_or_last_part || !is_small_part {
+                            if let Some(first_char) = part.chars().next() {
+                                let rest = part.chars().skip(1).collect::<String>();
+                                first_char.to_uppercase().collect::<String>() + &rest
+                            } else {
+                                part.to_string()
+                            }
+                        } else {
+                            part.to_string()
+                        }
+                    })
+                    .collect::<Vec<String>>()
+                    .join("-")
+            } else if is_first_or_last || !is_small_word {
+                if let Some(first_char) = word.chars().next() {
+                    let rest = word.chars().skip(1).collect::<String>();
+                    first_char.to_uppercase().collect::<String>() + &rest
+                } else {
+                    word.to_string()
+                }
+            } else {
+                word.to_string()
+            }
+        })
+        .collect::<Vec<String>>()
+        .join(" ")
+}
+
+fn normalize_metadata(mut metadata: DocumentMetadata) -> DocumentMetadata {
+    metadata.doctype = to_proper_title_case(&metadata.doctype);
+    metadata.title = to_proper_title_case(&metadata.title);
+    metadata.authors = metadata
+        .authors
+        .into_iter()
+        .map(|author| to_proper_title_case(&author))
+        .collect();
+    if let Some(publisher) = metadata.publisher {
+        metadata.publisher = Some(to_proper_title_case(&publisher));
+    }
+    metadata.category = metadata
+        .category
+        .split(" > ")
+        .map(|part| to_proper_title_case(part.trim()))
+        .collect::<Vec<String>>()
+        .join(" > ");
+    metadata.language = to_proper_title_case(&metadata.language);
+    metadata.keywords = metadata
+        .keywords
+        .into_iter()
+        .map(|keyword| to_proper_title_case(&keyword))
+        .collect();
+    metadata
+}
+
+fn move_file(
+    library_path: &str,
+    current_filename: &str,
+    current_url: &str,
+    new_doctype: &str,
+    new_category: &str,
+    title: &str,
+    conn: &rusqlite::Connection,
+) -> Result<(String, String), String> {
+    let file_extension = Path::new(current_filename)
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or("");
+
+    let category_parts: Vec<String> = new_category
+        .split(" > ")
+        .map(|part| part.trim().to_string())
+        .collect();
+    let folder_path = format!(
+        "{}/{}",
+        new_doctype,
+        category_parts[..2.min(category_parts.len())].join("/")
+    );
+    let category_dir = Path::new(library_path).join(&folder_path);
+    fs::create_dir_all(&category_dir).map_err(|e| format!("Failed to create directory: {}", e))?;
+
+    let safe_title = title.replace(
+        &['/', '\\', '?', '%', '*', ':', '|', '"', '<', '>'][..],
+        "_",
+    );
+    let mut new_filename = format!("{}.{}", safe_title, file_extension);
+
+    let mut counter = 1;
+    while Path::new(&category_dir).join(&new_filename).exists()
+        || conn
+            .query_row(
+                "SELECT COUNT(*) FROM documents WHERE filename = ?",
+                params![&new_filename],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap_or(0)
+            > 0
+    {
+        new_filename = format!("{}_{}.{}", safe_title, counter, file_extension);
+        counter += 1;
+    }
+
+    let relative_path = if current_url.starts_with("lib://") {
+        &current_url[6..]
+    } else {
+        &current_url
+    };
+    let old_file_path = Path::new(library_path).join(relative_path);
+    let new_file_path = category_dir.join(&new_filename);
+    fs::rename(&old_file_path, &new_file_path).map_err(|e| {
+        format!(
+            "Failed to move file from '{:?}' to '{:?}': {}",
+            old_file_path, new_file_path, e
+        )
+    })?;
+
+    let new_url = format!("lib://{}/{}", folder_path, new_filename);
+
+    Ok((new_filename, new_url))
+}
 
 #[derive(Serialize, Deserialize, Clone)]
 struct LLMProvider {
@@ -29,11 +176,36 @@ struct LLMSettings {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
+struct DocumentMetadata {
+    doctype: String,
+    title: String,
+    authors: Vec<String>,
+    #[serde(rename = "publicationYear")]
+    publication_year: Option<i32>,
+    publisher: Option<String>,
+    category: String,
+    language: String,
+    keywords: Vec<String>,
+    r#abstract: String,
+    favorite: bool,
+    #[serde(rename = "numPages")]
+    num_pages: i32,
+    filesize: i64,
+    format: String,
+    metadata: Option<serde_json::Value>,
+    #[serde(rename = "updatedAt")]
+    updated_at: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 struct LibraryDocument {
     id: String,
     path: String,
     filename: String,
     url: String,
+    metadata: DocumentMetadata,
+    #[serde(rename = "categoryPath")]
+    category_path: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -512,6 +684,80 @@ fn get_document_cover(library_name: String, document_id: String) -> Result<Strin
 }
 
 #[tauri::command]
+fn delete_documents(
+    library_name: String,
+    document_ids: Vec<String>,
+) -> Result<serde_json::Value, String> {
+    let settings_path = Path::new("settings").join("library.json");
+    let settings: LibrarySettings = match fs::read_to_string(&settings_path) {
+        Ok(data) => {
+            serde_json::from_str(&data).map_err(|e| format!("Failed to parse settings: {}", e))?
+        }
+        Err(_) => return Err("No settings file found".to_string()),
+    };
+
+    let library = settings
+        .libraries
+        .iter()
+        .find(|lib| lib.name == library_name)
+        .ok_or_else(|| "Library not found".to_string())?;
+
+    let db_path = Path::new(&library.path).join("db.sqlite");
+    let conn = rusqlite::Connection::open(&db_path)
+        .map_err(|e| format!("Failed to open database: {}", e))?;
+
+    let mut errors: Vec<serde_json::Value> = vec![];
+    let mut success_count = 0;
+
+    for document_id in document_ids.clone() {
+        match (|| {
+            let mut stmt = conn
+                .prepare("SELECT url FROM documents WHERE id = ?")
+                .map_err(|e| format!("Failed to prepare query: {}", e))?;
+
+            let url_result: Result<String, rusqlite::Error> =
+                stmt.query_row(params![document_id], |row| row.get::<_, String>(0));
+
+            let url = match url_result {
+                Ok(url) => url,
+                Err(rusqlite::Error::QueryReturnedNoRows) => {
+                    return Err("Document not found".to_string())
+                }
+                Err(e) => return Err(format!("Database error: {}", e)),
+            };
+
+            conn.execute("DELETE FROM documents WHERE id = ?", params![document_id])
+                .map_err(|e| format!("Failed to delete document from database: {}", e))?;
+
+            let relative_path = if url.starts_with("lib://") {
+                &url[6..]
+            } else {
+                &url
+            };
+
+            let file_path = Path::new(&library.path).join(relative_path);
+            if file_path.exists() {
+                fs::remove_file(&file_path).map_err(|e| format!("Failed to delete file: {}", e))?;
+            }
+
+            Ok(())
+        })() {
+            Ok(_) => success_count += 1,
+            Err(e) => errors.push(serde_json::json!({
+                "id": document_id,
+                "error": e
+            })),
+        }
+    }
+
+    Ok(serde_json::json!({
+        "success": true,
+        "deletedCount": success_count,
+        "errors": if errors.is_empty() { serde_json::Value::Null } else { serde_json::Value::Array(errors) }
+    }))
+}
+
+#[tauri::command]
 fn open_document(library_name: String, document_id: String) -> Result<(), String> {
     let settings_path = Path::new("settings").join("library.json");
     let settings: LibrarySettings = match fs::read_to_string(&settings_path) {
@@ -589,6 +835,246 @@ fn open_document(library_name: String, document_id: String) -> Result<(), String
     Ok(())
 }
 
+#[tauri::command]
+fn update_document(
+    library_name: String,
+    document_id: String,
+    metadata: DocumentMetadata,
+) -> Result<LibraryDocument, String> {
+    let settings_path = Path::new("settings").join("library.json");
+    let settings: LibrarySettings = match fs::read_to_string(&settings_path) {
+        Ok(data) => {
+            serde_json::from_str(&data).map_err(|e| format!("Failed to parse settings: {}", e))?
+        }
+        Err(_) => return Err("No settings file found".to_string()),
+    };
+
+    let library = settings
+        .libraries
+        .iter()
+        .find(|lib| lib.name == library_name)
+        .ok_or_else(|| "Library not found".to_string())?;
+
+    let normalized_metadata = normalize_metadata(metadata);
+
+    let db_path = Path::new(&library.path).join("db.sqlite");
+    let conn = rusqlite::Connection::open(&db_path)
+        .map_err(|e| format!("Failed to open database: {}", e))?;
+
+    let mut stmt = conn
+        .prepare("SELECT filename, url, category, title, doctype FROM documents WHERE id = ?")
+        .map_err(|e| format!("Failed to prepare query: {}", e))?;
+
+    let existing_doc: (String, String, String, String, String) = stmt
+        .query_row(params![document_id], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, String>(4)?,
+            ))
+        })
+        .map_err(|e| format!("Failed to find document: {}", e))?;
+
+    let (existing_filename, existing_url, old_category, old_title, old_doctype) = existing_doc;
+
+    let new_category = normalized_metadata.category.clone();
+    let new_title = normalized_metadata.title.clone();
+
+    let now = chrono::Utc::now().to_rfc3339();
+
+    let sql = r#"
+        UPDATE documents SET
+            title = ?,
+            authors = ?,
+            publicationYear = ?,
+            numPages = ?,
+            publisher = ?,
+            category = ?,
+            language = ?,
+            keywords = ?,
+            abstract = ?,
+            doctype = ?,
+            favorite = ?,
+            metadata = ?,
+            updatedAt = ?
+        WHERE id = ?
+    "#;
+
+    let params = params![
+        normalized_metadata.title,
+        serde_json::to_string(&normalized_metadata.authors).unwrap(),
+        normalized_metadata.publication_year,
+        normalized_metadata.num_pages,
+        normalized_metadata.publisher,
+        normalized_metadata.category,
+        normalized_metadata.language,
+        serde_json::to_string(&normalized_metadata.keywords).unwrap(),
+        normalized_metadata.r#abstract,
+        normalized_metadata.doctype,
+        normalized_metadata.favorite,
+        normalized_metadata
+            .metadata
+            .as_ref()
+            .map(|m| serde_json::to_string(m).unwrap()),
+        now,
+        document_id
+    ];
+
+    conn.execute(sql, params)
+        .map_err(|e| format!("Failed to update document: {}", e))?;
+
+    if old_category != new_category
+        || old_title != new_title
+        || old_doctype != normalized_metadata.doctype
+    {
+        let (new_filename, new_url) = move_file(
+            &library.path,
+            &existing_filename,
+            &existing_url,
+            &normalized_metadata.doctype,
+            &new_category,
+            &new_title,
+            &conn,
+        )?;
+
+        conn.execute(
+            "UPDATE documents SET filename = ?, url = ? WHERE id = ?",
+            params![new_filename, new_url, document_id],
+        )
+        .map_err(|e| format!("Failed to update filename and url: {}", e))?;
+    }
+
+    let doc = LibraryDocument {
+        id: document_id,
+        path: "".to_string(),
+        filename: "".to_string(),
+        url: "".to_string(),
+        metadata: normalized_metadata,
+        category_path: vec![],
+    };
+    Ok(doc)
+}
+
+#[tauri::command]
+fn move_documents(
+    library_name: String,
+    document_ids: Vec<String>,
+    doctype: Option<String>,
+    category: Option<String>,
+) -> Result<serde_json::Value, String> {
+    let has_doctype = doctype.as_ref().map(|s| !s.is_empty()).unwrap_or(false);
+    let has_category = category.as_ref().map(|s| !s.is_empty()).unwrap_or(false);
+    if !has_doctype && !has_category {
+        return Err("At least one of doctype or category must be provided".to_string());
+    }
+
+    let settings_path = Path::new("settings").join("library.json");
+    let settings: LibrarySettings = match fs::read_to_string(&settings_path) {
+        Ok(data) => {
+            serde_json::from_str(&data).map_err(|e| format!("Failed to parse settings: {}", e))?
+        }
+        Err(_) => return Err("No settings file found".to_string()),
+    };
+
+    let library = settings
+        .libraries
+        .iter()
+        .find(|lib| lib.name == library_name)
+        .ok_or_else(|| "Library not found".to_string())?;
+
+    let db_path = Path::new(&library.path).join("db.sqlite");
+    let conn = rusqlite::Connection::open(&db_path)
+        .map_err(|e| format!("Failed to open database: {}", e))?;
+
+    let mut errors: Vec<serde_json::Value> = vec![];
+    let mut success_count = 0;
+
+    for document_id in document_ids {
+        match (|| {
+            let mut stmt = conn
+                .prepare(
+                    "SELECT filename, url, category, doctype, title FROM documents WHERE id = ?",
+                )
+                .map_err(|e| format!("Failed to prepare query: {}", e))?;
+
+            let existing_doc: (String, String, String, String, String) = stmt
+                .query_row(params![document_id], |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                    ))
+                })
+                .map_err(|e| format!("Failed to find document: {}", e))?;
+
+            let (existing_filename, existing_url, old_category, old_doctype, title) = existing_doc;
+
+            let new_doctype = doctype
+                .as_ref()
+                .filter(|s| !s.is_empty())
+                .unwrap_or(&old_doctype)
+                .clone();
+            let new_category = category
+                .as_ref()
+                .filter(|s| !s.is_empty())
+                .unwrap_or(&old_category)
+                .clone();
+
+            let update_sql = r#"
+                UPDATE documents SET
+                    doctype = ?,
+                    category = ?,
+                    updatedAt = ?
+                WHERE id = ?
+            "#;
+
+            let now = chrono::Utc::now().to_rfc3339();
+            conn.execute(
+                update_sql,
+                params![new_doctype, new_category, now, document_id],
+            )
+            .map_err(|e| format!("Failed to update document: {}", e))?;
+
+            if old_category != new_category || old_doctype != new_doctype {
+                let (new_filename, new_url) = move_file(
+                    &library.path,
+                    &existing_filename,
+                    &existing_url,
+                    &new_doctype,
+                    &new_category,
+                    &title,
+                    &conn,
+                )?;
+
+                conn.execute(
+                    "UPDATE documents SET filename = ?, url = ? WHERE id = ?",
+                    params![new_filename, new_url, document_id],
+                )
+                .map_err(|e| format!("Failed to update filename and url: {}", e))?;
+            }
+
+            Ok::<(), String>(())
+        })() {
+            Ok(_) => success_count += 1,
+            Err(e) => errors.push(serde_json::json!({
+                "id": document_id,
+                "error": e
+            })),
+        }
+    }
+
+    Ok(serde_json::json!({
+        "success": errors.is_empty(),
+        "movedCount": success_count,
+        "errorCount": errors.len(),
+        "errors": if errors.is_empty() { serde_json::Value::Null } else { serde_json::Value::Array(errors) }
+    }))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -615,7 +1101,10 @@ pub fn run() {
             move_library,
             archive_library,
             get_document_cover,
-            open_document
+            delete_documents,
+            open_document,
+            update_document,
+            move_documents
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
