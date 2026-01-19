@@ -5,7 +5,7 @@ import { DocumentMetadata, Library } from '@/lib/library';
 import { extractMetadataFromFile } from '@/lib/library/documents/metadata-extractor';
 import crypto from 'crypto';
 import { loadLLMSettings } from '@/lib/library/settings/llm';
-import { validateLibraryAccess, getLibraryPrisma, normalizeMetadata } from '@/lib/library/utils';
+import { validateLibraryAccess, getLibraryPrisma } from '@/lib/library/utils';
 
 interface LLMSettings {
   providers: Array<{
@@ -71,9 +71,6 @@ async function processFileImport(
       filesize: buffer.length,
       format: fileExtension.slice(1), // Remove the leading dot
     };
-
-    metadata = normalizeMetadata(metadata);
-
   } catch (error) {
     console.error('Error extracting metadata:', error);
     throw new Error(`File parse failed ${error}`);

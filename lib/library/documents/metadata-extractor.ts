@@ -1,5 +1,4 @@
 import { LLMSettings, DocumentMetadata, ExtractionResult } from "../types";
-import { normalizeMetadata } from "../utils/metadata";
 import {
   extractFromDjvu,
   extractFromEpub,
@@ -73,5 +72,5 @@ export async function extractMetadataFromFile(
     throw new Error("Failed to extract metadata after retries");
   }
 
-  return { metadata: normalizeMetadata(metadata), cover, numPages };
+  return { metadata, cover, numPages };
 }
