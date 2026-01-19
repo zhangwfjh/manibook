@@ -10,6 +10,16 @@ interface CacheEntry {
   timestamp: number;
 }
 
+interface DocumentsResponse {
+  documents: LibraryDocument[];
+  total_count: number;
+  limit: number;
+  page: number;
+  has_next: boolean;
+  has_prev: boolean;
+  filter_options?: Record<string, Record<string, number>>;
+}
+
 export function useLibraryData() {
   const [currentLibrary, setCurrentLibrary] = useState<string>("");
   const [libraries, setLibraries] = useState<Library[]>([]);
@@ -91,15 +101,33 @@ export function useLibraryData() {
       setLoading(true);
       setIsFetching(true);
 
-      // Single request for documents and filter options
-      const response = await fetch(
-        `/api/libraries/${currentLibrary}/documents?${params.toString()}`
-      );
+      // Build query object
+      const query = {
+        page: parseInt(params.get('page') || '1'),
+        limit: Math.min(parseInt(params.get('limit') || '50'), 200),
+        category: params.get('category') || undefined,
+        search_query: params.get('search') || undefined,
+        keywords: (params.get('keywords')?.split(',').filter(Boolean) || []),
+        formats: (params.get('formats')?.split(',').filter(Boolean) || []),
+        authors: (params.get('authors')?.split(',').filter(Boolean) || []),
+        publishers: (params.get('publishers')?.split(',').filter(Boolean) || []),
+        languages: (params.get('languages')?.split(',').filter(Boolean) || []),
+        favorites_only: params.get('favoritesOnly') === 'true',
+        sort_by: params.get('sortBy') || 'createdAt-desc',
+      };
 
-      const data = await response.json();
-      const documents = data.documents || [];
-      const pagination = data.pagination || null;
-      const filterOptionsData = data.filterOptions || {};
+      const data = await invoke<DocumentsResponse>('get_documents', { libraryName: currentLibrary, query });
+      const documents = data?.documents || [];
+      const totalPages = Math.ceil((data?.total_count || 0) / (data?.limit || query.limit));
+      const pagination = {
+        page: data?.page || query.page,
+        limit: data?.limit || query.limit,
+        totalCount: data?.total_count || 0,
+        totalPages,
+        hasNextPage: !!data?.has_next,
+        hasPrevPage: !!data?.has_prev,
+      };
+      const filterOptionsData = data?.filter_options || {};
 
       // Cache the result
       cacheRef.current.set(cacheKey, {

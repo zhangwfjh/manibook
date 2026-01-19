@@ -26,3 +26,5 @@ tauri-plugin-log = "2"
 rusqlite = { version = "0.31", features = ["bundled"] }
 base64 = "0.22"
 chrono = { version = "0.4", features = ["serde"] }
+lazy_static = "1.4"
+lru = "0.12"
