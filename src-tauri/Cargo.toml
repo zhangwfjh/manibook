@@ -28,3 +28,8 @@ base64 = "0.22"
 chrono = { version = "0.4", features = ["serde"] }
 lazy_static = "1.4"
 lru = "0.12"
+pdfium-render = { version = "0.8", features = ["image", "thread_safe"] }
+image = { version = "0.25", features = ["webp", "tiff"] }
+epub = "2.1"
+tempfile = "3.0"
+tokio = { version = "1.0", features = ["process"] }
