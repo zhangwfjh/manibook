@@ -52,7 +52,11 @@ impl Extractor for PdfExtractor {
                 foreword.push_str(&text.to_string());
                 foreword.push_str("\n\n");
                 if foreword.len() > Self::MAX_FOREWORD_LENGTH {
-                    foreword.truncate(Self::MAX_FOREWORD_LENGTH);
+                    let mut end = Self::MAX_FOREWORD_LENGTH;
+                    while end > 0 && !foreword.is_char_boundary(end) {
+                        end -= 1;
+                    }
+                    foreword.truncate(end);
                     break;
                 }
             }

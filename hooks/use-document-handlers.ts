@@ -50,9 +50,9 @@ export function useDocumentHandlers({
   );
 
   const handleDocumentUpdate = useCallback(
-    async (updatedDoc: LibraryDocument) => {
+    async (updatedDoc: LibraryDocument): Promise<LibraryDocument | undefined> => {
       try {
-        const result = await invoke("update_document", {
+        const result = await invoke<LibraryDocument>("update_document", {
           libraryName: currentLibrary,
           documentId: updatedDoc.id,
           metadata: updatedDoc.metadata,

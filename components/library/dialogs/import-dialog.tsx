@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { useImportContext } from "@/contexts/ImportContext";
 import { ImportDrawer } from "@/components/ui/import-drawer";
 import { executeConcurrent } from "@/lib/utils/concurrency";
+import { invoke } from "@tauri-apps/api/core";
 
 interface ImportDialogProps {
   open: boolean;
@@ -62,7 +63,7 @@ export function ImportDialog({
 
       if (filteredFiles.length === 0) {
         toast.error(
-          "No valid files selected. Only PDF, DJVU, and EPUB files are allowed."
+          "No valid files selected. Only PDF, DJVU, and EPUB files are allowed.",
         );
         return;
       }
@@ -79,71 +80,77 @@ export function ImportDialog({
       setDrawerOpen(true);
       setImporting(true);
 
-      // Create import tasks for concurrent processing
-      const importTasks = filteredFiles.map((file, index) => async () => {
-        const itemId = `${batchId}-item-${index}`;
-        const logPath = file.webkitRelativePath || file.name;
-
-        const formData = new FormData();
-        formData.append("file", file);
-
-        try {
-          const response = await fetch(
-            `/api/libraries/${currentLibrary}/documents`,
-            {
-              method: "POST",
-              body: formData,
-              signal: importItems[index].abortController?.signal,
-            }
-          );
-
-          if (response.ok) {
-            updateItemStatus(itemId, "success", {
-              completedAt: new Date(),
-              path: logPath,
-            });
-            return { success: true, index };
-          } else {
-            const errorText = await response.text();
-            if (errorText.toLowerCase().includes("file already exists")) {
-              // Already imported, treat as success
-              updateItemStatus(itemId, "success", {
-                completedAt: new Date(),
-                path: logPath,
-              });
-              return { success: true, index };
-            } else {
-              updateItemStatus(itemId, "failed", { error: errorText });
-              return { success: false, index };
-            }
-          }
-        } catch (error) {
-          if (error instanceof Error && error.name === "AbortError") {
-            // Import was canceled
-            updateItemStatus(itemId, "canceled");
-            return { success: false, index, canceled: true };
-          } else {
-            const errorMessage =
-              error instanceof Error ? error.message : String(error);
-            updateItemStatus(itemId, "failed", { error: errorMessage });
-            console.error(`Error importing ${file.name}:`, error);
-            return { success: false, index };
-          }
-        }
+      // Read file data
+      const fileDataPromises = filteredFiles.map(async (file) => {
+        const buffer = await file.arrayBuffer();
+        return {
+          filename: file.name,
+          data: Array.from(new Uint8Array(buffer)),
+        };
       });
 
-      const results = await executeConcurrent(importTasks);
-
-      // Count results
       let successCount = 0;
       let errorCount = 0;
-      results.forEach((result) => {
-        if (result.status === "fulfilled" && result.value.success) {
-          successCount++;
-        } else {
+
+      try {
+        const fileData = await Promise.all(fileDataPromises);
+
+        const result = await invoke<{
+          results: Array<{
+            success: boolean;
+            filename?: string;
+            error?: string;
+          }>;
+          errors: Array<{
+            source: string;
+            error: string;
+          }>;
+        }>("import_documents", {
+          libraryName: currentLibrary,
+          request: {
+            file_data: fileData,
+          },
+        });
+
+        // Update status for each file
+        filteredFiles.forEach((file, index) => {
+          const itemId = `${batchId}-item-${index}`;
+          const fileResult = result.results[index];
+          const fileError = result.errors.find((e) => e.source === file.name);
+
+          if (fileResult?.success) {
+            updateItemStatus(itemId, "success", {
+              completedAt: new Date(),
+              path: file.name,
+            });
+            successCount++;
+          } else {
+            const errorMsg =
+              fileError?.error || fileResult?.error || "Import failed";
+            if (errorMsg.toLowerCase().includes("already exists")) {
+              updateItemStatus(itemId, "success", {
+                completedAt: new Date(),
+                path: file.name,
+              });
+              successCount++;
+            } else {
+              updateItemStatus(itemId, "failed", { error: errorMsg });
+              errorCount++;
+            }
+          }
+        });
+      } catch (error) {
+        console.error("Import error:", error);
+        filteredFiles.forEach((_, index) => {
+          const itemId = `${batchId}-item-${index}`;
+          updateItemStatus(itemId, "failed", {
+            error: error instanceof Error ? error.message : "Import failed",
+          });
           errorCount++;
-        }
-      });
+        });
+      } finally {
+        setImporting(false);
+      }
 
       onImportComplete();
 
@@ -154,23 +161,21 @@ export function ImportDialog({
         folderInputRef.current.value = "";
       }
 
-      setImporting(false);
-
       if (errorCount === 0) {
         toast.success(
           `Successfully imported ${successCount} file${
             successCount > 1 ? "s" : ""
-          }!`
+          }!`,
         );
       } else if (successCount === 0) {
         toast.error(
-          `Failed to import ${errorCount} file${errorCount > 1 ? "s" : ""}`
+          `Failed to import ${errorCount} file${errorCount > 1 ? "s" : ""}`,
         );
       } else {
         toast.warning(`${successCount} imported, ${errorCount} failed`);
       }
     },
-    [currentLibrary, onImportComplete, clearBatch, addBatch, updateItemStatus]
+    [currentLibrary, onImportComplete, clearBatch, addBatch, updateItemStatus],
   );
 
   const handleDrag = useCallback((e: React.DragEvent) => {
@@ -195,7 +200,7 @@ export function ImportDialog({
         } as React.ChangeEvent<HTMLInputElement>);
       }
     },
-    [handleFileImport]
+    [handleFileImport],
   );
 
   const addUrl = () => {
@@ -260,79 +265,70 @@ export function ImportDialog({
     setImporting(true);
 
     try {
-      const formData = new FormData();
-      formData.append("urls", JSON.stringify(validUrls));
+      const result = await invoke<{
+        results: Array<{
+          success: boolean;
+          filename?: string;
+          error?: string;
+        }>;
+        errors: Array<{
+          source: string;
+          error: string;
+        }>;
+      }>("import_documents", {
+        libraryName: currentLibrary,
+        request: {
+          urls: validUrls,
+        },
+      });
 
-      const response = await fetch(
-        `/api/libraries/${currentLibrary}/documents`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
+      // Update status for each URL
+      validUrls.forEach((url, index) => {
+        const itemId = `${batchId}-item-${index}`;
+        const urlResult = result.results[index];
+        const urlError = result.errors.find((e) => e.source === url);
 
-      const result = await response.json();
-
-      if (response.ok) {
-        const { errors } = result;
-
-        let successCount = 0;
-        let errorCount = 0;
-
-        // Update status for each URL
-        validUrls.forEach((url, index) => {
-          const itemId = `${batchId}-item-${index}`;
-          const urlError = errors?.find(
-            (err: { url: string }) => err.url === url
-          );
-          if (urlError) {
-            errorCount++;
-            updateItemStatus(itemId, "failed", {
-              error: urlError.error,
-              path: url,
-            });
-          } else {
-            successCount++;
+        if (urlResult?.success) {
+          updateItemStatus(itemId, "success", {
+            completedAt: new Date(),
+            path: url,
+          });
+        } else {
+          const errorMsg =
+            urlError?.error || urlResult?.error || "Import failed";
+          if (errorMsg.toLowerCase().includes("already exists")) {
+            // Already imported, treat as success
             updateItemStatus(itemId, "success", {
               completedAt: new Date(),
               path: url,
             });
-          }
-        });
-
-        onImportComplete();
-
-        if (errorCount === 0) {
-          toast.success(
-            `Successfully imported ${successCount} document${
-              successCount > 1 ? "s" : ""
-            }!`
-          );
-        } else {
-          toast.warning(`${successCount} imported, ${errorCount} failed`);
-
-          if (errors && errors.length > 0) {
-            const firstError = errors.find(
-              (err: { url: string; error: string }) =>
-                !err.error.toLowerCase().includes("file already exists")
-            );
-            if (firstError) {
-              toast.error(`Import error: ${firstError.error}`);
-            }
+          } else {
+            updateItemStatus(itemId, "failed", { error: errorMsg });
           }
         }
+      });
 
-        setUrls([""]);
-        setUrlErrors([""]);
-        onOpenChange(false);
+      setUrls([""]);
+      setUrlErrors([""]);
+      onOpenChange(false);
+      onImportComplete();
+
+      const successCount = result.results.filter((r) => r.success).length;
+      const errorCount =
+        result.errors.length + result.results.filter((r) => !r.success).length;
+
+      if (errorCount === 0) {
+        toast.success(
+          `Successfully imported ${successCount} document${
+            successCount > 1 ? "s" : ""
+          }!`,
+        );
+      } else if (successCount === 0) {
+        toast.error(
+          `Failed to import ${errorCount} document${errorCount > 1 ? "s" : ""}`,
+        );
       } else {
-        const error = result.error || "Import failed";
-        toast.error(error);
-        // Mark all as failed
-        validUrls.forEach((url, index) => {
-          const itemId = `${batchId}-item-${index}`;
-          updateItemStatus(itemId, "failed", { error: error, path: url });
-        });
+        toast.warning(`${successCount} imported, ${errorCount} failed`);
       }
     } catch (error) {
       console.error("Error importing URLs:", error);

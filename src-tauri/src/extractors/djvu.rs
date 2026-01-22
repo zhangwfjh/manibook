@@ -29,7 +29,13 @@ impl Extractor for DjvuExtractor {
 
         let mut foreword = String::from_utf8(output.stdout)
             .map_err(|e| format!("Failed to parse djvutxt output: {}", e))?;
-        foreword.truncate(Self::MAX_FOREWORD_LENGTH);
+        if foreword.len() > Self::MAX_FOREWORD_LENGTH {
+            let mut end = Self::MAX_FOREWORD_LENGTH;
+            while end > 0 && !foreword.is_char_boundary(end) {
+                end -= 1;
+            }
+            foreword.truncate(end);
+        }
 
         let num_pages_output = Command::new("djvused")
             .args(&["-e", "n", &temp_djvu_path])

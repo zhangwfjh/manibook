@@ -13,6 +13,7 @@ use std::path::Path;
 use std::process::Command;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
+use nanoid::nanoid;
 
 fn to_proper_title_case(s: &str) -> String {
     if s.is_empty() {
@@ -228,7 +229,42 @@ struct LibraryCategory {
 #[derive(Serialize, Deserialize, Clone)]
 struct Library {
     name: String,
-    path: String,
+    path: String, // Full path to library directory
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+struct ImportRequest {
+    file_data: Option<Vec<FileData>>, // File data to import
+    urls: Option<Vec<String>>,        // URLs to download and import
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+struct FileData {
+    filename: String,
+    data: Vec<u8>, // File content as bytes
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+struct ImportResult {
+    success: bool,
+    filename: Option<String>,
+    metadata: Option<DocumentMetadata>,
+    error: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+struct ImportResponse {
+    results: Vec<ImportResult>,
+    errors: Vec<ImportError>,
+    total_processed: usize,
+    success_count: usize,
+    error_count: usize,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+struct ImportError {
+    source: String, // file path or URL
+    error: String,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -849,6 +885,464 @@ async fn generate_metadata(
     metadata = normalize_metadata(metadata);
 
     Ok(metadata)
+}
+
+fn get_extension(filename: &str) -> String {
+    Path::new(filename)
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or("")
+        .to_lowercase()
+}
+
+async fn process_document_import(
+    library_path: &str,
+    buffer: &[u8],
+    _original_filename: &str,
+    extension: &str,
+    llm_settings: &LLMSettings,
+) -> Result<ImportResult, String> {
+    let hash = sha256::digest(buffer);
+
+    let extraction: extractors::ForewordExtraction = match extension {
+        "pdf" => extractors::pdf::PdfExtractor::extract(buffer).await,
+        "epub" => extractors::epub::EpubExtractor::extract(buffer).await,
+        "djvu" => extractors::djvu::DjvuExtractor::extract(buffer).await,
+        _ => return Err(format!("Unsupported file extension: {}", extension)),
+    }
+    .map_err(|e| format!("Failed to extract content from file: {}", e))?;
+
+    let mut foreword = extraction.foreword;
+    let images = extraction.images;
+    let num_pages = extraction.num_pages;
+    let cover = images.first().cloned();
+
+    if images.len() > 0 && foreword.len() < 100 {
+        let image_provider_name = &llm_settings.jobs.imageTextExtraction;
+        if !image_provider_name.is_empty() {
+            if let Some(image_provider) = llm_settings
+                .providers
+                .iter()
+                .find(|p| &p.name == image_provider_name)
+            {
+                let ocr_prompt = "Extract all legible text from the document. Prioritize:\n\
+                    1. Titles and headings\n\
+                    2. Author names\n\
+                    3. Publication details (journal, publisher, date, volume, issue, pages)\n\
+                    4. Metadata (DOI, ISSN, etc.)\n\
+                    Requirements:\n\
+                    - Preserve original text order and line breaks\n\
+                    - Exclude non-legible text, stamps, and watermarks\n\
+                    - Output ONLY the extracted text (no explanations)\n\
+                    - Format: One line per detected text line";
+
+                let base64_images: Vec<String> = images
+                    .iter()
+                    .take(1) // Only use first image for OCR
+                    .map(|img| format!("data:image;base64,{}", STANDARD.encode(img)))
+                    .collect();
+
+                let image_contents: Vec<serde_json::Value> = base64_images
+                    .iter()
+                    .map(|img| {
+                        serde_json::json!({
+                            "type": "image_url",
+                            "image_url": {
+                                "url": img
+                            }
+                        })
+                    })
+                    .collect();
+
+                let messages = vec![
+                    ChatMessage {
+                        role: "system".to_string(),
+                        content: serde_json::json!([{"type": "text", "text": ocr_prompt}]),
+                    },
+                    ChatMessage {
+                        role: "user".to_string(),
+                        content: serde_json::json!(image_contents),
+                    },
+                ];
+
+                foreword = call_openai_api(messages, image_provider, None)
+                    .await
+                    .map_err(|e| format!("Failed to extract text from images: {}", e))?;
+            }
+        }
+    }
+
+    foreword = foreword.chars().take(5000).collect();
+
+    let metadata_provider_name = &llm_settings.jobs.metadataExtraction;
+    if metadata_provider_name.is_empty() {
+        return Err("Metadata extraction provider not configured".to_string());
+    }
+
+    let metadata_provider = llm_settings
+        .providers
+        .iter()
+        .find(|p| &p.name == metadata_provider_name)
+        .ok_or_else(|| {
+            format!(
+                "Metadata extraction provider '{}' not found",
+                metadata_provider_name
+            )
+        })?;
+
+    let metadata_prompt = "Extract structured metadata from the provided document. Return the result strictly in JSON format with the following keys:\n\
+        doctype, title, authors, publication_year, publisher, category, language, keywords, abstract, metadata.\n\
+        \n\
+        Follow these rules precisely:\n\
+        1. **Fields**:\n\
+           - Extract: title, authors (as a list), publication year (as integer if possible), publisher, language (e.g., 'English', 'Chinese'), keywords (as a list), and abstract (as a string).\n\
+           - If any field cannot be determined, leave its value empty (e.g., '' for strings, [] for lists, null for numbers)—do NOT use placeholders like 'unknown', 'none', or 'N/A'.\n\
+        \n\
+        2. **Document Type (doctype)**:\n\
+           - Classify strictly as one of: 'Book', 'Paper', 'Report', 'Manual' or 'Others'.\n\
+        \n\
+        3. **Category**:\n\
+           - Infer the most specific main category and subcategory (e.g., 'Computer Science > Artificial Intelligence').\n\
+           - Format as: 'Main category > Subcategory'.\n\
+           - If only a broad category is identifiable, use 'Main category > General'.\n\
+        \n\
+        4. **Metadata**:\n\
+           - Use this field to include any other relevant structured information not covered above (e.g., DOI, ISBN, journal name, volume/issue). Represent as a JSON object or leave as an empty object {} if none.\n\
+        \n\
+        5. **Output**:\n\
+           - Return ONLY valid JSON. Do not include explanations, markdown, or extra text.";
+
+    let messages = vec![
+        ChatMessage {
+            role: "system".to_string(),
+            content: serde_json::Value::String(metadata_prompt.to_string()),
+        },
+        ChatMessage {
+            role: "user".to_string(),
+            content: serde_json::Value::String(foreword),
+        },
+    ];
+
+    let mut metadata: Option<DocumentMetadata> = None;
+    for retry in 0..3 {
+        match call_openai_api(messages.clone(), metadata_provider, Some("json_object")).await {
+            Ok(response) => match parse_metadata_response(&response) {
+                Ok(parsed) => {
+                    metadata = Some(parsed);
+                    break;
+                }
+                Err(e) => {
+                    eprintln!(
+                        "Failed to parse metadata response (attempt {}/3): {}",
+                        retry + 1,
+                        e
+                    );
+                }
+            },
+            Err(e) => {
+                eprintln!("LLM API call failed (attempt {}/3): {}", retry + 1, e);
+            }
+        }
+    }
+
+    let mut metadata =
+        metadata.ok_or_else(|| "Failed to extract metadata after 3 attempts".to_string())?;
+
+    metadata.num_pages = num_pages;
+    metadata.filesize = buffer.len() as i64;
+    metadata.format = extension.to_string();
+    metadata.favorite = false;
+    metadata.updated_at = chrono::Utc::now().to_rfc3339();
+
+    metadata = normalize_metadata(metadata);
+
+    let category_parts: Vec<String> = metadata
+        .category
+        .split('>')
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .collect();
+
+    let folder_path = [
+        metadata.doctype.clone(),
+        category_parts
+            .get(0)
+            .unwrap_or(&"General".to_string())
+            .clone(),
+        category_parts
+            .get(1)
+            .unwrap_or(&"General".to_string())
+            .clone(),
+    ]
+    .join("/");
+
+    let category_dir = Path::new(library_path).join(&folder_path);
+    fs::create_dir_all(&category_dir).map_err(|e| {
+        format!(
+            "Failed to create directory {}: {}",
+            category_dir.display(),
+            e
+        )
+    })?;
+
+    let safe_title = metadata
+        .title
+        .chars()
+        .map(|c| if "/\\?%*:|\"<>".contains(c) { '_' } else { c })
+        .collect::<String>();
+
+    let mut new_filename = format!("{}.{}", safe_title, extension);
+    let mut counter = 1;
+
+    while category_dir.join(&new_filename).exists() {
+        new_filename = format!("{}_{}.{}", safe_title, counter, extension);
+        counter += 1;
+    }
+
+    let db_path = Path::new(library_path).join("db.sqlite");
+    let conn = rusqlite::Connection::open(&db_path)
+        .map_err(|e| format!("Failed to open database at {}: {}", db_path.display(), e))?;
+
+    let mut stmt = conn
+        .prepare("SELECT id FROM documents WHERE hash = ?")
+        .map_err(|e| format!("Failed to prepare duplicate check query: {}", e))?;
+
+    let duplicate_exists = stmt.query_row(params![&hash], |_| Ok(())).is_ok();
+
+    if duplicate_exists {
+        return Err("File already exists in library".to_string());
+    }
+
+    let final_file_path = category_dir.join(&new_filename);
+    fs::write(&final_file_path, buffer)
+        .map_err(|e| format!("Failed to write file {}: {}", final_file_path.display(), e))?;
+
+    let url = format!(
+        "lib://{}",
+        Path::new(&folder_path)
+            .join(&new_filename)
+            .to_string_lossy()
+            .replace('\\', "/")
+    );
+    let id = nanoid!();
+
+    conn.execute(
+        "INSERT INTO documents (id, filename, url, doctype, title, authors, publicationYear, publisher, category, language, keywords, abstract, favorite, metadata, hash, numPages, filesize, format, cover) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        params![
+            &id,
+            &new_filename,
+            &url,
+            &metadata.doctype,
+            &metadata.title,
+            &serde_json::to_string(&metadata.authors).unwrap_or_default(),
+            &metadata.publication_year,
+            &metadata.publisher,
+            &metadata.category,
+            &metadata.language,
+            &serde_json::to_string(&metadata.keywords).unwrap_or_default(),
+            &metadata.r#abstract,
+            &metadata.favorite,
+            &serde_json::to_string(&metadata.metadata).unwrap_or_default(),
+            &hash,
+            &metadata.num_pages,
+            &metadata.filesize,
+            &metadata.format,
+            &cover,
+        ],
+    )
+    .map_err(|e| format!("Failed to insert document into database: {}", e))?;
+
+    Ok(ImportResult {
+        success: true,
+        filename: Some(new_filename),
+        metadata: Some(metadata),
+        error: None,
+    })
+}
+
+async fn process_url_import(
+    library_path: &str,
+    url: &str,
+    llm_settings: &LLMSettings,
+) -> Result<ImportResult, String> {
+    reqwest::Url::parse(url).map_err(|e| format!("Invalid URL format: {}", e))?;
+
+    let client = reqwest::Client::new();
+    let response = client
+        .get(url)
+        .header(
+            "User-Agent",
+            "Mozilla/5.0 (compatible; LibraryImporter/1.0)",
+        )
+        .timeout(Duration::from_secs(60))
+        .send()
+        .await
+        .map_err(|e| format!("Failed to download file: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!(
+            "HTTP {}: {}",
+            response.status(),
+            response
+                .status()
+                .canonical_reason()
+                .unwrap_or("Unknown error")
+        ));
+    }
+
+    let content_length = response.content_length();
+    if let Some(len) = content_length {
+        if len > 100 * 1024 * 1024 {
+            return Err("File too large (max 100MB)".to_string());
+        }
+    }
+
+    let content_type = response
+        .headers()
+        .get("content-type")
+        .and_then(|ct| ct.to_str().ok())
+        .unwrap_or("");
+
+    let parsed_url = reqwest::Url::parse(url).map_err(|e| format!("Failed to parse URL: {}", e))?;
+    let url_path = parsed_url.path();
+
+    let mut file_extension = Path::new(url_path)
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+
+    if file_extension.is_empty() {
+        if content_type.contains("pdf") {
+            file_extension = "pdf".to_string();
+        } else if content_type.contains("epub") {
+            file_extension = "epub".to_string();
+        } else if content_type.contains("djvu") {
+            file_extension = "djvu".to_string();
+        } else {
+            return Err("Unable to determine file type from URL".to_string());
+        }
+    }
+
+    let allowed_extensions = ["pdf", "epub", "djvu"];
+    if !allowed_extensions.contains(&file_extension.as_str()) {
+        return Err(format!(
+            "Unsupported file type '{}'. Only PDF, EPUB, and DJVU are supported",
+            file_extension
+        ));
+    }
+
+    let buffer = response
+        .bytes()
+        .await
+        .map_err(|e| format!("Failed to read response body: {}", e))?
+        .to_vec();
+
+    let filename = format!("downloaded.{}", file_extension);
+
+    process_document_import(
+        library_path,
+        &buffer,
+        &filename,
+        &file_extension,
+        llm_settings,
+    )
+    .await
+}
+
+#[tauri::command]
+async fn import_documents(
+    library_name: String,
+    request: ImportRequest,
+) -> Result<ImportResponse, String> {
+    let settings_path = Path::new("settings").join("library.json");
+    let settings: LibrarySettings = match fs::read_to_string(&settings_path) {
+        Ok(data) => serde_json::from_str(&data).map_err(|e| {
+            format!(
+                "Failed to parse library settings at {}: {}",
+                settings_path.display(),
+                e
+            )
+        })?,
+        Err(e) => {
+            return Err(format!(
+                "Failed to read library settings at {}: {}",
+                settings_path.display(),
+                e
+            ))
+        }
+    };
+
+    let library = settings
+        .libraries
+        .iter()
+        .find(|lib| lib.name == library_name)
+        .ok_or_else(|| format!("Library '{}' not found in settings file", library_name))?;
+
+    let llm_settings_path = Path::new("settings").join("llm.json");
+    let llm_settings: LLMSettings = match fs::read_to_string(&llm_settings_path) {
+        Ok(data) => serde_json::from_str(&data).map_err(|e| {
+            format!(
+                "Failed to parse LLM settings at {}: {}",
+                llm_settings_path.display(),
+                e
+            )
+        })?,
+        Err(e) => {
+            return Err(format!(
+                "Failed to read LLM settings at {}: {}",
+                llm_settings_path.display(),
+                e
+            ))
+        }
+    };
+
+    let mut results = Vec::new();
+    let mut errors = Vec::new();
+
+    if let Some(file_data) = &request.file_data {
+        for file_datum in file_data {
+            match process_document_import(
+                &library.path,
+                &file_datum.data,
+                &file_datum.filename,
+                &get_extension(&file_datum.filename),
+                &llm_settings,
+            )
+            .await
+            {
+                Ok(result) => results.push(result),
+                Err(e) => errors.push(ImportError {
+                    source: file_datum.filename.clone(),
+                    error: e,
+                }),
+            }
+        }
+    }
+
+    if let Some(urls) = &request.urls {
+        for url in urls {
+            match process_url_import(&library.path, url, &llm_settings).await {
+                Ok(result) => results.push(result),
+                Err(e) => errors.push(ImportError {
+                    source: url.clone(),
+                    error: e,
+                }),
+            }
+        }
+    }
+
+    let success_count = results.len();
+    let error_count = errors.len();
+    let total_processed = success_count + error_count;
+
+    Ok(ImportResponse {
+        results,
+        errors,
+        total_processed,
+        success_count,
+        error_count,
+    })
 }
 
 #[tauri::command]
@@ -1806,7 +2300,9 @@ fn get_documents(
     // Total count
     let count_sql = format!("SELECT COUNT(*) FROM documents {}", where_clause);
     let total_count: usize = conn
-        .query_row(&count_sql, params_from_iter(params.iter()), |row| row.get(0))
+        .query_row(&count_sql, params_from_iter(params.iter()), |row| {
+            row.get(0)
+        })
         .map_err(|e| format!("Failed to get count: {}", e))?;
 
     // Cache key
@@ -1989,7 +2485,8 @@ pub fn run() {
             update_document,
             move_documents,
             get_documents,
-            generate_metadata
+            generate_metadata,
+            import_documents
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
