@@ -1,5 +1,6 @@
 mod extractors;
 
+use crate::extractors::Extractor;
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use chrono;
 use lazy_static::lazy_static;
@@ -160,6 +161,7 @@ fn move_file(
 }
 
 #[derive(Serialize, Deserialize, Clone)]
+#[allow(non_snake_case)]
 struct LLMProvider {
     name: String,
     #[serde(rename = "type")]
@@ -170,6 +172,7 @@ struct LLMProvider {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
+#[allow(non_snake_case)]
 struct Jobs {
     metadataExtraction: String,
     imageTextExtraction: String,
@@ -270,6 +273,37 @@ struct DocumentListResponse {
     filter_options: FilterCounts,
 }
 
+#[derive(Serialize, Clone)]
+struct ChatMessage {
+    role: String,
+    content: serde_json::Value,
+}
+
+#[derive(Serialize)]
+struct ChatRequest {
+    model: String,
+    messages: Vec<ChatMessage>,
+    response_format: Option<serde_json::Value>,
+    temperature: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    stream: Option<bool>,
+}
+
+#[derive(Deserialize)]
+struct ChatChoice {
+    message: ChatResponseMessage,
+}
+
+#[derive(Deserialize)]
+struct ChatResponseMessage {
+    content: String,
+}
+
+#[derive(Deserialize)]
+struct ChatResponse {
+    choices: Vec<ChatChoice>,
+}
+
 lazy_static! {
     static ref FILTER_CACHE: Mutex<LruCache<String, (FilterCounts, Instant)>> =
         Mutex::new(LruCache::new(std::num::NonZeroUsize::new(100).unwrap()));
@@ -354,6 +388,467 @@ fn set_default_library(default_library: String) -> Result<(), String> {
     let data = serde_json::to_string_pretty(&settings)
         .map_err(|e| format!("Failed to serialize settings: {}", e))?;
     fs::write(&settings_path, data).map_err(|e| format!("Failed to write settings: {}", e))
+}
+
+async fn call_openai_api(
+    messages: Vec<ChatMessage>,
+    provider: &LLMProvider,
+    response_format: Option<&str>,
+) -> Result<String, String> {
+    let client = reqwest::Client::new();
+    let url = format!(
+        "{}/chat/completions",
+        provider.baseURL.trim_end_matches('/')
+    );
+
+    let request_body = ChatRequest {
+        model: provider.model.clone(),
+        messages,
+        response_format: response_format.map(|rf| serde_json::json!({ "type": rf })),
+        temperature: Some(0.0),
+        stream: Some(false),
+    };
+
+    let mut request_builder = client
+        .post(&url)
+        .header("Content-Type", "application/json")
+        .json(&request_body);
+
+    if let Some(api_key) = &provider.apiKey {
+        request_builder = request_builder.header("Authorization", format!("Bearer {}", api_key));
+    }
+
+    let response = request_builder
+        .timeout(Duration::from_secs(30))
+        .send()
+        .await
+        .map_err(|e| {
+            if e.is_timeout() {
+                "LLM API request timed out after 30 seconds".to_string()
+            } else if e.is_connect() {
+                format!("Failed to connect to LLM API: {}", e)
+            } else if e.is_request() {
+                format!("Failed to send request to LLM API: {}", e)
+            } else {
+                format!("LLM API request failed: {}", e)
+            }
+        })?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown error".to_string());
+        return Err(format!(
+            "LLM API returned error {} (status): {}",
+            status, error_text
+        ));
+    }
+
+    let chat_response: ChatResponse = response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse LLM response: {}", e))?;
+
+    chat_response
+        .choices
+        .get(0)
+        .and_then(|c| Some(c.message.content.clone()))
+        .ok_or_else(|| "LLM API returned empty response".to_string())
+}
+
+fn parse_metadata_response(response: &str) -> Result<DocumentMetadata, String> {
+    let json_string = if let Some(captures) = regex::Regex::new(r"```json\n([\s\S]*?)\n```")
+        .unwrap()
+        .captures(response)
+    {
+        captures.get(1).map(|m| m.as_str()).unwrap_or(response)
+    } else {
+        response
+    };
+
+    let mut metadata: serde_json::Value = serde_json::from_str(json_string)
+        .map_err(|e| format!("Failed to parse metadata JSON: {}", e))?;
+
+    if let Some(category) = metadata.get_mut("category") {
+        if let Some(arr) = category.as_array() {
+            if !arr.is_empty() {
+                *category =
+                    serde_json::Value::String(arr[0].as_str().unwrap_or_default().to_string());
+            }
+        }
+    }
+
+    if let Some(keywords) = metadata.get_mut("keywords") {
+        if let Some(kw_str) = keywords.as_str() {
+            let kw_list: Vec<String> = kw_str
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect();
+            *keywords = serde_json::Value::Array(
+                kw_list.into_iter().map(serde_json::Value::String).collect(),
+            );
+        }
+    } else {
+        metadata["keywords"] = serde_json::Value::Array(vec![]);
+    }
+
+    if let Some(authors) = metadata.get_mut("authors") {
+        if let Some(auth_str) = authors.as_str() {
+            let auth_list: Vec<String> = auth_str
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect();
+            *authors = serde_json::Value::Array(
+                auth_list
+                    .into_iter()
+                    .map(serde_json::Value::String)
+                    .collect(),
+            );
+        }
+    } else {
+        metadata["authors"] = serde_json::Value::Array(
+            vec!["Unknown Author".to_string()]
+                .into_iter()
+                .map(serde_json::Value::String)
+                .collect(),
+        );
+    }
+
+    let doctype = metadata
+        .get("doctype")
+        .and_then(|v| v.as_str())
+        .unwrap_or("Book")
+        .to_string();
+    let title = metadata
+        .get("title")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    let authors: Vec<String> = metadata
+        .get("authors")
+        .and_then(|v| v.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                .collect()
+        })
+        .unwrap_or_default();
+    let publication_year = metadata
+        .get("publication_year")
+        .and_then(|v| v.as_i64())
+        .map(|v| v as i32);
+    let publisher = metadata
+        .get("publisher")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    let category = metadata
+        .get("category")
+        .and_then(|v| v.as_str())
+        .unwrap_or("General > General")
+        .to_string();
+    let language = metadata
+        .get("language")
+        .and_then(|v| v.as_str())
+        .unwrap_or("English")
+        .to_string();
+    let keywords: Vec<String> = metadata
+        .get("keywords")
+        .and_then(|v| v.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                .collect()
+        })
+        .unwrap_or_default();
+    let r#abstract = metadata
+        .get("abstract")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    let extra_metadata = metadata.get("metadata").cloned();
+
+    let meta = DocumentMetadata {
+        doctype,
+        title,
+        authors,
+        publication_year,
+        publisher,
+        category,
+        language,
+        keywords,
+        r#abstract,
+        favorite: false,
+        num_pages: 0,
+        filesize: 0,
+        format: "".to_string(),
+        metadata: extra_metadata,
+        updated_at: chrono::Utc::now().to_rfc3339(),
+    };
+
+    Ok(meta)
+}
+
+#[tauri::command]
+async fn generate_metadata(
+    library_name: String,
+    document_id: String,
+) -> Result<DocumentMetadata, String> {
+    let settings_path = Path::new("settings").join("library.json");
+    let settings: LibrarySettings = match fs::read_to_string(&settings_path) {
+        Ok(data) => serde_json::from_str(&data).map_err(|e| {
+            format!(
+                "Failed to parse library settings at {}: {}",
+                settings_path.display(),
+                e
+            )
+        })?,
+        Err(e) => {
+            return Err(format!(
+                "Failed to read library settings at {}: {}",
+                settings_path.display(),
+                e
+            ))
+        }
+    };
+
+    let library = settings
+        .libraries
+        .iter()
+        .find(|lib| lib.name == library_name)
+        .ok_or_else(|| format!("Library '{}' not found in settings file", library_name))?;
+
+    let (filename, url, existing_num_pages, existing_filesize, existing_format, existing_favorite) = {
+        let db_path = Path::new(&library.path).join("db.sqlite");
+        let conn = rusqlite::Connection::open(&db_path)
+            .map_err(|e| format!("Failed to open database at {}: {}", db_path.display(), e))?;
+
+        let mut stmt = conn
+            .prepare("SELECT filename, url, numPages, filesize, format, favorite FROM documents WHERE id = ?")
+            .map_err(|e| format!("Failed to prepare document query: {}", e))?;
+
+        stmt.query_row(params![&document_id], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, i32>(2)?,
+                row.get::<_, i64>(3)?,
+                row.get::<_, String>(4)?,
+                row.get::<_, i32>(5)?,
+            ))
+        })
+        .map_err(|e| format!("Document '{}' not found in database: {}", document_id, e))?
+    };
+
+    let file_url = url.strip_prefix("lib://").ok_or_else(|| {
+        format!(
+            "Invalid document URL format (must start with 'lib://'): {}",
+            url
+        )
+    })?;
+
+    let file_path = Path::new(&library.path).join(file_url);
+
+    if !file_path.exists() {
+        return Err(format!(
+            "Document file not found at: {}",
+            file_path.display()
+        ));
+    }
+
+    let buffer = fs::read(&file_path)
+        .map_err(|e| format!("Failed to read file {}: {}", file_path.display(), e))?;
+
+    let file_extension = Path::new(&filename)
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+
+    let extraction: extractors::ForewordExtraction = match file_extension.as_str() {
+        "pdf" => extractors::pdf::PdfExtractor::extract(&buffer).await,
+        "epub" => extractors::epub::EpubExtractor::extract(&buffer).await,
+        "djvu" => extractors::djvu::DjvuExtractor::extract(&buffer).await,
+        _ => {
+            return Err(format!(
+                "Unsupported file extension: '{}'. Supported extensions: pdf, epub, djvu",
+                file_extension
+            ))
+        }
+    }
+    .map_err(|e| format!("Failed to extract content from file: {}", e))?;
+
+    let mut foreword = extraction.foreword;
+    let images = extraction.images;
+
+    let llm_settings_path = Path::new("settings").join("llm.json");
+    let llm_settings: LLMSettings = match fs::read_to_string(&llm_settings_path) {
+        Ok(data) => serde_json::from_str(&data).map_err(|e| {
+            format!(
+                "Failed to parse LLM settings at {}: {}",
+                llm_settings_path.display(),
+                e
+            )
+        })?,
+        Err(e) => {
+            return Err(format!(
+                "Failed to read LLM settings at {}: {}",
+                llm_settings_path.display(),
+                e
+            ))
+        }
+    };
+
+    if images.len() > 0 && foreword.len() < 100 {
+        let image_provider_name = &llm_settings.jobs.imageTextExtraction;
+        if image_provider_name.is_empty() {
+            return Err("Image text extraction provider not configured in LLM settings (llm.json > jobs.imageTextExtraction)".to_string());
+        }
+
+        let image_provider = llm_settings
+            .providers
+            .iter()
+            .find(|p| p.name == *image_provider_name)
+            .ok_or_else(|| {
+                format!(
+                    "Image text extraction provider '{}' not found in LLM settings providers list",
+                    image_provider_name
+                )
+            })?;
+
+        let ocr_prompt = "Extract all legible text from the document. Prioritize:\n\
+            1. Titles and headings\n\
+            2. Author names\n\
+            3. Publication details (journal, publisher, date, volume, issue, pages)\n\
+            4. Metadata (DOI, ISSN, etc.)\n\
+            Requirements:\n\
+            - Preserve original text order and line breaks\n\
+            - Exclude non-legible text, stamps, and watermarks\n\
+            - Output ONLY the extracted text (no explanations)\n\
+            - Format: One line per detected text line";
+
+        let base64_images: Vec<String> = images
+            .iter()
+            .map(|img| format!("data:image;base64,{}", STANDARD.encode(img)))
+            .collect();
+
+        let image_contents: Vec<serde_json::Value> = base64_images
+            .iter()
+            .map(|img| {
+                serde_json::json!({
+                    "type": "image_url",
+                    "image_url": {
+                        "url": img
+                    }
+                })
+            })
+            .collect();
+
+        let messages = vec![
+            ChatMessage {
+                role: "system".to_string(),
+                content: serde_json::Value::String(ocr_prompt.to_string()),
+            },
+            ChatMessage {
+                role: "user".to_string(),
+                content: serde_json::json!(image_contents),
+            },
+        ];
+
+        foreword = call_openai_api(messages, image_provider, None)
+            .await
+            .map_err(|e| format!("Failed to extract text from images: {}", e))?;
+    }
+
+    foreword = foreword.chars().take(5000).collect();
+
+    let metadata_provider_name = &llm_settings.jobs.metadataExtraction;
+    if metadata_provider_name.is_empty() {
+        return Err("Metadata extraction provider not configured in LLM settings (llm.json > jobs.metadataExtraction)".to_string());
+    }
+
+    let metadata_provider = llm_settings
+        .providers
+        .iter()
+        .find(|p| p.name == *metadata_provider_name)
+        .ok_or_else(|| {
+            format!(
+                "Metadata extraction provider '{}' not found in LLM settings providers list",
+                metadata_provider_name
+            )
+        })?;
+
+    let metadata_prompt = "Extract structured metadata from the provided document. Return the result strictly in JSON format with the following keys:\n\
+        doctype, title, authors, publication_year, publisher, category, language, keywords, abstract, metadata.\n\
+        \n\
+        Follow these rules precisely:\n\
+        1. **Fields**:\n\
+           - Extract: title, authors (as a list), publication year (as integer if possible), publisher, language (e.g., 'English', 'Chinese'), keywords (as a list), and abstract (as a string).\n\
+           - If any field cannot be determined, leave its value empty (e.g., '' for strings, [] for lists, null for numbers)—do NOT use placeholders like 'unknown', 'none', or 'N/A'.\n\
+        \n\
+        2. **Document Type (doctype)**:\n\
+           - Classify strictly as one of: 'Book', 'Paper', 'Report', 'Manual' or 'Others'.\n\
+        \n\
+        3. **Category**:\n\
+           - Infer the most specific main category and subcategory (e.g., 'Computer Science > Artificial Intelligence').\n\
+           - Format as: 'Main category > Subcategory'.\n\
+           - If only a broad category is identifiable, use 'Main category > General'.\n\
+        \n\
+        4. **Metadata**:\n\
+           - Use this field to include any other relevant structured information not covered above (e.g., DOI, ISBN, journal name, volume/issue). Represent as a JSON object or leave as an empty object {} if none.\n\
+        \n\
+        5. **Output**:\n\
+           - Return ONLY valid JSON. Do not include explanations, markdown, or extra text.";
+
+    let messages = vec![
+        ChatMessage {
+            role: "system".to_string(),
+            content: serde_json::Value::String(metadata_prompt.to_string()),
+        },
+        ChatMessage {
+            role: "user".to_string(),
+            content: serde_json::Value::String(foreword),
+        },
+    ];
+
+    let mut metadata: Option<DocumentMetadata> = None;
+    for retry in 0..3 {
+        match call_openai_api(messages.clone(), metadata_provider, Some("json_object")).await {
+            Ok(response) => match parse_metadata_response(&response) {
+                Ok(parsed) => {
+                    metadata = Some(parsed);
+                    break;
+                }
+                Err(e) => {
+                    eprintln!(
+                        "Failed to parse metadata response (attempt {}/3): {}",
+                        retry + 1,
+                        e
+                    );
+                }
+            },
+            Err(e) => {
+                eprintln!("LLM API call failed (attempt {}/3): {}", retry + 1, e);
+            }
+        }
+    }
+
+    let mut metadata = metadata.ok_or_else(|| {
+        "Failed to extract metadata after 3 attempts. Check LLM provider configuration and try again.".to_string()
+    })?;
+
+    metadata.num_pages = existing_num_pages;
+    metadata.filesize = existing_filesize;
+    metadata.format = existing_format;
+    metadata.favorite = existing_favorite != 0;
+    metadata.updated_at = chrono::Utc::now().to_rfc3339();
+
+    metadata = normalize_metadata(metadata);
+
+    Ok(metadata)
 }
 
 #[tauri::command]
@@ -935,14 +1430,12 @@ fn update_document(
             title = ?,
             authors = ?,
             publicationYear = ?,
-            numPages = ?,
             publisher = ?,
             category = ?,
             language = ?,
             keywords = ?,
             abstract = ?,
             doctype = ?,
-            favorite = ?,
             metadata = ?,
             updatedAt = ?
         WHERE id = ?
@@ -952,14 +1445,12 @@ fn update_document(
         normalized_metadata.title,
         serde_json::to_string(&normalized_metadata.authors).unwrap(),
         normalized_metadata.publication_year,
-        normalized_metadata.num_pages,
         normalized_metadata.publisher,
         normalized_metadata.category,
         normalized_metadata.language,
         serde_json::to_string(&normalized_metadata.keywords).unwrap(),
         normalized_metadata.r#abstract,
         normalized_metadata.doctype,
-        normalized_metadata.favorite,
         normalized_metadata
             .metadata
             .as_ref()
@@ -1271,7 +1762,7 @@ fn get_documents(
         .prepare(&sql)
         .map_err(|e| format!("Failed to prepare query: {}", e))?;
     let documents_iter = stmt
-        .query_map(params_from_iter(params_with_pagination), |row| {
+        .query_map(params_from_iter(params_with_pagination.iter()), |row| {
             Ok(LibraryDocument {
                 id: row.get(0)?,
                 path: {
@@ -1315,7 +1806,7 @@ fn get_documents(
     // Total count
     let count_sql = format!("SELECT COUNT(*) FROM documents {}", where_clause);
     let total_count: usize = conn
-        .query_row(&count_sql, params_from_iter(&params), |row| row.get(0))
+        .query_row(&count_sql, params_from_iter(params.iter()), |row| row.get(0))
         .map_err(|e| format!("Failed to get count: {}", e))?;
 
     // Cache key
@@ -1375,7 +1866,7 @@ fn compute_filter_counts(
         .prepare(&sql)
         .map_err(|e| format!("Failed to prepare formats query: {}", e))?;
     let format_iter = stmt
-        .query_map(params_from_iter(params), |row| {
+        .query_map(params_from_iter(params.iter()), |row| {
             Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)? as usize))
         })
         .map_err(|e| format!("Failed to execute formats query: {}", e))?;
@@ -1395,7 +1886,7 @@ fn compute_filter_counts(
         .prepare(&sql)
         .map_err(|e| format!("Failed to prepare publishers query: {}", e))?;
     let publisher_iter = stmt
-        .query_map(params_from_iter(params), |row| {
+        .query_map(params_from_iter(params.iter()), |row| {
             Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)? as usize))
         })
         .map_err(|e| format!("Failed to execute publishers query: {}", e))?;
@@ -1416,7 +1907,7 @@ fn compute_filter_counts(
         .prepare(&sql)
         .map_err(|e| format!("Failed to prepare languages query: {}", e))?;
     let language_iter = stmt
-        .query_map(params_from_iter(params), |row| {
+        .query_map(params_from_iter(params.iter()), |row| {
             Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)? as usize))
         })
         .map_err(|e| format!("Failed to execute languages query: {}", e))?;
@@ -1435,7 +1926,7 @@ fn compute_filter_counts(
         .prepare(&sql)
         .map_err(|e| format!("Failed to prepare keywords query: {}", e))?;
     let doc_iter = stmt
-        .query_map(params_from_iter(params), |row| {
+        .query_map(params_from_iter(params.iter()), |row| {
             Ok((
                 row.get::<_, Option<String>>(0)?,
                 row.get::<_, Option<String>>(1)?,
@@ -1497,7 +1988,8 @@ pub fn run() {
             open_document,
             update_document,
             move_documents,
-            get_documents
+            get_documents,
+            generate_metadata
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

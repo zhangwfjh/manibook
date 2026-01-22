@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { LibraryDocument, DocumentMetadata } from "@/lib/library";
 import { useState, useCallback } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import {
   MetadataForm,
   MetadataView,
@@ -130,34 +131,27 @@ export function DocumentDetailDialog({
 
     setIsGenerating(true);
     try {
-      const response = await fetch(
-        `/api/libraries/${library}/documents/${document.id}/generate`,
-        { method: "POST" }
-      );
+      const metadata = await invoke<DocumentMetadata>("generate_metadata", {
+        libraryName: library,
+        documentId: document.id
+      });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to generate metadata");
-      }
-
-      const data = await response.json();
-
-      if (data.metadata) {
+      if (metadata) {
         setEditedMetadata({
-          doctype: data.metadata.doctype,
-          title: data.metadata.title,
-          authors: data.metadata.authors,
-          publicationYear: data.metadata.publication_year,
-          publisher: data.metadata.publisher,
-          category: data.metadata.category,
-          language: data.metadata.language,
-          keywords: data.metadata.keywords,
-          abstract: data.metadata.abstract,
-          favorite: document.metadata.favorite,
-          numPages: document.metadata.numPages,
-          filesize: document.metadata.filesize,
-          format: document.metadata.format,
-          metadata: data.metadata.metadata,
+          doctype: metadata.doctype,
+          title: metadata.title,
+          authors: metadata.authors,
+          publicationYear: metadata.publicationYear,
+          publisher: metadata.publisher,
+          category: metadata.category,
+          language: metadata.language,
+          keywords: metadata.keywords,
+          abstract: metadata.abstract,
+          favorite: metadata.favorite,
+          numPages: metadata.numPages,
+          filesize: metadata.filesize,
+          format: metadata.format,
+          metadata: metadata.metadata,
           updatedAt: new Date(),
         });
       }
