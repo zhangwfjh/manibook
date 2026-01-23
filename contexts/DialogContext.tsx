@@ -72,6 +72,10 @@ export function DialogProvider({ children }: DialogProviderProps) {
 
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = React.useState(false);
 
+  const resetSelectedLibrary = () => {
+    setSelectedLibraryForOperation({ name: "" });
+  };
+
   const resetCreateDialog = () => {
     setNewLibraryName("");
     setNewLibraryPath("");
@@ -80,13 +84,13 @@ export function DialogProvider({ children }: DialogProviderProps) {
 
   const resetRenameDialog = () => {
     setRenameLibraryName("");
-    setSelectedLibraryForOperation({ name: "" });
+    resetSelectedLibrary();
     setRenameLibraryOpen(false);
   };
 
   const resetMoveDialog = () => {
     setMoveLibraryPath("");
-    setSelectedLibraryForOperation({ name: "" });
+    resetSelectedLibrary();
     setMoveLibraryOpen(false);
   };
 
