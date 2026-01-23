@@ -1,7 +1,7 @@
 import React, { createContext, useContext, ReactNode } from "react";
 import { LibraryDocument, Library } from "@/lib/library";
 import { LibraryCategory } from "@/lib/library";
-import { PaginationInfo } from "@/lib/types/common";
+import { PaginationInfo } from "@/lib/library/types";
 import { useLibraryData } from "@/hooks/use-library-data";
 import { useDocumentFilters } from "@/hooks/use-document-filters";
 import { useDocumentSorting } from "@/hooks/use-document-sorting";
@@ -18,18 +18,14 @@ interface LibraryContextType {
   setDocuments: (docs: LibraryDocument[]) => void;
   categories: LibraryCategory[];
   loading: boolean;
-  isFetching: boolean;
   pagination: PaginationInfo | null;
   currentPage: number;
-  pageSize: number;
   loadPage: (page: number, filters?: URLSearchParams) => Promise<void>;
-  loadNextPage: () => Promise<void>;
-  loadPrevPage: () => Promise<void>;
   loadFilteredData: (
-    params: URLSearchParams,
-    forceRefresh?: boolean
+    filterParams: URLSearchParams | undefined,
+    sortParams: URLSearchParams | undefined,
+    forceRefresh?: boolean,
   ) => Promise<void>;
-  refreshLibraries: () => Promise<void>;
   refreshLibraryData: () => Promise<void>;
   filterOptions: Record<string, Record<string, number>> & {
     languages?: Record<string, number>;
@@ -91,7 +87,7 @@ interface LibraryContextType {
   handleOpen: (doc: LibraryDocument) => void;
   handleDocumentDelete: (document: LibraryDocument) => Promise<void>;
   handleDocumentUpdate: (
-    updatedDoc: LibraryDocument
+    updatedDoc: LibraryDocument,
   ) => Promise<LibraryDocument | undefined>;
   handleFavoriteToggle: (document: LibraryDocument) => Promise<void>;
 
@@ -105,8 +101,6 @@ interface LibraryContextType {
   handleClearSelection: () => void;
   handleBulkDelete: () => Promise<void>;
   handleBulkMove: (doctype: string, category: string) => Promise<void>;
-
-  combinedParams: URLSearchParams;
 }
 
 const LibraryContext = createContext<LibraryContextType | undefined>(undefined);
@@ -136,7 +130,8 @@ export function LibraryProvider({ children }: LibraryProviderProps) {
     renameLibraryOpen: dialogContext.renameLibraryOpen,
     setRenameLibraryOpen: dialogContext.setRenameLibraryOpen,
     selectedLibraryForOperation: dialogContext.selectedLibraryForOperation,
-    setSelectedLibraryForOperation: dialogContext.setSelectedLibraryForOperation,
+    setSelectedLibraryForOperation:
+      dialogContext.setSelectedLibraryForOperation,
     renameLibraryName: dialogContext.renameLibraryName,
     setRenameLibraryName: dialogContext.setRenameLibraryName,
     moveLibraryOpen: dialogContext.moveLibraryOpen,
@@ -165,23 +160,22 @@ export function LibraryProvider({ children }: LibraryProviderProps) {
     loadFilteredData: libraryData.loadFilteredData,
   });
 
-  const combinedParams = React.useMemo(() => {
-    const params = new URLSearchParams();
-    documentFilters.filterParams.forEach((value, key) =>
-      params.set(key, value)
-    );
-    documentSorting.sortParams.forEach((value, key) => params.set(key, value));
-    return params;
-  }, [documentFilters.filterParams, documentSorting.sortParams]);
+  const {
+    pageSize,
+    isFetching,
+    loadNextPage,
+    loadPrevPage,
+    refreshLibraries,
+    ...restLibraryData
+  } = libraryData;
 
   const value: LibraryContextType = {
-    ...libraryData,
+    ...restLibraryData,
     ...documentFilters,
     ...documentSorting,
     ...libraryOperations,
     ...documentHandlers,
     ...bulkOperations,
-    combinedParams,
   };
 
   return (

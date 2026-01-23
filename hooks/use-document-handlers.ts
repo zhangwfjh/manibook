@@ -2,13 +2,12 @@ import { useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { toast } from "sonner";
 import { LibraryDocument } from "@/lib/library";
-import { combineSearchParams } from "@/lib/utils/url-params";
 
 interface UseDocumentHandlersProps {
   currentLibrary: string;
   filterParams: URLSearchParams;
   sortParams: URLSearchParams;
-  loadFilteredData: (params: URLSearchParams, forceRefresh?: boolean) => Promise<void>;
+  loadFilteredData: (filterParams: URLSearchParams | undefined, sortParams: URLSearchParams | undefined, forceRefresh?: boolean) => Promise<void>;
 }
 
 export function useDocumentHandlers({
@@ -43,8 +42,7 @@ export function useDocumentHandlers({
         console.error("Error deleting document:", error);
         toast.error("Failed to delete document");
       }
-      const combinedParams = combineSearchParams(filterParams, sortParams);
-      await loadFilteredData(combinedParams, true);
+      await loadFilteredData(filterParams, sortParams, true);
     },
     [currentLibrary, filterParams, sortParams, loadFilteredData]
   );
@@ -57,8 +55,7 @@ export function useDocumentHandlers({
           documentId: updatedDoc.id,
           metadata: updatedDoc.metadata,
         });
-        const combinedParams = combineSearchParams(filterParams, sortParams);
-        await loadFilteredData(combinedParams, true);
+        await loadFilteredData(filterParams, sortParams, true);
         return result;
       } catch (error) {
         console.error("Error updating document:", error);

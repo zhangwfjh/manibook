@@ -6,8 +6,7 @@ export function useHomeHandlers(
   setSelectedDocument: (doc: LibraryDocument | null) => void,
   setDialogOpen: (open: boolean) => void,
   selectionMode: boolean,
-  handleToggleDocumentSelection: (id: string) => void,
-  setSelectedCategory: (category: string) => void
+  handleToggleDocumentSelection: (id: string) => void
 ) {
   const { handleDocumentUpdate } = useLibraryContext();
 
@@ -30,16 +29,8 @@ export function useHomeHandlers(
     }
   }, [handleDocumentUpdate, setSelectedDocument]);
 
-  const handleBreadcrumbClick = useCallback(
-    (category: string) => {
-      setSelectedCategory(category);
-    },
-    [setSelectedCategory]
-  );
-
   return {
     handleDocumentClick,
     handleDocumentUpdate: handleDocumentUpdateWrapper,
-    handleBreadcrumbClick,
   };
 }

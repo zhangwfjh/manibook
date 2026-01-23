@@ -2,7 +2,6 @@ mod extractors;
 
 use crate::extractors::Extractor;
 use base64::{engine::general_purpose::STANDARD, Engine as _};
-use chrono;
 use lazy_static::lazy_static;
 use lru::LruCache;
 use rusqlite::{params, params_from_iter};

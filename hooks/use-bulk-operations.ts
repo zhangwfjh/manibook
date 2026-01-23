@@ -2,14 +2,13 @@ import { useCallback, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { toast } from "sonner";
 import { LibraryDocument } from "@/lib/library";
-import { combineSearchParams } from "@/lib/utils/url-params";
 
 interface UseBulkOperationsProps {
   documents: LibraryDocument[];
   currentLibrary: string;
   filterParams: URLSearchParams;
   sortParams: URLSearchParams;
-  loadFilteredData: (params: URLSearchParams, forceRefresh?: boolean) => Promise<void>;
+  loadFilteredData: (filterParams: URLSearchParams | undefined, sortParams: URLSearchParams | undefined, forceRefresh?: boolean) => Promise<void>;
 }
 
 export function useBulkOperations({
@@ -66,8 +65,7 @@ export function useBulkOperations({
       setBulkDeleteDialogOpen(false);
       setSelectedDocuments(new Set());
       setSelectionMode(false);
-      const combinedParams = combineSearchParams(filterParams, sortParams);
-      await loadFilteredData(combinedParams, true);
+      await loadFilteredData(filterParams, sortParams, true);
     } catch (error) {
       console.error("Error bulk deleting documents:", error);
       toast.error("Failed to delete documents");
@@ -100,8 +98,7 @@ export function useBulkOperations({
         }
         setSelectedDocuments(new Set());
         setSelectionMode(false);
-        const combinedParams = combineSearchParams(filterParams, sortParams);
-        await loadFilteredData(combinedParams, true);
+        await loadFilteredData(filterParams, sortParams, true);
       } catch (error) {
         console.error("Error bulk moving documents:", error);
         toast.error("Failed to move documents");

@@ -20,7 +20,6 @@ import {
 import { toast } from "sonner";
 import { useImportContext } from "@/contexts/ImportContext";
 import { ImportDrawer } from "@/components/ui/import-drawer";
-import { executeConcurrent } from "@/lib/utils/concurrency";
 import { invoke } from "@tauri-apps/api/core";
 
 interface ImportDialogProps {

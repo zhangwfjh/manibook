@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { LibraryDocument, LibraryCategory, Library } from "@/lib/library";
-import { PaginationInfo } from "@/lib/types/common";
+import { PaginationInfo } from "@/lib/library/types";
 
 interface CacheEntry {
   documents: LibraryDocument[];
@@ -210,9 +210,16 @@ export function useLibraryData() {
   }, [pagination?.hasPrevPage, currentPage, loadPage]);
 
   // Load filtered data
-  const loadFilteredData = useCallback(async (filters: URLSearchParams, forceRefresh: boolean = false) => {
+  const loadFilteredData = useCallback(async (filterParams: URLSearchParams | undefined, sortParams: URLSearchParams | undefined, forceRefresh: boolean = false) => {
+    const combinedParams = new URLSearchParams();
+    if (filterParams) {
+      filterParams.forEach((value, key) => combinedParams.set(key, value));
+    }
+    if (sortParams) {
+      sortParams.forEach((value, key) => combinedParams.set(key, value));
+    }
     setCurrentPage(1);
-    await fetchLibraryData(1, filters, forceRefresh);
+    await fetchLibraryData(1, combinedParams, forceRefresh);
   }, [fetchLibraryData]);
 
   const refreshLibraries = useCallback(async () => {
