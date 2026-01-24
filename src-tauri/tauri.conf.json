@@ -2,7 +2,7 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "manibook",
   "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "identifier": "com.manibook.dev",
   "build": {
     "frontendDist": "../out",
     "devUrl": "http://localhost:3000",
@@ -13,8 +13,8 @@
     "windows": [
       {
         "title": "ManiBook",
-        "width": 800,
-        "height": 600,
+        "width": 1280,
+        "height": 960,
         "resizable": true,
         "fullscreen": false
       }

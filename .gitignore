@@ -43,3 +43,8 @@ next-env.d.ts
 /scripts
 /settings
 /lib/generated/prisma
+
+# PDFium binaries (downloaded during build)
+/src-tauri/pdfium.dll
+/src-tauri/libpdfium.dylib
+/src-tauri/libpdfium.so

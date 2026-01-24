@@ -1,36 +1,103 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ManiBook
 
-## Getting Started
+ManiBook is a manager of many books.
 
-First, run the development server:
+## Prerequisites
+
+- [Node.js](https://nodejs.org/) (LTS version)
+- [Rust](https://rustup.rs/)
+- [Bun](https://bun.sh/) (recommended)
+
+### Platform-specific requirements
+
+**Linux:**
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+sudo apt-get update
+sudo apt-get install libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+**macOS:**
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Xcode command line tools: `xcode-select --install`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**Windows:**
 
-## Learn More
+- Visual Studio C++ Build Tools
 
-To learn more about Next.js, take a look at the following resources:
+## Development Setup
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. **Clone the repository:**
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+   ```bash
+   git clone <repository-url>
+   cd manibook
+   ```
 
-## Deploy on Vercel
+2. **Install dependencies:**
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+   ```bash
+   bun install
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+3. **Download PDFium binaries:**
+
+   ```bash
+   ./scripts/download-pdfium.sh
+   ```
+
+4. **Start development:**
+
+   ```bash
+   bun run dev
+   ```
+
+## Building for Production
+
+### Local Build
+
+```bash
+# Download PDFium binaries first
+./scripts/download-pdfium.sh
+
+# Build the application
+bunx tauri build
+```
+
+### Cross-platform Releases
+
+Push a version tag to trigger automated builds:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+This will create releases for Windows, macOS, and Linux via GitHub Actions.
+
+## PDFium Dependency
+
+This application uses PDFium for PDF processing. The binaries are automatically downloaded during the build process from [pdfium-binaries](https://github.com/bblanchon/pdfium-binaries).
+
+For local development, run the download script before building. The binaries are excluded from version control to keep the repository size manageable.
+
+## Project Structure
+
+- `src-tauri/` - Rust backend and Tauri configuration
+- `app/` - Next.js frontend (App Router)
+- `components/` - React components
+- `lib/` - Utility functions and shared code
+- `prisma/` - Database schema and migrations
+- `scripts/` - Build and utility scripts
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## License
+
+[Add your license here]
