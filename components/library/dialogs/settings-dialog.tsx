@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import {
   Dialog,
   DialogContent,
@@ -55,14 +56,8 @@ export function SettingsDialog() {
     if (open) {
       const loadSettings = async () => {
         try {
-          const response = await fetch("/api/llm/settings");
-          if (response.ok) {
-            const data = await response.json();
-            setSettings(data);
-          } else {
-            console.error("Failed to load settings");
-            setSettings(emptySettings);
-          }
+          const data = await invoke<LLMSettings>("get_llm_settings");
+          setSettings(data);
         } catch (error) {
           console.error("Error loading settings:", error);
           setSettings(emptySettings);
@@ -74,20 +69,8 @@ export function SettingsDialog() {
 
   const handleSave = async () => {
     try {
-      const response = await fetch("/api/llm/settings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(settings),
-      });
-
-      if (response.ok) {
-        setOpen(false);
-      } else {
-        console.error("Failed to save settings");
-        alert("Failed to save settings");
-      }
+      await invoke("set_llm_settings", { settings });
+      setOpen(false);
     } catch (error) {
       console.error("Error saving settings:", error);
       alert("Error saving settings");

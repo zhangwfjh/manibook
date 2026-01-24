@@ -10,18 +10,18 @@ import { Controls } from "@/components/library/layout/controls";
 import { Content } from "@/components/library/core/content";
 import { DialogManager } from "@/components/library/dialogs/dialog-manager";
 import { useHomeHandlers } from "@/hooks/use-home-handlers";
-import { ViewMode } from "@/lib/types/common";
+import { ViewMode } from "@/lib/library/types";
 
 function HomeContent() {
   const [viewMode, setViewMode] = useState<ViewMode>("card");
 
   const {
     currentLibrary,
-    selectedCategory,
     selectionMode,
-    setSelectedCategory,
+    selectedCategory,
     handleClearSelection,
-    combinedParams,
+    filterParams,
+    sortParams,
     loadFilteredData,
     handleOpen,
     handleDocumentDelete,
@@ -39,7 +39,6 @@ function HomeContent() {
     setDocumentDialogOpen,
     selectionMode,
     handleToggleDocumentSelection,
-    setSelectedCategory
   );
 
   const documentActionsValue = {
@@ -53,9 +52,9 @@ function HomeContent() {
 
   useEffect(() => {
     if (currentLibrary) {
-      loadFilteredData(combinedParams);
+      loadFilteredData(filterParams, sortParams);
     }
-  }, [combinedParams, currentLibrary, loadFilteredData]);
+  }, [filterParams, sortParams, currentLibrary, loadFilteredData]);
 
   useEffect(() => {
     setTimeout(() => {

@@ -32,8 +32,6 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
-.llm-settings.json
-libraries.json
 
 # vercel
 .vercel
@@ -42,6 +40,7 @@ libraries.json
 *.tsbuildinfo
 next-env.d.ts
 
-/scripts
-/settings
-/lib/generated/prisma
+# PDFium binaries (created during build)
+/src-tauri/pdfium.dll
+/src-tauri/libpdfium.dylib
+/src-tauri/libpdfium.so

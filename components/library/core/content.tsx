@@ -24,6 +24,7 @@ import { Pagination } from "@/components/library/ui/pagination";
 import { BookOpenIcon, LibraryIcon } from "lucide-react";
 import { useLibraryContext } from "@/contexts/LibraryContext";
 import { useDocumentActionsContext } from "@/contexts/DocumentActionsContext";
+import { usePaginationControls } from "@/hooks/use-pagination-controls";
 
 type ViewMode = "card" | "list";
 
@@ -44,6 +45,8 @@ export function Content({ viewMode }: ContentProps) {
     setSelectedCategory,
     libraries,
     setCreateLibraryOpen,
+    filterParams,
+    sortParams,
   } = useLibraryContext();
 
   const {
@@ -53,33 +56,36 @@ export function Content({ viewMode }: ContentProps) {
     handleToggleDocumentSelection,
     onDocumentClick,
   } = useDocumentActionsContext();
-  const currentPage = pagination?.page || 1;
-  const totalPages = pagination?.totalPages || 1;
-  const hasNextPage = pagination?.hasNextPage || false;
-  const hasPrevPage = pagination?.hasPrevPage || false;
+
+  const {
+    currentPage,
+    totalPages,
+    hasNextPage,
+    hasPrevPage,
+    nextPage,
+    prevPage,
+    goToPage,
+  } = usePaginationControls(pagination, loadPage, filterParams, sortParams);
   const totalCount = pagination?.totalCount || 0;
 
   const paginatedItems = documents;
-
-  const goToPage = (page: number) => {
-    loadPage(page);
-  };
 
   const useVirtualList = useMemo(() => {
     return viewMode === "list" && paginatedItems.length > 50;
   }, [viewMode, paginatedItems.length]);
 
-  const nextPage = () => {
-    if (hasNextPage) {
-      goToPage(currentPage + 1);
-    }
-  };
-
-  const prevPage = () => {
-    if (hasPrevPage) {
-      goToPage(currentPage - 1);
-    }
-  };
+  const paginationComponent = (
+    <Pagination
+      currentPage={currentPage}
+      totalPages={totalPages}
+      hasNextPage={hasNextPage}
+      hasPrevPage={hasPrevPage}
+      onNextPage={nextPage}
+      onPrevPage={prevPage}
+      onGoToPage={goToPage}
+      className="mt-8"
+    />
+  );
 
   if (libraries.length === 0) {
     return (
@@ -91,7 +97,8 @@ export function Content({ viewMode }: ContentProps) {
             </EmptyMedia>
             <EmptyTitle>Welcome to ManiBook</EmptyTitle>
             <EmptyDescription>
-              Create your first library to start organizing your document collection with powerful search and filtering capabilities.
+              Create your first library to start organizing your document
+              collection with powerful search and filtering capabilities.
             </EmptyDescription>
           </EmptyHeader>
           <div className="flex justify-center">
@@ -206,16 +213,7 @@ export function Content({ viewMode }: ContentProps) {
             ))}
           </div>
 
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            hasNextPage={hasNextPage}
-            hasPrevPage={hasPrevPage}
-            onNextPage={nextPage}
-            onPrevPage={prevPage}
-            onGoToPage={goToPage}
-            className="mt-8"
-          />
+          {paginationComponent}
         </>
       ) : useVirtualList ? (
         <>
@@ -230,16 +228,7 @@ export function Content({ viewMode }: ContentProps) {
             onToggleDocumentSelection={handleToggleDocumentSelection}
           />
 
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            hasNextPage={hasNextPage}
-            hasPrevPage={hasPrevPage}
-            onNextPage={nextPage}
-            onPrevPage={prevPage}
-            onGoToPage={goToPage}
-            className="mt-8"
-          />
+          {paginationComponent}
         </>
       ) : (
         <>
@@ -254,16 +243,7 @@ export function Content({ viewMode }: ContentProps) {
             onToggleDocumentSelection={handleToggleDocumentSelection}
           />
 
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            hasNextPage={hasNextPage}
-            hasPrevPage={hasPrevPage}
-            onNextPage={nextPage}
-            onPrevPage={prevPage}
-            onGoToPage={goToPage}
-            className="mt-8"
-          />
+          {paginationComponent}
         </>
       )}
     </div>

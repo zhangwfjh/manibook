@@ -38,35 +38,13 @@ export interface Library {
   path: string; // Full path to library directory
 }
 
-export interface LibrarySettings {
-  libraries: Library[];
-  defaultLibrary?: string;
+export interface PaginationInfo {
+  page: number;
+  limit: number;
+  totalCount: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
 }
 
-export interface LLMProvider {
-  name: string;
-  type: 'OpenAI' | 'Ollama';
-  model: string;
-  baseURL: string;
-  apiKey?: string;
-}
-
-export interface LLMSettings {
-  providers: LLMProvider[];
-  jobs: {
-    metadataExtraction: string;
-    imageTextExtraction: string;
-  };
-}
-
-export interface ExtractionResult {
-  metadata: DocumentMetadata;
-  cover: Uint8Array | null;
-  numPages: number;
-}
-
-export interface ForewordExtraction {
-  foreword: string;
-  images: Uint8Array[];
-  numPages: number;
-}
+export type ViewMode = "card" | "list";

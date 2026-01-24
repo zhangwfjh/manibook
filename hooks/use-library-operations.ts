@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { invoke } from "@tauri-apps/api/core";
 import { Library } from "@/lib/library";
 
 interface UseLibraryOperationsProps {
@@ -66,26 +67,16 @@ export function useLibraryOperations({
     }
 
     try {
-      const response = await fetch("/api/libraries", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newLibraryName, path: newLibraryPath }),
-      });
-
-      if (response.ok) {
-        toast.success("Library created successfully");
-        setCreateLibraryOpen(false);
-        setCurrentLibrary(newLibraryName);
-        setNewLibraryName("");
-        setNewLibraryPath("");
-        onLibrariesChange();
-      } else {
-        const error = await response.json();
-        toast.error(error.error || "Failed to create library");
-      }
+      await invoke("create_library", { name: newLibraryName, path: newLibraryPath });
+      toast.success("Library created successfully");
+      setCreateLibraryOpen(false);
+      setCurrentLibrary(newLibraryName);
+      setNewLibraryName("");
+      setNewLibraryPath("");
+      onLibrariesChange();
     } catch (error) {
       console.error("Error creating library:", error);
-      toast.error("Failed to create library");
+      toast.error(typeof error === 'string' ? error : "Failed to create library");
     }
   };
 
@@ -95,37 +86,19 @@ export function useLibraryOperations({
       return;
     }
 
-    if (renameLibraryName === selectedLibraryForOperation.name) {
-      toast.error("New name must be different from current name");
-      return;
-    }
-
     try {
-      const response = await fetch(
-        `/api/libraries/${selectedLibraryForOperation.name}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ newName: renameLibraryName }),
-        }
-      );
-
-      if (response.ok) {
-        toast.success("Library renamed successfully");
-        setRenameLibraryOpen(false);
-        if (currentLibrary === selectedLibraryForOperation.name) {
-          setCurrentLibrary(renameLibraryName);
-        }
-        setRenameLibraryName("");
-        setSelectedLibraryForOperation({ name: "" });
-        onLibrariesChange();
-      } else {
-        const error = await response.json();
-        toast.error(error.error || "Failed to rename library");
+      await invoke("rename_library", { oldName: selectedLibraryForOperation.name, newName: renameLibraryName });
+      toast.success("Library renamed successfully");
+      setRenameLibraryOpen(false);
+      if (currentLibrary === selectedLibraryForOperation.name) {
+        setCurrentLibrary(renameLibraryName);
       }
+      setRenameLibraryName("");
+      setSelectedLibraryForOperation({ name: "" });
+      onLibrariesChange();
     } catch (error) {
       console.error("Error renaming library:", error);
-      toast.error("Failed to rename library");
+      toast.error(typeof error === 'string' ? error : "Failed to rename library");
     }
   };
 
@@ -135,71 +108,37 @@ export function useLibraryOperations({
       return;
     }
 
-    const targetLibrary = libraries.find(
-      (lib) => lib.name === selectedLibraryForOperation.name
-    );
-
-    if (!targetLibrary) {
-      toast.error("Library not found");
-      return;
-    }
-
-    if (moveLibraryPath === targetLibrary.path) {
-      toast.error("New path must be different from current path");
-      return;
-    }
-
     try {
-      const response = await fetch(
-        `/api/libraries/${selectedLibraryForOperation.name}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ newPath: moveLibraryPath }),
-        }
-      );
-
-      if (response.ok) {
-        toast.success("Library moved successfully");
-        setMoveLibraryOpen(false);
-        setMoveLibraryPath("");
-        setSelectedLibraryForOperation({ name: "" });
-        onLibrariesChange();
-      } else {
-        const error = await response.json();
-        toast.error(error.error || "Failed to move library");
-      }
+      await invoke("move_library", { libraryName: selectedLibraryForOperation.name, newPath: moveLibraryPath });
+      toast.success("Library moved successfully");
+      setMoveLibraryOpen(false);
+      setMoveLibraryPath("");
+      setSelectedLibraryForOperation({ name: "" });
+      onLibrariesChange();
     } catch (error) {
       console.error("Error moving library:", error);
-      toast.error("Failed to move library");
+      toast.error(typeof error === 'string' ? error : "Failed to move library");
     }
   };
 
   const handleArchiveLibrary = async () => {
     try {
-      const response = await fetch(`/api/libraries/${currentLibrary}`, {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
-        toast.success("Library archived successfully");
-        setArchiveLibraryOpen(false);
-        const remainingLibraries = libraries.filter(
-          (lib) => lib.name !== currentLibrary
-        );
-        if (remainingLibraries.length > 0) {
-          setCurrentLibrary(remainingLibraries[0].name);
-        } else {
-          setCurrentLibrary("");
-        }
-        onLibrariesChange();
+      await invoke("archive_library", { libraryName: currentLibrary });
+      toast.success("Library archived successfully");
+      setArchiveLibraryOpen(false);
+      const remainingLibraries = libraries.filter(
+        (lib) => lib.name !== currentLibrary
+      );
+      if (remainingLibraries.length > 0) {
+        setCurrentLibrary(remainingLibraries[0].name);
       } else {
-        const error = await response.json();
-        toast.error(error.error || "Failed to archive library");
+        setCurrentLibrary("");
       }
+      setSelectedLibraryForOperation({ name: "" });
+      onLibrariesChange();
     } catch (error) {
       console.error("Error archiving library:", error);
-      toast.error("Failed to archive library");
+      toast.error(typeof error === 'string' ? error : "Failed to archive library");
     }
   };
 

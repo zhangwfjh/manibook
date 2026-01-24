@@ -17,7 +17,7 @@ export function ThemeToggle() {
   const { mode, colorTheme, setFullTheme, mounted } = useTheme();
 
   const getModeIcon = () => {
-    if (!mounted) return <MonitorIcon className="h-4 w-4" />;
+    if (!mounted.current) return <MonitorIcon className="h-4 w-4" />;
     if (mode === "system") return <MonitorIcon className="h-4 w-4" />;
     return mode === "dark" ? <MoonIcon className="h-4 w-4" /> : <SunIcon className="h-4 w-4" />;
   };
@@ -34,7 +34,7 @@ export function ThemeToggle() {
     return colors[color] || "bg-slate-500";
   };
 
-  if (!mounted) {
+  if (!mounted.current) {
     return (
       <Button variant="outline" size="icon">
         <MonitorIcon className="h-4 w-4" />

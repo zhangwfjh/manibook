@@ -1,13 +1,23 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { LibraryDocument, LibraryCategory } from "@/lib/library";
-import { Library } from "@/lib/library";
-import { PaginationInfo } from "@/lib/types/common";
+import { invoke } from "@tauri-apps/api/core";
+import { LibraryDocument, LibraryCategory, Library } from "@/lib/library";
+import { PaginationInfo } from "@/lib/library/types";
 
 interface CacheEntry {
   documents: LibraryDocument[];
   pagination: PaginationInfo | null;
   filterOptions: Record<string, Record<string, number>>;
   timestamp: number;
+}
+
+interface DocumentsResponse {
+  documents: LibraryDocument[];
+  total_count: number;
+  limit: number;
+  page: number;
+  has_next: boolean;
+  has_prev: boolean;
+  filter_options?: Record<string, Record<string, number>>;
 }
 
 export function useLibraryData() {
@@ -29,9 +39,7 @@ export function useLibraryData() {
 
   const fetchLibraries = useCallback(async () => {
     try {
-      const response = await fetch("/api/libraries");
-      const data = await response.json();
-      const libs = data.libraries || [];
+      const libs = await invoke<Library[]>("get_libraries");
       setLibraries(libs);
     } catch (error) {
       console.error("Error fetching libraries:", error);
@@ -41,9 +49,8 @@ export function useLibraryData() {
   const fetchCategories = useCallback(async () => {
     if (!currentLibrary) return;
     try {
-      const response = await fetch(`/api/libraries/${currentLibrary}/categories`);
-      const data = await response.json();
-      setCategories(data.categories || []);
+      const categories = await invoke<LibraryCategory[]>("get_library_categories", { libraryName: currentLibrary });
+      setCategories(categories);
     } catch (error) {
       console.error("Error fetching categories:", error);
       setCategories([]);
@@ -94,15 +101,33 @@ export function useLibraryData() {
       setLoading(true);
       setIsFetching(true);
 
-      // Single request for documents and filter options
-      const response = await fetch(
-        `/api/libraries/${currentLibrary}/documents?${params.toString()}`
-      );
+      // Build query object
+      const query = {
+        page: parseInt(params.get('page') || '1'),
+        limit: Math.min(parseInt(params.get('limit') || '50'), 200),
+        category: params.get('category') || undefined,
+        search_query: params.get('search') || undefined,
+        keywords: (params.get('keywords')?.split(',').filter(Boolean) || []),
+        formats: (params.get('formats')?.split(',').filter(Boolean) || []),
+        authors: (params.get('authors')?.split(',').filter(Boolean) || []),
+        publishers: (params.get('publishers')?.split(',').filter(Boolean) || []),
+        languages: (params.get('languages')?.split(',').filter(Boolean) || []),
+        favorites_only: params.get('favoritesOnly') === 'true',
+        sort_by: params.get('sortBy') || 'createdAt-desc',
+      };
 
-      const data = await response.json();
-      const documents = data.documents || [];
-      const pagination = data.pagination || null;
-      const filterOptionsData = data.filterOptions || {};
+      const data = await invoke<DocumentsResponse>('get_documents', { libraryName: currentLibrary, query });
+      const documents = data?.documents || [];
+      const totalPages = Math.ceil((data?.total_count || 0) / (data?.limit || query.limit));
+      const pagination = {
+        page: data?.page || query.page,
+        limit: data?.limit || query.limit,
+        totalCount: data?.total_count || 0,
+        totalPages,
+        hasNextPage: !!data?.has_next,
+        hasPrevPage: !!data?.has_prev,
+      };
+      const filterOptionsData = data?.filter_options || {};
 
       // Cache the result
       cacheRef.current.set(cacheKey, {
@@ -142,13 +167,10 @@ export function useLibraryData() {
       // Try to load default library from settings, fallback to first library
       const loadDefaultLibrary = async () => {
         try {
-          const response = await fetch('/api/libraries/settings');
-          if (response.ok) {
-            const data = await response.json();
-            if (data.defaultLibrary && libraries.some(lib => lib.name === data.defaultLibrary)) {
-              setCurrentLibrary(data.defaultLibrary);
-              return;
-            }
+          const defaultLibrary = await invoke<string | null>('get_default_library');
+          if (defaultLibrary && libraries.some(lib => lib.name === defaultLibrary)) {
+            setCurrentLibrary(defaultLibrary);
+            return;
           }
         } catch (error) {
           console.error('Error loading default library:', error);
@@ -188,9 +210,16 @@ export function useLibraryData() {
   }, [pagination?.hasPrevPage, currentPage, loadPage]);
 
   // Load filtered data
-  const loadFilteredData = useCallback(async (filters: URLSearchParams, forceRefresh: boolean = false) => {
+  const loadFilteredData = useCallback(async (filterParams: URLSearchParams | undefined, sortParams: URLSearchParams | undefined, forceRefresh: boolean = false) => {
+    const combinedParams = new URLSearchParams();
+    if (filterParams) {
+      filterParams.forEach((value, key) => combinedParams.set(key, value));
+    }
+    if (sortParams) {
+      sortParams.forEach((value, key) => combinedParams.set(key, value));
+    }
     setCurrentPage(1);
-    await fetchLibraryData(1, filters, forceRefresh);
+    await fetchLibraryData(1, combinedParams, forceRefresh);
   }, [fetchLibraryData]);
 
   const refreshLibraries = useCallback(async () => {

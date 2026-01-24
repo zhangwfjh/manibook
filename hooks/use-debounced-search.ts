@@ -25,15 +25,10 @@ export function useDebouncedSearch(
     setValue(newValue);
   }, []);
 
-  const clearSearch = useCallback(() => {
-    setValue('');
-  }, []);
-
   return {
     searchValue: value,
     debouncedSearchValue: debouncedValue,
     isSearching,
     updateSearch,
-    clearSearch,
   };
 }
