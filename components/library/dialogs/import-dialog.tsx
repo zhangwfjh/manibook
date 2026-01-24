@@ -115,7 +115,6 @@ export function ImportDialog({
         filteredFiles.forEach((file, index) => {
           const itemId = `${batchId}-item-${index}`;
           const fileResult = result.results[index];
-          const fileError = result.errors.find((e) => e.source === file.name);
 
           if (fileResult?.success) {
             updateItemStatus(itemId, "success", {
@@ -124,8 +123,7 @@ export function ImportDialog({
             });
             successCount++;
           } else {
-            const errorMsg =
-              fileError?.error || fileResult?.error || "Import failed";
+            const errorMsg = fileResult?.error || "Import failed";
             if (errorMsg.toLowerCase().includes("already exists")) {
               updateItemStatus(itemId, "success", {
                 completedAt: new Date(),
@@ -285,7 +283,6 @@ export function ImportDialog({
       validUrls.forEach((url, index) => {
         const itemId = `${batchId}-item-${index}`;
         const urlResult = result.results[index];
-        const urlError = result.errors.find((e) => e.source === url);
 
         if (urlResult?.success) {
           updateItemStatus(itemId, "success", {
@@ -293,8 +290,7 @@ export function ImportDialog({
             path: url,
           });
         } else {
-          const errorMsg =
-            urlError?.error || urlResult?.error || "Import failed";
+          const errorMsg = urlResult?.error || "Import failed";
           if (errorMsg.toLowerCase().includes("already exists")) {
             // Already imported, treat as success
             updateItemStatus(itemId, "success", {
@@ -313,8 +309,7 @@ export function ImportDialog({
       onImportComplete();
 
       const successCount = result.results.filter((r) => r.success).length;
-      const errorCount =
-        result.errors.length + result.results.filter((r) => !r.success).length;
+      const errorCount = result.results.filter((r) => !r.success).length;
 
       if (errorCount === 0) {
         toast.success(

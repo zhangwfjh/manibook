@@ -1311,10 +1311,18 @@ async fn import_documents(
             .await
             {
                 Ok(result) => results.push(result),
-                Err(e) => errors.push(ImportError {
-                    source: file_datum.filename.clone(),
-                    error: e,
-                }),
+                Err(e) => {
+                    results.push(ImportResult {
+                        success: false,
+                        filename: Some(file_datum.filename.clone()),
+                        metadata: None,
+                        error: Some(e.clone()),
+                    });
+                    errors.push(ImportError {
+                        source: file_datum.filename.clone(),
+                        error: e,
+                    });
+                }
             }
         }
     }
@@ -1323,17 +1331,25 @@ async fn import_documents(
         for url in urls {
             match process_url_import(&library.path, url, &llm_settings).await {
                 Ok(result) => results.push(result),
-                Err(e) => errors.push(ImportError {
-                    source: url.clone(),
-                    error: e,
-                }),
+                Err(e) => {
+                    results.push(ImportResult {
+                        success: false,
+                        filename: None,
+                        metadata: None,
+                        error: Some(e.clone()),
+                    });
+                    errors.push(ImportError {
+                        source: url.clone(),
+                        error: e,
+                    });
+                }
             }
         }
     }
 
-    let success_count = results.len();
-    let error_count = errors.len();
-    let total_processed = success_count + error_count;
+    let success_count = results.iter().filter(|r| r.success).count();
+    let error_count = results.iter().filter(|r| !r.success).count();
+    let total_processed = results.len();
 
     Ok(ImportResponse {
         results,
