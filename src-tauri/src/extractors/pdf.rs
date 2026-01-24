@@ -6,10 +6,7 @@ pub struct PdfExtractor;
 
 impl Extractor for PdfExtractor {
     async fn extract(buffer: &[u8]) -> Result<ForewordExtraction, String> {
-        let pdfium = Pdfium::new(
-            Pdfium::bind_to_system_library()
-                .map_err(|e| format!("Failed to bind PDFium: {}", e))?,
-        );
+        let pdfium = Pdfium::default();
 
         let document = pdfium
             .load_pdf_from_byte_slice(buffer, None)
