@@ -7,6 +7,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import { FolderOpenIcon } from "lucide-react";
+import * as dialog from "@tauri-apps/plugin-dialog";
 
 export type LibraryDialogMode = "create" | "rename" | "move";
 
@@ -14,15 +22,15 @@ interface LibraryDialogProps {
   mode: LibraryDialogMode;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  
+
   currentName?: string;
   currentPath?: string;
-  
+
   name?: string;
   path?: string;
   onNameChange?: (name: string) => void;
   onPathChange?: (path: string) => void;
-  
+
   onSubmit: () => void;
   onCancel: () => void;
 }
@@ -69,6 +77,20 @@ export function LibraryDialog({
 }: LibraryDialogProps) {
   const config = dialogConfig[mode];
 
+  const handleBrowseFolder = async () => {
+    try {
+      const selected = await dialog.open({
+        directory: true,
+        multiple: false,
+      });
+      if (selected && typeof selected === "string") {
+        onPathChange?.(selected);
+      }
+    } catch (error) {
+      console.error("Failed to open folder picker:", error);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -81,10 +103,11 @@ export function LibraryDialog({
               Current name: <span className="font-medium">{currentName}</span>
             </div>
           )}
-          
+
           {config.showCurrentPath && currentPath && (
             <div className="text-sm text-muted-foreground">
-              Current location: <span className="font-medium">{currentPath}</span>
+              Current location:{" "}
+              <span className="font-medium">{currentPath}</span>
             </div>
           )}
 
@@ -105,20 +128,33 @@ export function LibraryDialog({
               <Label htmlFor="library-path">
                 {mode === "create" ? "Library Location" : "New Location"}
               </Label>
-              <Input
-                id="library-path"
-                value={path || ""}
-                onChange={(e) => onPathChange?.(e.target.value)}
-                placeholder={mode === "create" 
-                  ? "Enter full path to library directory (e.g., C:\\Users\\John\\Documents\\Library or /home/john/library)"
-                  : "Enter new path for the library directory"
-                }
-              />
+              <InputGroup>
+                <InputGroupInput
+                  id="library-path"
+                  value={path || ""}
+                  onChange={(e) => onPathChange?.(e.target.value)}
+                  placeholder={
+                    mode === "create"
+                      ? "Select a directory or enter path"
+                      : "Enter new path or browse"
+                  }
+                />
+                <InputGroupAddon align="inline-end">
+                  <InputGroupButton
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={handleBrowseFolder}
+                    type="button"
+                  >
+                    <FolderOpenIcon className="h-4 w-4" />
+                  </InputGroupButton>
+                </InputGroupAddon>
+              </InputGroup>
               {mode === "create" && (
                 <p className="text-sm text-muted-foreground mt-1">
-                  Enter the full path to an empty directory where you want to
-                  store your library files. The directory will be created if it
-                  does not exist.
+                  Click the folder icon to browse, or enter the full path to an
+                  empty directory where you want to store your library files.
+                  The directory will be created if it does not exist.
                 </p>
               )}
             </div>

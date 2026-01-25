@@ -4,6 +4,7 @@ use crate::extractors::Extractor;
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use lazy_static::lazy_static;
 use lru::LruCache;
+use nanoid::nanoid;
 use rusqlite::{params, params_from_iter};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -12,7 +13,6 @@ use std::path::Path;
 use std::process::Command;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
-use nanoid::nanoid;
 
 fn to_proper_title_case(s: &str) -> String {
     if s.is_empty() {
@@ -2472,6 +2472,7 @@ fn compute_filter_counts(
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(
