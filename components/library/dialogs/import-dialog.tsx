@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,6 +48,23 @@ export function ImportDialog({
 
   const [urls, setUrls] = useState<string[]>([""]);
   const [urlErrors, setUrlErrors] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (currentBatch) {
+      const allDone = !currentBatch.items.some(
+        (item) => item.status === "importing",
+      );
+      if (allDone && importing) {
+        setImporting(false);
+      }
+    }
+  }, [currentBatch, importing]);
+
+  useEffect(() => {
+    if (open) {
+      setImporting(false);
+    }
+  }, [open]);
 
   const handleFileImport = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
