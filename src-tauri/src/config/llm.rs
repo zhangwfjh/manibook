@@ -47,3 +47,18 @@ pub fn set_llm_settings(settings: LLMSettings) -> Result<(), String> {
         .map_err(|e| format!("Failed to serialize settings: {}", e))?;
     fs::write(&settings_path, data).map_err(|e| format!("Failed to write settings: {}", e))
 }
+
+#[tauri::command]
+pub fn import_llm_settings(file_path: String) -> Result<(), String> {
+    let path = Path::new(&file_path);
+    if !path.exists() {
+        return Err(format!("File not found: {}", file_path));
+    }
+
+    let data = fs::read_to_string(path).map_err(|e| format!("Failed to read file: {}", e))?;
+
+    let settings: LLMSettings =
+        serde_json::from_str(&data).map_err(|e| format!("Failed to parse JSON: {}", e))?;
+
+    set_llm_settings(settings)
+}

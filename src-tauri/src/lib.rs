@@ -7,7 +7,7 @@ mod utils;
 use crate::config::library::{
     create_library, get_default_library, get_libraries, get_library_settings, set_default_library,
 };
-use crate::config::llm::{get_llm_settings, set_llm_settings};
+use crate::config::llm::{get_llm_settings, import_llm_settings, set_llm_settings};
 use crate::extractors::Extractor;
 use crate::models::{
     DocumentListResponse, DocumentMetadata, DocumentQuery, ImportError, ImportRequest,
@@ -645,6 +645,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_llm_settings,
             set_llm_settings,
+            import_llm_settings,
             get_default_library,
             set_default_library,
             generate_metadata,

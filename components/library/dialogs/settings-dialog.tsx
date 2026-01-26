@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import {
   Dialog,
   DialogContent,
@@ -22,7 +23,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SettingsIcon, PlusIcon, TrashIcon } from "lucide-react";
+import { SettingsIcon, PlusIcon, TrashIcon, UploadIcon } from "lucide-react";
 
 interface LLMProvider {
   name: string;
@@ -77,6 +78,29 @@ export function SettingsDialog() {
     }
   };
 
+  const handleImport = async () => {
+    try {
+      const filePath = await openDialog({
+        multiple: false,
+        filters: [
+          {
+            name: "JSON",
+            extensions: ["json"],
+          },
+        ],
+      });
+
+      if (!filePath) return;
+
+      await invoke("import_llm_settings", { filePath });
+      const data = await invoke<LLMSettings>("get_llm_settings");
+      setSettings(data);
+    } catch (error) {
+      console.error("Error importing settings:", error);
+      alert("Error importing settings");
+    }
+  };
+
   const addProvider = (type: "OpenAI" | "Ollama") => {
     const newProvider: LLMProvider = {
       name: `New ${type} Provider`,
@@ -95,7 +119,7 @@ export function SettingsDialog() {
     setSettings((prev) => ({
       ...prev,
       providers: prev.providers.map((p) =>
-        p.name === name ? { ...p, ...updates } : p
+        p.name === name ? { ...p, ...updates } : p,
       ),
     }));
   };
@@ -148,10 +172,7 @@ export function SettingsDialog() {
 
           <TabsContent value="providers" className="space-y-4">
             <div className="flex gap-2">
-              <Button
-                onClick={() => addProvider("OpenAI")}
-                size="sm"
-              >
+              <Button onClick={() => addProvider("OpenAI")} size="sm">
                 <PlusIcon className="h-4 w-4 mr-2" />
                 Add OpenAI
               </Button>
@@ -174,9 +195,7 @@ export function SettingsDialog() {
                         {provider.name}
                         <Badge
                           variant={
-                            provider.type === "OpenAI"
-                              ? "default"
-                              : "secondary"
+                            provider.type === "OpenAI" ? "default" : "secondary"
                           }
                         >
                           {provider.type}
@@ -318,8 +337,9 @@ export function SettingsDialog() {
         </Tabs>
 
         <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => setOpen(false)}>
-            Cancel
+          <Button variant="outline" onClick={handleImport}>
+            <UploadIcon className="h-4 w-4 mr-2" />
+            Import
           </Button>
           <Button onClick={handleSave}>Save Settings</Button>
         </div>
