@@ -136,7 +136,6 @@ export function ImportDialog({
           if (fileResult?.success) {
             updateItemStatus(itemId, "success", {
               completedAt: new Date(),
-              path: file.name,
             });
             successCount++;
           } else {
@@ -144,7 +143,6 @@ export function ImportDialog({
             if (errorMsg.toLowerCase().includes("already exists")) {
               updateItemStatus(itemId, "success", {
                 completedAt: new Date(),
-                path: file.name,
               });
               successCount++;
             } else {
@@ -304,7 +302,6 @@ export function ImportDialog({
         if (urlResult?.success) {
           updateItemStatus(itemId, "success", {
             completedAt: new Date(),
-            path: url,
           });
         } else {
           const errorMsg = urlResult?.error || "Import failed";
@@ -312,7 +309,6 @@ export function ImportDialog({
             // Already imported, treat as success
             updateItemStatus(itemId, "success", {
               completedAt: new Date(),
-              path: url,
             });
           } else {
             updateItemStatus(itemId, "failed", { error: errorMsg });
@@ -349,7 +345,7 @@ export function ImportDialog({
         error instanceof Error ? error.message : String(error);
       validUrls.forEach((url, index) => {
         const itemId = `${batchId}-item-${index}`;
-        updateItemStatus(itemId, "failed", { error: errorMessage, path: url });
+        updateItemStatus(itemId, "failed", { error: errorMessage });
       });
     }
 

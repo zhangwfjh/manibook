@@ -16,7 +16,7 @@ import {
 import { FolderOpenIcon } from "lucide-react";
 import * as dialog from "@tauri-apps/plugin-dialog";
 
-export type LibraryDialogMode = "create" | "rename" | "move";
+type LibraryDialogMode = "create" | "rename" | "move";
 
 interface LibraryDialogProps {
   mode: LibraryDialogMode;

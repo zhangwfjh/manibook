@@ -41,34 +41,15 @@ export const SORT_OPTIONS: { value: SortOption; label: string }[] = [
 
 export const DOCTYPE_OPTIONS = ["Book", "Paper", "Report", "Manual", "Others"];
 
-// Common prop interfaces
-export interface DocumentActionsProps {
+export interface DocumentDisplayProps {
   document: LibraryDocument;
+  library: string;
+  style?: React.CSSProperties;
+  selectionMode?: boolean;
+  selected?: boolean;
+  onToggleSelection?: (documentId: string) => void;
   onClick?: (document: LibraryDocument) => void;
   onOpen?: (document: LibraryDocument) => void;
   onFavoriteToggle?: (document: LibraryDocument) => void;
   onDelete?: (document: LibraryDocument) => void;
-}
-
-export interface SelectionProps {
-  selectionMode?: boolean;
-  selected?: boolean;
-  onToggleSelection?: (documentId: string) => void;
-}
-
-export interface DocumentDisplayProps extends DocumentActionsProps, SelectionProps {
-  library: string;
-  style?: React.CSSProperties;
-}
-
-// Selection state interface
-export interface SelectionState {
-  mode: boolean;
-  selectedDocuments: Set<string>;
-  toggleMode: () => void;
-  toggleSelection: (documentId: string) => void;
-  clearSelection: () => void;
-  selectAll: (documentIds: string[]) => void;
-  isSelected: (documentId: string) => boolean;
-  selectedCount: number;
 }

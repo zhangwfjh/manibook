@@ -15,7 +15,6 @@ interface LibraryContextType {
   setCurrentLibrary: (library: string) => void;
   libraries: Library[];
   documents: LibraryDocument[];
-  setDocuments: (docs: LibraryDocument[]) => void;
   categories: LibraryCategory[];
   loading: boolean;
   pagination: PaginationInfo | null;
@@ -77,9 +76,6 @@ interface LibraryContextType {
   handleRenameLibrary: () => Promise<void>;
   handleMoveLibrary: () => Promise<void>;
   handleArchiveLibrary: () => Promise<void>;
-  handleOpenRenameDialog: (libraryName: string) => void;
-  handleOpenMoveDialog: (libraryName: string, currentPath: string) => void;
-  handleOpenArchiveDialog: (libraryName: string) => void;
   resetCreateDialog: () => void;
   resetRenameDialog: () => void;
   resetMoveDialog: () => void;
@@ -120,25 +116,21 @@ export function LibraryProvider({ children }: LibraryProviderProps) {
     setCurrentLibrary: libraryData.setCurrentLibrary,
     libraries: libraryData.libraries,
     onLibrariesChange: libraryData.refreshLibraries,
-    // Pass dialog context states and setters
-    createLibraryOpen: dialogContext.createLibraryOpen,
+    // Pass dialog context setters
     setCreateLibraryOpen: dialogContext.setCreateLibraryOpen,
     newLibraryName: dialogContext.newLibraryName,
     setNewLibraryName: dialogContext.setNewLibraryName,
     newLibraryPath: dialogContext.newLibraryPath,
     setNewLibraryPath: dialogContext.setNewLibraryPath,
-    renameLibraryOpen: dialogContext.renameLibraryOpen,
     setRenameLibraryOpen: dialogContext.setRenameLibraryOpen,
     selectedLibraryForOperation: dialogContext.selectedLibraryForOperation,
     setSelectedLibraryForOperation:
       dialogContext.setSelectedLibraryForOperation,
     renameLibraryName: dialogContext.renameLibraryName,
     setRenameLibraryName: dialogContext.setRenameLibraryName,
-    moveLibraryOpen: dialogContext.moveLibraryOpen,
     setMoveLibraryOpen: dialogContext.setMoveLibraryOpen,
     moveLibraryPath: dialogContext.moveLibraryPath,
     setMoveLibraryPath: dialogContext.setMoveLibraryPath,
-    archiveLibraryOpen: dialogContext.archiveLibraryOpen,
     setArchiveLibraryOpen: dialogContext.setArchiveLibraryOpen,
     resetCreateDialog: dialogContext.resetCreateDialog,
     resetRenameDialog: dialogContext.resetRenameDialog,
@@ -158,24 +150,46 @@ export function LibraryProvider({ children }: LibraryProviderProps) {
     filterParams: documentFilters.filterParams,
     sortParams: documentSorting.sortParams,
     loadFilteredData: libraryData.loadFilteredData,
+    resetBulkDeleteDialog: dialogContext.resetBulkDeleteDialog,
   });
 
-  const {
-    pageSize,
-    isFetching,
-    loadNextPage,
-    loadPrevPage,
-    refreshLibraries,
-    ...restLibraryData
-  } = libraryData;
+  const { ...restLibraryData } = libraryData;
 
   const value: LibraryContextType = {
     ...restLibraryData,
     ...documentFilters,
     ...documentSorting,
-    ...libraryOperations,
+    // Dialog states
+    createLibraryOpen: dialogContext.createLibraryOpen,
+    setCreateLibraryOpen: dialogContext.setCreateLibraryOpen,
+    newLibraryName: dialogContext.newLibraryName,
+    setNewLibraryName: dialogContext.setNewLibraryName,
+    newLibraryPath: dialogContext.newLibraryPath,
+    setNewLibraryPath: dialogContext.setNewLibraryPath,
+    renameLibraryOpen: dialogContext.renameLibraryOpen,
+    setRenameLibraryOpen: dialogContext.setRenameLibraryOpen,
+    moveLibraryOpen: dialogContext.moveLibraryOpen,
+    setMoveLibraryOpen: dialogContext.setMoveLibraryOpen,
+    archiveLibraryOpen: dialogContext.archiveLibraryOpen,
+    setArchiveLibraryOpen: dialogContext.setArchiveLibraryOpen,
+    renameLibraryName: dialogContext.renameLibraryName,
+    setRenameLibraryName: dialogContext.setRenameLibraryName,
+    moveLibraryPath: dialogContext.moveLibraryPath,
+    setMoveLibraryPath: dialogContext.setMoveLibraryPath,
+    selectedLibraryForOperation: dialogContext.selectedLibraryForOperation,
+    // Library operation handlers
+    handleCreateLibrary: libraryOperations.handleCreateLibrary,
+    handleRenameLibrary: libraryOperations.handleRenameLibrary,
+    handleMoveLibrary: libraryOperations.handleMoveLibrary,
+    handleArchiveLibrary: libraryOperations.handleArchiveLibrary,
+    resetCreateDialog: libraryOperations.resetCreateDialog,
+    resetRenameDialog: libraryOperations.resetRenameDialog,
+    resetMoveDialog: libraryOperations.resetMoveDialog,
     ...documentHandlers,
     ...bulkOperations,
+    // Bulk operations dialog states
+    bulkDeleteDialogOpen: dialogContext.bulkDeleteDialogOpen,
+    setBulkDeleteDialogOpen: dialogContext.setBulkDeleteDialogOpen,
   };
 
   return (

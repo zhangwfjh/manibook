@@ -30,7 +30,7 @@ export interface ImportContextType {
   updateItemStatus: (
     itemId: string,
     status: ImportItem["status"],
-    options?: { completedAt?: Date; error?: string; path?: string }
+    options?: { completedAt?: Date; error?: string }
   ) => void;
   cancelItem: (itemId: string) => void;
   clearBatch: () => void;

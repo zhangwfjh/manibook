@@ -8,23 +8,19 @@ interface UseLibraryOperationsProps {
   libraries: Library[];
   onLibrariesChange: () => void;
   // Dialog states from DialogContext
-  createLibraryOpen: boolean;
   setCreateLibraryOpen: (open: boolean) => void;
   newLibraryName: string;
   setNewLibraryName: (name: string) => void;
   newLibraryPath: string;
   setNewLibraryPath: (path: string) => void;
-  renameLibraryOpen: boolean;
   setRenameLibraryOpen: (open: boolean) => void;
   selectedLibraryForOperation: { name: string; path?: string };
   setSelectedLibraryForOperation: (library: { name: string; path?: string }) => void;
   renameLibraryName: string;
   setRenameLibraryName: (name: string) => void;
-  moveLibraryOpen: boolean;
   setMoveLibraryOpen: (open: boolean) => void;
   moveLibraryPath: string;
   setMoveLibraryPath: (path: string) => void;
-  archiveLibraryOpen: boolean;
   setArchiveLibraryOpen: (open: boolean) => void;
   resetCreateDialog: () => void;
   resetRenameDialog: () => void;
@@ -37,27 +33,22 @@ export function useLibraryOperations({
   libraries,
   onLibrariesChange,
   // Dialog states from DialogContext
-  createLibraryOpen,
   setCreateLibraryOpen,
   newLibraryName,
   setNewLibraryName,
   newLibraryPath,
   setNewLibraryPath,
-  renameLibraryOpen,
   setRenameLibraryOpen,
   selectedLibraryForOperation,
   setSelectedLibraryForOperation,
   renameLibraryName,
   setRenameLibraryName,
-  moveLibraryOpen,
   setMoveLibraryOpen,
   moveLibraryPath,
   setMoveLibraryPath,
-  archiveLibraryOpen,
   setArchiveLibraryOpen,
   resetCreateDialog,
   resetRenameDialog,
-  resetMoveDialog,
 }: UseLibraryOperationsProps) {
 
   const handleCreateLibrary = async () => {
@@ -142,51 +133,17 @@ export function useLibraryOperations({
     }
   };
 
-  const handleOpenRenameDialog = (libraryName: string) => {
-    setSelectedLibraryForOperation({ name: libraryName });
-    setRenameLibraryName(libraryName);
-    setRenameLibraryOpen(true);
-  };
-
-  const handleOpenMoveDialog = (libraryName: string, currentPath: string) => {
-    setSelectedLibraryForOperation({ name: libraryName, path: currentPath });
-    setMoveLibraryPath(currentPath);
-    setMoveLibraryOpen(true);
-  };
-
-  const handleOpenArchiveDialog = (libraryName: string) => {
-    setCurrentLibrary(libraryName);
-    setArchiveLibraryOpen(true);
+  const resetMoveDialog = () => {
+    setMoveLibraryPath("");
+    setSelectedLibraryForOperation({ name: "" });
+    setMoveLibraryOpen(false);
   };
 
   return {
-    // Dialog states
-    createLibraryOpen,
-    setCreateLibraryOpen,
-    newLibraryName,
-    setNewLibraryName,
-    newLibraryPath,
-    setNewLibraryPath,
-    renameLibraryOpen,
-    setRenameLibraryOpen,
-    moveLibraryOpen,
-    setMoveLibraryOpen,
-    archiveLibraryOpen,
-    setArchiveLibraryOpen,
-    renameLibraryName,
-    setRenameLibraryName,
-    moveLibraryPath,
-    setMoveLibraryPath,
-    selectedLibraryForOperation,
-
-    // Handlers
     handleCreateLibrary,
     handleRenameLibrary,
     handleMoveLibrary,
     handleArchiveLibrary,
-    handleOpenRenameDialog,
-    handleOpenMoveDialog,
-    handleOpenArchiveDialog,
     resetCreateDialog,
     resetRenameDialog,
     resetMoveDialog,

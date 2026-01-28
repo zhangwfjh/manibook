@@ -41,6 +41,7 @@ interface DialogContextType {
   resetCreateDialog: () => void;
   resetRenameDialog: () => void;
   resetMoveDialog: () => void;
+  resetBulkDeleteDialog: () => void;
 }
 
 const DialogContext = createContext<DialogContextType | undefined>(undefined);
@@ -72,10 +73,6 @@ export function DialogProvider({ children }: DialogProviderProps) {
 
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = React.useState(false);
 
-  const resetSelectedLibrary = () => {
-    setSelectedLibraryForOperation({ name: "" });
-  };
-
   const resetCreateDialog = () => {
     setNewLibraryName("");
     setNewLibraryPath("");
@@ -84,14 +81,18 @@ export function DialogProvider({ children }: DialogProviderProps) {
 
   const resetRenameDialog = () => {
     setRenameLibraryName("");
-    resetSelectedLibrary();
+    setSelectedLibraryForOperation({ name: "" });
     setRenameLibraryOpen(false);
   };
 
   const resetMoveDialog = () => {
     setMoveLibraryPath("");
-    resetSelectedLibrary();
+    setSelectedLibraryForOperation({ name: "" });
     setMoveLibraryOpen(false);
+  };
+
+  const resetBulkDeleteDialog = () => {
+    setBulkDeleteDialogOpen(false);
   };
 
   const value: DialogContextType = {
@@ -131,6 +132,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
     resetCreateDialog,
     resetRenameDialog,
     resetMoveDialog,
+    resetBulkDeleteDialog,
   };
 
   return (

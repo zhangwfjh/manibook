@@ -22,8 +22,6 @@ export interface LibraryDocument {
   path: string;
   filename: string;
   metadata: DocumentMetadata;
-  categoryPath: string[];
-  url: string;
 }
 
 export interface LibraryCategory {

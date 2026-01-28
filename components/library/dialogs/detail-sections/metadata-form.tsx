@@ -61,14 +61,6 @@ function DialogMetadataFormComponent({
     [editedMetadata?.category, handleFieldChange]
   );
 
-  const handleKeywordAdd = useCallback(
-    (keyword: string) => {
-      const keywords = [...(editedMetadata?.keywords || []), keyword.trim()];
-      handleFieldChange("keywords", keywords);
-    },
-    [editedMetadata?.keywords, handleFieldChange]
-  );
-
   const handleKeywordRemove = useCallback(
     (index: number) => {
       const keywords =
@@ -83,13 +75,14 @@ function DialogMetadataFormComponent({
       if (e.key === "Enter" || e.key === ",") {
         e.preventDefault();
         if (newValue.trim()) {
-          handleKeywordAdd(newValue);
+          const keywords = [...(editedMetadata?.keywords || []), newValue.trim()];
+          handleFieldChange("keywords", keywords);
         }
       } else if (e.key === "Backspace" && !newValue) {
         handleKeywordRemove((editedMetadata?.keywords?.length || 0) - 1);
       }
     },
-    [editedMetadata?.keywords, handleKeywordAdd, handleKeywordRemove]
+    [editedMetadata?.keywords, handleKeywordRemove, handleFieldChange]
   );
 
   if (!editedMetadata) return null;
@@ -285,7 +278,6 @@ function DialogMetadataFormComponent({
           <div className="mt-1">
             <KeywordEditor
               keywords={editedMetadata.keywords || []}
-              onAdd={handleKeywordAdd}
               onRemove={handleKeywordRemove}
               onKeyDown={handleKeywordKeyDown}
             />
@@ -298,15 +290,12 @@ function DialogMetadataFormComponent({
 
 interface KeywordEditorProps {
   keywords: string[];
-  onAdd: (keyword: string) => void;
   onRemove: (index: number) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>, value: string) => void;
 }
 
 const KeywordEditorComponent = ({
   keywords,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  onAdd,
   onRemove,
   onKeyDown,
 }: KeywordEditorProps) => {

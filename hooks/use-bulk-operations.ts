@@ -9,6 +9,7 @@ interface UseBulkOperationsProps {
   filterParams: URLSearchParams;
   sortParams: URLSearchParams;
   loadFilteredData: (filterParams: URLSearchParams | undefined, sortParams: URLSearchParams | undefined, forceRefresh?: boolean) => Promise<void>;
+  resetBulkDeleteDialog: () => void;
 }
 
 export function useBulkOperations({
@@ -17,12 +18,12 @@ export function useBulkOperations({
   filterParams,
   sortParams,
   loadFilteredData,
+  resetBulkDeleteDialog,
 }: UseBulkOperationsProps) {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(
     new Set()
   );
-  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
 
   const handleToggleSelectionMode = useCallback(() => {
     setSelectionMode((prev) => !prev);
@@ -62,7 +63,7 @@ export function useBulkOperations({
       toast.success(
         `Successfully deleted ${result.deletedCount} document(s)`
       );
-      setBulkDeleteDialogOpen(false);
+      resetBulkDeleteDialog();
       setSelectedDocuments(new Set());
       setSelectionMode(false);
       await loadFilteredData(filterParams, sortParams, true);
@@ -76,6 +77,7 @@ export function useBulkOperations({
     filterParams,
     sortParams,
     loadFilteredData,
+    resetBulkDeleteDialog,
   ]);
 
   const handleBulkMove = useCallback(
@@ -116,8 +118,6 @@ export function useBulkOperations({
   return {
     selectionMode,
     selectedDocuments,
-    bulkDeleteDialogOpen,
-    setBulkDeleteDialogOpen,
     handleToggleSelectionMode,
     handleToggleDocumentSelection,
     handleSelectAllDocuments,

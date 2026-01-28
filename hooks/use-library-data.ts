@@ -26,16 +26,15 @@ export function useLibraryData() {
   const [documents, setDocuments] = useState<LibraryDocument[]>([]);
   const [categories, setCategories] = useState<LibraryCategory[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isFetching, setIsFetching] = useState(false);
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(50); // Default page size
   const [filterOptions, setFilterOptions] = useState<Record<string, Record<string, number>>>({});
   const lastFetchParamsRef = useRef<string>("");
 
   // Cache for API responses (5 minute TTL)
   const cacheRef = useRef<Map<string, CacheEntry>>(new Map());
   const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  const pageSize = 50; // Default page size
 
   const fetchLibraries = useCallback(async () => {
     try {
@@ -88,7 +87,6 @@ export function useLibraryData() {
       setPagination(cached.pagination);
       setFilterOptions(cached.filterOptions || {});
       setLoading(false);
-      setIsFetching(false);
       return;
     }
 
@@ -99,7 +97,6 @@ export function useLibraryData() {
 
     try {
       setLoading(true);
-      setIsFetching(true);
 
       // Build query object
       const query = {
@@ -154,33 +151,14 @@ export function useLibraryData() {
       console.error("Error fetching library data:", error);
     } finally {
       setLoading(false);
-      setIsFetching(false);
     }
-  }, [currentLibrary, pageSize, CACHE_TTL]);
+  }, [currentLibrary, CACHE_TTL]);
 
   useEffect(() => {
     fetchLibraries();
   }, [fetchLibraries]);
 
-  useEffect(() => {
-    if (libraries.length > 0 && !currentLibrary) {
-      // Try to load default library from settings, fallback to first library
-      const loadDefaultLibrary = async () => {
-        try {
-          const defaultLibrary = await invoke<string | null>('get_default_library');
-          if (defaultLibrary && libraries.some(lib => lib.name === defaultLibrary)) {
-            setCurrentLibrary(defaultLibrary);
-            return;
-          }
-        } catch (error) {
-          console.error('Error loading default library:', error);
-        }
-        // Fallback to first library
-        setCurrentLibrary(libraries[0].name);
-      };
-      loadDefaultLibrary();
-    }
-  }, [libraries, currentLibrary]);
+
 
   useEffect(() => {
     if (currentLibrary) {
@@ -194,20 +172,6 @@ export function useLibraryData() {
     setCurrentPage(page);
     await fetchLibraryData(page, filters);
   }, [fetchLibraryData]);
-
-  // Load next page
-  const loadNextPage = useCallback(async () => {
-    if (pagination?.hasNextPage) {
-      await loadPage(currentPage + 1);
-    }
-  }, [pagination?.hasNextPage, currentPage, loadPage]);
-
-  // Load previous page
-  const loadPrevPage = useCallback(async () => {
-    if (pagination?.hasPrevPage) {
-      await loadPage(currentPage - 1);
-    }
-  }, [pagination?.hasPrevPage, currentPage, loadPage]);
 
   // Load filtered data
   const loadFilteredData = useCallback(async (filterParams: URLSearchParams | undefined, sortParams: URLSearchParams | undefined, forceRefresh: boolean = false) => {
@@ -241,16 +205,11 @@ export function useLibraryData() {
     setCurrentLibrary,
     libraries,
     documents,
-    setDocuments,
     categories,
     loading,
-    isFetching,
     pagination,
     currentPage,
-    pageSize,
     loadPage,
-    loadNextPage,
-    loadPrevPage,
     loadFilteredData,
     refreshLibraries,
     refreshLibraryData,
