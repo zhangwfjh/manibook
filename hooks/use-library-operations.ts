@@ -1,54 +1,26 @@
 import { toast } from "sonner";
 import { invoke } from "@tauri-apps/api/core";
-import { Library } from "@/lib/library";
 
 interface UseLibraryOperationsProps {
-  currentLibrary: string;
   setCurrentLibrary: (library: string) => void;
-  libraries: Library[];
   onLibrariesChange: () => void;
-  // Dialog states from DialogContext
   setCreateLibraryOpen: (open: boolean) => void;
   newLibraryName: string;
   setNewLibraryName: (name: string) => void;
   newLibraryPath: string;
   setNewLibraryPath: (path: string) => void;
-  setRenameLibraryOpen: (open: boolean) => void;
-  selectedLibraryForOperation: { name: string; path?: string };
-  setSelectedLibraryForOperation: (library: { name: string; path?: string }) => void;
-  renameLibraryName: string;
-  setRenameLibraryName: (name: string) => void;
-  setMoveLibraryOpen: (open: boolean) => void;
-  moveLibraryPath: string;
-  setMoveLibraryPath: (path: string) => void;
-  setArchiveLibraryOpen: (open: boolean) => void;
   resetCreateDialog: () => void;
-  resetRenameDialog: () => void;
-  resetMoveDialog: () => void;
 }
 
 export function useLibraryOperations({
-  currentLibrary,
   setCurrentLibrary,
-  libraries,
   onLibrariesChange,
-  // Dialog states from DialogContext
   setCreateLibraryOpen,
   newLibraryName,
   setNewLibraryName,
   newLibraryPath,
   setNewLibraryPath,
-  setRenameLibraryOpen,
-  selectedLibraryForOperation,
-  setSelectedLibraryForOperation,
-  renameLibraryName,
-  setRenameLibraryName,
-  setMoveLibraryOpen,
-  moveLibraryPath,
-  setMoveLibraryPath,
-  setArchiveLibraryOpen,
   resetCreateDialog,
-  resetRenameDialog,
 }: UseLibraryOperationsProps) {
 
   const handleCreateLibrary = async () => {
@@ -71,81 +43,8 @@ export function useLibraryOperations({
     }
   };
 
-  const handleRenameLibrary = async () => {
-    if (!renameLibraryName.trim()) {
-      toast.error("Please enter a new library name");
-      return;
-    }
-
-    try {
-      await invoke("rename_library", { oldName: selectedLibraryForOperation.name, newName: renameLibraryName });
-      toast.success("Library renamed successfully");
-      setRenameLibraryOpen(false);
-      if (currentLibrary === selectedLibraryForOperation.name) {
-        setCurrentLibrary(renameLibraryName);
-      }
-      setRenameLibraryName("");
-      setSelectedLibraryForOperation({ name: "" });
-      onLibrariesChange();
-    } catch (error) {
-      console.error("Error renaming library:", error);
-      toast.error(typeof error === 'string' ? error : "Failed to rename library");
-    }
-  };
-
-  const handleMoveLibrary = async () => {
-    if (!moveLibraryPath.trim()) {
-      toast.error("Please enter a new library path");
-      return;
-    }
-
-    try {
-      await invoke("move_library", { libraryName: selectedLibraryForOperation.name, newPath: moveLibraryPath });
-      toast.success("Library moved successfully");
-      setMoveLibraryOpen(false);
-      setMoveLibraryPath("");
-      setSelectedLibraryForOperation({ name: "" });
-      onLibrariesChange();
-    } catch (error) {
-      console.error("Error moving library:", error);
-      toast.error(typeof error === 'string' ? error : "Failed to move library");
-    }
-  };
-
-  const handleArchiveLibrary = async () => {
-    try {
-      await invoke("archive_library", { libraryName: currentLibrary });
-      toast.success("Library archived successfully");
-      setArchiveLibraryOpen(false);
-      const remainingLibraries = libraries.filter(
-        (lib) => lib.name !== currentLibrary
-      );
-      if (remainingLibraries.length > 0) {
-        setCurrentLibrary(remainingLibraries[0].name);
-      } else {
-        setCurrentLibrary("");
-      }
-      setSelectedLibraryForOperation({ name: "" });
-      onLibrariesChange();
-    } catch (error) {
-      console.error("Error archiving library:", error);
-      toast.error(typeof error === 'string' ? error : "Failed to archive library");
-    }
-  };
-
-  const resetMoveDialog = () => {
-    setMoveLibraryPath("");
-    setSelectedLibraryForOperation({ name: "" });
-    setMoveLibraryOpen(false);
-  };
-
   return {
     handleCreateLibrary,
-    handleRenameLibrary,
-    handleMoveLibrary,
-    handleArchiveLibrary,
     resetCreateDialog,
-    resetRenameDialog,
-    resetMoveDialog,
   };
 }

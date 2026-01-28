@@ -14,24 +14,6 @@ interface DialogContextType {
   newLibraryPath: string;
   setNewLibraryPath: (path: string) => void;
 
-  renameLibraryOpen: boolean;
-  setRenameLibraryOpen: (open: boolean) => void;
-  selectedLibraryForOperation: { name: string; path?: string };
-  setSelectedLibraryForOperation: (library: {
-    name: string;
-    path?: string;
-  }) => void;
-  renameLibraryName: string;
-  setRenameLibraryName: (name: string) => void;
-
-  moveLibraryOpen: boolean;
-  setMoveLibraryOpen: (open: boolean) => void;
-  moveLibraryPath: string;
-  setMoveLibraryPath: (path: string) => void;
-
-  archiveLibraryOpen: boolean;
-  setArchiveLibraryOpen: (open: boolean) => void;
-
   importDialogOpen: boolean;
   setImportDialogOpen: (open: boolean) => void;
 
@@ -39,8 +21,6 @@ interface DialogContextType {
   setBulkDeleteDialogOpen: (open: boolean) => void;
 
   resetCreateDialog: () => void;
-  resetRenameDialog: () => void;
-  resetMoveDialog: () => void;
   resetBulkDeleteDialog: () => void;
 }
 
@@ -59,16 +39,6 @@ export function DialogProvider({ children }: DialogProviderProps) {
   const [newLibraryName, setNewLibraryName] = React.useState("");
   const [newLibraryPath, setNewLibraryPath] = React.useState("");
 
-  const [renameLibraryOpen, setRenameLibraryOpen] = React.useState(false);
-  const [selectedLibraryForOperation, setSelectedLibraryForOperation] =
-    React.useState<{ name: string; path?: string }>({ name: "" });
-  const [renameLibraryName, setRenameLibraryName] = React.useState("");
-
-  const [moveLibraryOpen, setMoveLibraryOpen] = React.useState(false);
-  const [moveLibraryPath, setMoveLibraryPath] = React.useState("");
-
-  const [archiveLibraryOpen, setArchiveLibraryOpen] = React.useState(false);
-
   const [importDialogOpen, setImportDialogOpen] = React.useState(false);
 
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = React.useState(false);
@@ -77,18 +47,6 @@ export function DialogProvider({ children }: DialogProviderProps) {
     setNewLibraryName("");
     setNewLibraryPath("");
     setCreateLibraryOpen(false);
-  };
-
-  const resetRenameDialog = () => {
-    setRenameLibraryName("");
-    setSelectedLibraryForOperation({ name: "" });
-    setRenameLibraryOpen(false);
-  };
-
-  const resetMoveDialog = () => {
-    setMoveLibraryPath("");
-    setSelectedLibraryForOperation({ name: "" });
-    setMoveLibraryOpen(false);
   };
 
   const resetBulkDeleteDialog = () => {
@@ -108,21 +66,6 @@ export function DialogProvider({ children }: DialogProviderProps) {
     newLibraryPath,
     setNewLibraryPath,
 
-    renameLibraryOpen,
-    setRenameLibraryOpen,
-    selectedLibraryForOperation,
-    setSelectedLibraryForOperation,
-    renameLibraryName,
-    setRenameLibraryName,
-
-    moveLibraryOpen,
-    setMoveLibraryOpen,
-    moveLibraryPath,
-    setMoveLibraryPath,
-
-    archiveLibraryOpen,
-    setArchiveLibraryOpen,
-
     importDialogOpen,
     setImportDialogOpen,
 
@@ -130,8 +73,6 @@ export function DialogProvider({ children }: DialogProviderProps) {
     setBulkDeleteDialogOpen,
 
     resetCreateDialog,
-    resetRenameDialog,
-    resetMoveDialog,
     resetBulkDeleteDialog,
   };
 

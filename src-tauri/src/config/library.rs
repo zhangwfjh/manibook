@@ -95,9 +95,22 @@ pub fn create_library(name: String, path: String) -> Result<(), String> {
         return Err("Library name already exists".to_string());
     }
 
+    let db_path = Path::new(&path).join("db.sqlite");
+
+    if !db_path.exists() {
+        let is_empty = Path::new(&path)
+            .read_dir()
+            .map_err(|e| format!("Failed to read directory: {}", e))?
+            .next()
+            .is_none();
+
+        if !is_empty {
+            return Err("Folder must be empty or contain a valid library database".to_string());
+        }
+    }
+
     fs::create_dir_all(&path).map_err(|e| format!("Failed to create library directory: {}", e))?;
 
-    let db_path = Path::new(&path).join("db.sqlite");
     if !db_path.exists() {
         create_database(&db_path)?;
     }

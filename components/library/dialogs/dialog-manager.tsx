@@ -1,6 +1,5 @@
 import { DocumentDetailDialog } from "@/components/library/dialogs/detail-dialog";
-import { LibraryDialog } from "@/components/library/dialogs/library-dialog";
-import { ArchiveDialog } from "@/components/library/dialogs/archive-dialog";
+import { CreateLibraryDialog } from "@/components/library/dialogs/create-library-dialog";
 import { ImportDialog } from "@/components/library/dialogs/import-dialog";
 import {
   AlertDialog,
@@ -27,32 +26,16 @@ export function DialogManager() {
     setNewLibraryName,
     newLibraryPath,
     setNewLibraryPath,
-    renameLibraryOpen,
-    setRenameLibraryOpen,
-    selectedLibraryForOperation,
-    renameLibraryName,
-    setRenameLibraryName,
-    moveLibraryOpen,
-    setMoveLibraryOpen,
-    moveLibraryPath,
-    setMoveLibraryPath,
-    archiveLibraryOpen,
-    setArchiveLibraryOpen,
     importDialogOpen,
     setImportDialogOpen,
     bulkDeleteDialogOpen,
     setBulkDeleteDialogOpen,
     resetCreateDialog,
-    resetRenameDialog,
-    resetMoveDialog,
   } = useDialogContext();
 
   const {
     currentLibrary,
     handleCreateLibrary,
-    handleRenameLibrary,
-    handleMoveLibrary,
-    handleArchiveLibrary,
     refreshLibraryData,
     selectedDocuments,
     handleBulkDelete,
@@ -73,8 +56,7 @@ export function DialogManager() {
         onUpdate={handleDocumentUpdate}
       />
 
-      <LibraryDialog
-        mode="create"
+      <CreateLibraryDialog
         open={createLibraryOpen}
         onOpenChange={setCreateLibraryOpen}
         name={newLibraryName}
@@ -83,35 +65,6 @@ export function DialogManager() {
         onPathChange={setNewLibraryPath}
         onSubmit={handleCreateLibrary}
         onCancel={resetCreateDialog}
-      />
-
-      <LibraryDialog
-        mode="rename"
-        open={renameLibraryOpen}
-        onOpenChange={setRenameLibraryOpen}
-        currentName={selectedLibraryForOperation.name}
-        name={renameLibraryName}
-        onNameChange={setRenameLibraryName}
-        onSubmit={handleRenameLibrary}
-        onCancel={resetRenameDialog}
-      />
-
-      <LibraryDialog
-        mode="move"
-        open={moveLibraryOpen}
-        onOpenChange={setMoveLibraryOpen}
-        currentPath={selectedLibraryForOperation.path || ""}
-        path={moveLibraryPath}
-        onPathChange={setMoveLibraryPath}
-        onSubmit={handleMoveLibrary}
-        onCancel={resetMoveDialog}
-      />
-
-      <ArchiveDialog
-        open={archiveLibraryOpen}
-        onOpenChange={setArchiveLibraryOpen}
-        currentLibrary={currentLibrary}
-        handleArchiveLibrary={handleArchiveLibrary}
       />
 
       <ImportDialog

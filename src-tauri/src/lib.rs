@@ -11,7 +11,7 @@ use crate::config::llm::{get_llm_settings, import_llm_settings, set_llm_settings
 use crate::extractors::Extractor;
 use crate::models::{
     DocumentListResponse, DocumentMetadata, DocumentQuery, ImportError, ImportRequest,
-    ImportResponse, ImportResult, Library, LibraryCategory, LibrarySettings,
+    ImportResponse, ImportResult, Library, LibraryCategory,
 };
 use crate::services::database::{
     delete_document, get_document_basic_info, get_document_cover_base64, get_document_url,
@@ -199,125 +199,6 @@ fn get_library(library_name: String) -> Result<Library, String> {
         .into_iter()
         .find(|lib| lib.name == library_name)
         .ok_or_else(|| "Library not found".to_string())
-}
-
-#[tauri::command]
-fn rename_library(old_name: String, new_name: String) -> Result<(), String> {
-    if old_name.trim().is_empty() || new_name.trim().is_empty() {
-        return Err("Library names cannot be empty".to_string());
-    }
-
-    let settings_path = Path::new("settings").join("library.json");
-    let mut settings: LibrarySettings = match fs::read_to_string(&settings_path) {
-        Ok(data) => {
-            serde_json::from_str(&data).map_err(|e| format!("Failed to parse settings: {}", e))?
-        }
-        Err(_) => return Err("No settings file found".to_string()),
-    };
-
-    if settings.libraries.iter().any(|lib| lib.name == new_name) {
-        return Err("New library name already exists".to_string());
-    }
-
-    let library = settings
-        .libraries
-        .iter_mut()
-        .find(|lib| lib.name == old_name)
-        .ok_or_else(|| "Library not found".to_string())?;
-
-    library.name = new_name.trim().to_string();
-
-    if let Some(parent) = settings_path.parent() {
-        fs::create_dir_all(parent).map_err(|e| format!("Failed to create settings dir: {}", e))?;
-    }
-    let data = serde_json::to_string_pretty(&settings)
-        .map_err(|e| format!("Failed to serialize settings: {}", e))?;
-    fs::write(&settings_path, data).map_err(|e| format!("Failed to write settings: {}", e))?;
-
-    Ok(())
-}
-
-#[tauri::command]
-fn archive_library(library_name: String) -> Result<(), String> {
-    let settings_path = Path::new("settings").join("library.json");
-    let mut settings: LibrarySettings = match fs::read_to_string(&settings_path) {
-        Ok(data) => {
-            serde_json::from_str(&data).map_err(|e| format!("Failed to parse settings: {}", e))?
-        }
-        Err(_) => return Err("No settings file found".to_string()),
-    };
-
-    let index = settings
-        .libraries
-        .iter()
-        .position(|lib| lib.name == library_name)
-        .ok_or_else(|| "Library not found".to_string())?;
-
-    settings.libraries.remove(index);
-
-    if let Some(parent) = settings_path.parent() {
-        fs::create_dir_all(parent).map_err(|e| format!("Failed to create settings dir: {}", e))?;
-    }
-    let data = serde_json::to_string_pretty(&settings)
-        .map_err(|e| format!("Failed to serialize settings: {}", e))?;
-    fs::write(&settings_path, data).map_err(|e| format!("Failed to write settings: {}", e))?;
-
-    Ok(())
-}
-
-#[tauri::command]
-fn move_library(library_name: String, new_path: String) -> Result<(), String> {
-    if library_name.trim().is_empty() || new_path.trim().is_empty() {
-        return Err("Library name and path cannot be empty".to_string());
-    }
-
-    if !new_path.starts_with('/') && !new_path.chars().nth(1).map_or(false, |c| c == ':') {
-        return Err("Invalid path format".to_string());
-    }
-
-    let settings_path = Path::new("settings").join("library.json");
-    let mut settings: LibrarySettings = match fs::read_to_string(&settings_path) {
-        Ok(data) => {
-            serde_json::from_str(&data).map_err(|e| format!("Failed to parse settings: {}", e))?
-        }
-        Err(_) => return Err("No settings file found".to_string()),
-    };
-
-    let library = settings
-        .libraries
-        .iter_mut()
-        .find(|lib| lib.name == library_name)
-        .ok_or_else(|| "Library not found".to_string())?;
-
-    let old_path = &library.path;
-
-    if old_path == &new_path {
-        return Err("New path is the same as the current path".to_string());
-    }
-
-    if Path::new(&new_path).exists() {
-        let entries = fs::read_dir(&new_path)
-            .map_err(|e| format!("Failed to read target directory: {}", e))?;
-        if entries.count() > 0 {
-            return Err("Target directory is not empty".to_string());
-        }
-        fs::remove_dir(&new_path)
-            .map_err(|e| format!("Failed to remove target directory: {}", e))?;
-    }
-
-    fs::rename(&old_path, &new_path.trim())
-        .map_err(|e| format!("Failed to move library directory: {}", e))?;
-
-    library.path = new_path.trim().to_string();
-
-    if let Some(parent) = settings_path.parent() {
-        fs::create_dir_all(parent).map_err(|e| format!("Failed to create settings dir: {}", e))?;
-    }
-    let data = serde_json::to_string_pretty(&settings)
-        .map_err(|e| format!("Failed to serialize settings: {}", e))?;
-    fs::write(&settings_path, data).map_err(|e| format!("Failed to write settings: {}", e))?;
-
-    Ok(())
 }
 
 #[tauri::command]
@@ -654,9 +535,6 @@ pub fn run() {
             get_library_categories,
             get_library,
             create_library,
-            rename_library,
-            archive_library,
-            move_library,
             get_document_cover,
             delete_documents,
             open_document,
