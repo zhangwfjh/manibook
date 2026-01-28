@@ -121,31 +121,32 @@ export function Content({ viewMode }: ContentProps) {
               <BookOpenIcon className="h-12 w-12" />
             </EmptyMedia>
             <EmptyTitle>Select a Library</EmptyTitle>
-            <EmptyDescription>
-              You have {libraries.length} {libraries.length === 1 ? 'library' : 'libraries'} available.
-              Select one from the list below to view its documents, or create a new library.
-            </EmptyDescription>
-          </EmptyHeader>
-          <div className="flex justify-center">
-            <Button onClick={() => setCreateLibraryOpen(true)}>
-              Create New Library
-            </Button>
+          <EmptyDescription>
+            You have {libraries.length} {libraries.length === 1 ? 'library' : 'libraries'} available.
+            Select one from the list below to view its documents.
+          </EmptyDescription>
+        </EmptyHeader>
+        <div className="w-full max-w-md">
+          <div className="space-y-1">
+            {libraries.map((library) => (
+              <button
+                key={library.name}
+                onClick={() => setCurrentLibrary(library.name)}
+                className="w-full text-left px-4 py-2 rounded-md hover:bg-muted transition-colors text-sm text-foreground hover:text-primary flex items-center gap-2"
+              >
+                <LibraryIcon className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">{library.name}</span>
+              </button>
+            ))}
+            <button
+              onClick={() => setCreateLibraryOpen(true)}
+              className="w-full text-left px-4 py-2 rounded-md hover:bg-muted transition-colors text-sm text-foreground hover:text-primary flex items-center gap-2"
+            >
+              <LibraryIcon className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">Create New Library</span>
+            </button>
           </div>
-
-          <div className="w-full max-w-md mt-6">
-            <div className="space-y-1">
-              {libraries.map((library) => (
-                <button
-                  key={library.name}
-                  onClick={() => setCurrentLibrary(library.name)}
-                  className="w-full text-left px-4 py-2 rounded-md hover:bg-muted transition-colors text-sm text-foreground hover:text-primary flex items-center gap-2"
-                >
-                  <LibraryIcon className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{library.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+        </div>
         </Empty>
       </div>
     );
