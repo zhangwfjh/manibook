@@ -11,8 +11,8 @@ import { useBulkOperations } from "@/hooks/use-bulk-operations";
 import { useDialogContext } from "@/contexts/DialogContext";
 
 interface LibraryContextType {
-  currentLibrary: string;
-  setCurrentLibrary: (library: string) => void;
+  libraryName: string;
+  setLibraryName: (library: string) => void;
   libraries: Library[];
   documents: LibraryDocument[];
   categories: LibraryCategory[];
@@ -96,7 +96,7 @@ export function LibraryProvider({ children }: LibraryProviderProps) {
   const dialogContext = useDialogContext();
 
   const libraryOperations = useLibraryOperations({
-    setCurrentLibrary: libraryData.setCurrentLibrary,
+    setLibraryName: libraryData.setLibraryName,
     onLibrariesChange: libraryData.refreshLibraries,
     setCreateLibraryOpen: dialogContext.setCreateLibraryOpen,
     newLibraryName: dialogContext.newLibraryName,

@@ -2,7 +2,7 @@ import { toast } from "sonner";
 import { invoke } from "@tauri-apps/api/core";
 
 interface UseLibraryOperationsProps {
-  setCurrentLibrary: (library: string) => void;
+  setLibraryName: (library: string) => void;
   onLibrariesChange: () => void;
   setCreateLibraryOpen: (open: boolean) => void;
   newLibraryName: string;
@@ -13,7 +13,7 @@ interface UseLibraryOperationsProps {
 }
 
 export function useLibraryOperations({
-  setCurrentLibrary,
+  setLibraryName,
   onLibrariesChange,
   setCreateLibraryOpen,
   newLibraryName,
@@ -34,7 +34,7 @@ export function useLibraryOperations({
       await invoke("open_library", { libraryName: newLibraryName });
       toast.success("Library created successfully");
       setCreateLibraryOpen(false);
-      setCurrentLibrary(newLibraryName);
+      setLibraryName(newLibraryName);
       setNewLibraryName("");
       setNewLibraryPath("");
       onLibrariesChange();

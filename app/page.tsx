@@ -16,7 +16,7 @@ function HomeContent() {
   const [viewMode, setViewMode] = useState<ViewMode>("card");
 
   const {
-    currentLibrary,
+    libraryName,
     selectionMode,
     selectedCategory,
     handleClearSelection,
@@ -51,16 +51,16 @@ function HomeContent() {
   };
 
   useEffect(() => {
-    if (currentLibrary) {
+    if (libraryName) {
       loadFilteredData(filterParams, sortParams);
     }
-  }, [filterParams, sortParams, currentLibrary, loadFilteredData]);
+  }, [filterParams, sortParams, libraryName, loadFilteredData]);
 
   useEffect(() => {
     setTimeout(() => {
       handleClearSelection();
     }, 0);
-  }, [currentLibrary, selectedCategory, handleClearSelection]);
+  }, [libraryName, selectedCategory, handleClearSelection]);
 
   return (
     <DocumentActionsProvider value={documentActionsValue}>

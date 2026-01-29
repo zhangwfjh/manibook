@@ -21,7 +21,7 @@ interface DocumentsResponse {
 }
 
 export function useLibraryData() {
-  const [currentLibrary, setCurrentLibrary] = useState<string>("");
+  const [libraryName, setLibraryName] = useState<string>("");
   const [libraries, setLibraries] = useState<Library[]>([]);
   const [documents, setDocuments] = useState<LibraryDocument[]>([]);
   const [categories, setCategories] = useState<LibraryCategory[]>([]);
@@ -46,7 +46,6 @@ export function useLibraryData() {
   }, []);
 
   const fetchCategories = useCallback(async () => {
-    if (!currentLibrary) return;
     try {
       const categories = await invoke<LibraryCategory[]>("get_library_categories");
       setCategories(categories);
@@ -54,11 +53,9 @@ export function useLibraryData() {
       console.error("Error fetching categories:", error);
       setCategories([]);
     }
-  }, [currentLibrary]);
+  }, []);
 
   const fetchLibraryData = useCallback(async (page: number = 1, additionalParams?: URLSearchParams, forceRefresh: boolean = false) => {
-    if (!currentLibrary) return;
-
     const params = new URLSearchParams();
     params.set('page', page.toString());
     params.set('limit', pageSize.toString());
@@ -76,7 +73,7 @@ export function useLibraryData() {
     }
     lastFetchParamsRef.current = paramsString;
 
-    const cacheKey = `${currentLibrary}:${paramsString}`;
+    const cacheKey = `${libraryName}:${paramsString}`;
 
     // Check cache first (skip if forceRefresh)
     const cached = cacheRef.current.get(cacheKey);
@@ -152,7 +149,7 @@ export function useLibraryData() {
     } finally {
       setLoading(false);
     }
-  }, [currentLibrary, CACHE_TTL]);
+  }, [libraryName, CACHE_TTL]);
 
   useEffect(() => {
     fetchLibraries();
@@ -161,11 +158,11 @@ export function useLibraryData() {
 
 
   useEffect(() => {
-    if (currentLibrary) {
+    if (libraryName) {
       fetchCategories();
       lastFetchParamsRef.current = "";
     }
-  }, [currentLibrary, fetchCategories]);
+  }, [libraryName, fetchCategories]);
 
   // Load specific page
   const loadPage = useCallback(async (page: number, filters?: URLSearchParams) => {
@@ -201,8 +198,8 @@ export function useLibraryData() {
   }, [fetchLibraryData, fetchCategories, currentPage]);
 
   return {
-    currentLibrary,
-    setCurrentLibrary,
+    libraryName,
+    setLibraryName,
     libraries,
     documents,
     categories,

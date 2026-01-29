@@ -35,8 +35,8 @@ interface ContentProps {
 
 export function Content({ viewMode }: ContentProps) {
   const {
-    currentLibrary,
-    setCurrentLibrary,
+    libraryName,
+    setLibraryName,
     selectedCategory,
     documents,
     loading,
@@ -113,7 +113,7 @@ export function Content({ viewMode }: ContentProps) {
     );
   }
 
-  if (!currentLibrary) {
+  if (!libraryName) {
     return (
       <div className="flex-1 min-w-0">
         <Empty>
@@ -122,35 +122,36 @@ export function Content({ viewMode }: ContentProps) {
               <BookOpenIcon className="h-12 w-12" />
             </EmptyMedia>
             <EmptyTitle>Select a Library</EmptyTitle>
-          <EmptyDescription>
-            You have {libraries.length} {libraries.length === 1 ? 'library' : 'libraries'} available.
-            Select one from the list below to view its documents.
-          </EmptyDescription>
-        </EmptyHeader>
-        <div className="w-full max-w-md">
-          <div className="space-y-1">
-            {libraries.map((library) => (
+            <EmptyDescription>
+              You have {libraries.length}{" "}
+              {libraries.length === 1 ? "library" : "libraries"} available.
+              Select one from the list below to view its documents.
+            </EmptyDescription>
+          </EmptyHeader>
+          <div className="w-full max-w-md">
+            <div className="space-y-1">
+              {libraries.map((library) => (
+                <button
+                  key={library.name}
+                  onClick={async () => {
+                    await invoke("open_library", { libraryName: library.name });
+                    setLibraryName(library.name);
+                  }}
+                  className="w-full text-left px-4 py-2 rounded-md hover:bg-muted transition-colors text-sm text-foreground hover:text-primary flex items-center gap-2"
+                >
+                  <LibraryIcon className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">{library.name}</span>
+                </button>
+              ))}
               <button
-                key={library.name}
-                onClick={async () => {
-                  await invoke("open_library", { libraryName: library.name });
-                  setCurrentLibrary(library.name);
-                }}
+                onClick={() => setCreateLibraryOpen(true)}
                 className="w-full text-left px-4 py-2 rounded-md hover:bg-muted transition-colors text-sm text-foreground hover:text-primary flex items-center gap-2"
               >
                 <LibraryIcon className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">{library.name}</span>
+                <span className="font-medium">Create New Library</span>
               </button>
-            ))}
-            <button
-              onClick={() => setCreateLibraryOpen(true)}
-              className="w-full text-left px-4 py-2 rounded-md hover:bg-muted transition-colors text-sm text-foreground hover:text-primary flex items-center gap-2"
-            >
-              <LibraryIcon className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">Create New Library</span>
-            </button>
+            </div>
           </div>
-        </div>
         </Empty>
       </div>
     );
@@ -159,52 +160,50 @@ export function Content({ viewMode }: ContentProps) {
   return (
     <div className="flex-1 min-w-0 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        {currentLibrary && (
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>Location:</BreadcrumbItem>
-              <BreadcrumbItem>
-                <BreadcrumbLink
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setSelectedCategory("");
-                  }}
-                  className="transition-colors hover:text-foreground"
-                >
-                  {currentLibrary}
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              {selectedCategory &&
-                selectedCategory.split(" > ").map((part, index, array) => (
-                  <React.Fragment key={index}>
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem>
-                      {index === array.length - 1 ? (
-                        <BreadcrumbPage className="font-medium">
-                          {part}
-                        </BreadcrumbPage>
-                      ) : (
-                        <BreadcrumbLink
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            const newCategory = array
-                              .slice(0, index + 1)
-                              .join(" > ");
-                            setSelectedCategory(newCategory);
-                          }}
-                          className="transition-colors hover:text-foreground"
-                        >
-                          {part}
-                        </BreadcrumbLink>
-                      )}
-                    </BreadcrumbItem>
-                  </React.Fragment>
-                ))}
-            </BreadcrumbList>
-          </Breadcrumb>
-        )}
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>Location:</BreadcrumbItem>
+            <BreadcrumbItem>
+              <BreadcrumbLink
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setSelectedCategory("");
+                }}
+                className="transition-colors hover:text-foreground"
+              >
+                {libraryName}
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            {selectedCategory &&
+              selectedCategory.split(" > ").map((part, index, array) => (
+                <React.Fragment key={index}>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    {index === array.length - 1 ? (
+                      <BreadcrumbPage className="font-medium">
+                        {part}
+                      </BreadcrumbPage>
+                    ) : (
+                      <BreadcrumbLink
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          const newCategory = array
+                            .slice(0, index + 1)
+                            .join(" > ");
+                          setSelectedCategory(newCategory);
+                        }}
+                        className="transition-colors hover:text-foreground"
+                      >
+                        {part}
+                      </BreadcrumbLink>
+                    )}
+                  </BreadcrumbItem>
+                </React.Fragment>
+              ))}
+          </BreadcrumbList>
+        </Breadcrumb>
 
         <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
           <span className="font-medium text-foreground">
