@@ -102,6 +102,7 @@ pub fn update_document_metadata(
                 keywords = ?,
                 abstract = ?,
                 doctype = ?,
+                favorite = ?,
                 metadata = ?,
                 updatedAt = ?
             WHERE id = ?
@@ -117,6 +118,7 @@ pub fn update_document_metadata(
             serde_json::to_string(&metadata.keywords).unwrap(),
             metadata.r#abstract,
             metadata.doctype,
+            metadata.favorite,
             metadata
                 .metadata
                 .as_ref()
