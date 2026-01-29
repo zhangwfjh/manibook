@@ -14,7 +14,6 @@ import { DocumentImage } from "./document-image";
 import { DocumentDisplayProps } from "../types";
 
 const DocumentCardComponent = ({
-  library,
   document,
   onClick,
   onOpen,
@@ -146,7 +145,7 @@ const DocumentCardComponent = ({
             )}
           </div>
 
-          <DocumentImage library={library} document={document} />
+          <DocumentImage document={document} />
         </CardContent>
       </div>
     </Card>

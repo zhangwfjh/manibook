@@ -14,41 +14,6 @@ pub fn get_libraries() -> Result<Vec<Library>, String> {
     }
 }
 
-#[tauri::command]
-pub fn get_default_library() -> Result<Option<String>, String> {
-    let settings_path = Path::new("settings").join("library.json");
-    match fs::read_to_string(&settings_path) {
-        Ok(data) => match serde_json::from_str::<LibrarySettings>(&data) {
-            Ok(settings) => Ok(settings.default_library),
-            Err(e) => Err(format!("Failed to parse settings: {}", e)),
-        },
-        Err(_) => Ok(None),
-    }
-}
-
-#[tauri::command]
-pub fn set_default_library(default_library: String) -> Result<(), String> {
-    let settings_path = Path::new("settings").join("library.json");
-    let mut settings: LibrarySettings = match fs::read_to_string(&settings_path) {
-        Ok(data) => {
-            serde_json::from_str(&data).map_err(|e| format!("Failed to parse settings: {}", e))?
-        }
-        Err(_) => LibrarySettings {
-            libraries: vec![],
-            default_library: None,
-        },
-    };
-
-    settings.default_library = Some(default_library);
-
-    if let Some(parent) = settings_path.parent() {
-        fs::create_dir_all(parent).map_err(|e| format!("Failed to create settings dir: {}", e))?;
-    }
-    let data = serde_json::to_string_pretty(&settings)
-        .map_err(|e| format!("Failed to serialize settings: {}", e))?;
-    fs::write(&settings_path, data).map_err(|e| format!("Failed to write settings: {}", e))
-}
-
 pub fn get_library_settings() -> Result<LibrarySettings, String> {
     let settings_path = Path::new("settings").join("library.json");
     fs::read_to_string(&settings_path)

@@ -30,11 +30,11 @@ import {
   ItemDescription,
   ItemActions,
 } from "@/components/ui/item";
+import { invoke } from "@tauri-apps/api/core";
 
 interface ImportDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  currentLibrary: string;
 }
 
 function getStatusIcon(status: ImportItem["status"]) {
@@ -86,7 +86,6 @@ function exportImportProgress(
 
 async function retryFailedItems(
   batch: { id: string; items: ImportItem[] } | null,
-  currentLibrary: string,
   updateItemStatus: (
     itemId: string,
     status: ImportItem["status"],
@@ -111,39 +110,35 @@ async function retryFailedItems(
   });
 
   try {
-    const formData = new FormData();
-    formData.append(
-      "urls",
-      JSON.stringify(failedUrls.map((item) => item.path))
-    );
-
-    const response = await fetch(`/api/libraries/${currentLibrary}/documents`, {
-      method: "POST",
-      body: formData,
+    const result = await invoke<{
+      results: Array<{
+        success: boolean;
+        filename?: string;
+        error?: string;
+      }>;
+      errors: Array<{
+        source: string;
+        error: string;
+      }>;
+    }>("import_documents", {
+      request: {
+        urls: failedUrls.map((item) => item.path as string),
+      },
     });
 
-    const result = await response.json();
-
-    if (response.ok) {
-      const { errors } = result;
-
-      failedUrls.forEach((item) => {
-        const urlError = errors?.find(
-          (err: { url: string }) => err.url === item.path
-        );
-        if (urlError) {
-          updateItemStatus(item.id, "failed", { error: urlError.error });
-        } else {
+    failedUrls.forEach((item, index) => {
+      const itemResult = result.results[index];
+      if (itemResult?.success) {
+        updateItemStatus(item.id, "success", { completedAt: new Date() });
+      } else {
+        const errorMsg = itemResult?.error || "Import failed";
+        if (errorMsg.toLowerCase().includes("already exists")) {
           updateItemStatus(item.id, "success", { completedAt: new Date() });
+        } else {
+          updateItemStatus(item.id, "failed", { error: errorMsg });
         }
-      });
-    } else {
-      // Mark all as failed with API error
-      const error = result.error || "Retry failed";
-      failedUrls.forEach((item) => {
-        updateItemStatus(item.id, "failed", { error });
-      });
-    }
+      }
+    });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     failedUrls.forEach((item) => {
@@ -155,7 +150,6 @@ async function retryFailedItems(
 export function ImportDrawer({
   open,
   onOpenChange,
-  currentLibrary,
 }: ImportDrawerProps) {
   const { currentBatch, cancelItem, updateItemStatus } = useImportContext();
 
@@ -197,7 +191,7 @@ export function ImportDrawer({
               variant="ghost"
               size="sm"
               onClick={() =>
-                retryFailedItems(currentBatch, currentLibrary, updateItemStatus)
+                retryFailedItems(currentBatch, updateItemStatus)
               }
               disabled={
                 !currentBatch ||

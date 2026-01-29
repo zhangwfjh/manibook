@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -131,7 +132,10 @@ export function Content({ viewMode }: ContentProps) {
             {libraries.map((library) => (
               <button
                 key={library.name}
-                onClick={() => setCurrentLibrary(library.name)}
+                onClick={async () => {
+                  await invoke("open_library", { libraryName: library.name });
+                  setCurrentLibrary(library.name);
+                }}
                 className="w-full text-left px-4 py-2 rounded-md hover:bg-muted transition-colors text-sm text-foreground hover:text-primary flex items-center gap-2"
               >
                 <LibraryIcon className="h-4 w-4 text-muted-foreground" />
@@ -241,7 +245,6 @@ export function Content({ viewMode }: ContentProps) {
             {paginatedItems.map((document) => (
               <DocumentCard
                 key={document.id}
-                library={currentLibrary}
                 document={document}
                 onClick={onDocumentClick}
                 onOpen={handleOpen}

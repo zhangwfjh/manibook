@@ -23,7 +23,6 @@ import {
 import { ActionsSection } from "./actions-section";
 
 interface DocumentDetailDialogProps {
-  library: string;
   document: LibraryDocument | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -33,7 +32,6 @@ interface DocumentDetailDialogProps {
 }
 
 export function DocumentDetailDialog({
-  library,
   document,
   open,
   onOpenChange,
@@ -132,7 +130,6 @@ export function DocumentDetailDialog({
     setIsGenerating(true);
     try {
       const metadata = await invoke<DocumentMetadata>("generate_metadata", {
-        libraryName: library,
         documentId: document.id
       });
 
@@ -165,7 +162,7 @@ export function DocumentDetailDialog({
     } finally {
       setIsGenerating(false);
     }
-  }, [document, library]);
+  }, [document]);
 
   if (!document) return null;
 

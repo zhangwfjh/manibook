@@ -1,11 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  ChevronRightIcon,
-  ChevronDownIcon,
-  FolderIcon,
-} from "lucide-react";
+import { ChevronRightIcon, ChevronDownIcon, FolderIcon } from "lucide-react";
 import { LibraryCategory } from "@/lib/library";
 import { useLibraryContext } from "@/contexts/LibraryContext";
 
@@ -82,12 +78,8 @@ function CategoryNode({
 }
 
 export function Shelf() {
-  const {
-    currentLibrary,
-    categories,
-    selectedCategory,
-    setSelectedCategory,
-  } = useLibraryContext();
+  const { categories, selectedCategory, setSelectedCategory } =
+    useLibraryContext();
 
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
@@ -102,16 +94,6 @@ export function Shelf() {
       return newSet;
     });
   };
-
-  if (!currentLibrary) {
-    return (
-      <div className="space-y-2">
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-          Shelves
-        </h3>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-2">

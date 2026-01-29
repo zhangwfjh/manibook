@@ -10,11 +10,10 @@ import { useImageLoading } from "@/hooks/use-image-loading";
 import { invoke } from "@tauri-apps/api/core";
 
 interface DocumentImageProps {
-  library: string;
   document: LibraryDocument;
 }
 
-export function DocumentImage({ library, document }: DocumentImageProps) {
+export function DocumentImage({ document }: DocumentImageProps) {
   const { metadata } = document;
   const [coverUrl, setCoverUrl] = useState<string>("");
   const [coverLoading, setCoverLoading] = useState(true);
@@ -24,7 +23,6 @@ export function DocumentImage({ library, document }: DocumentImageProps) {
     const loadCoverUrl = async () => {
       try {
         const url = await invoke<string>("get_document_cover", {
-          libraryName: library,
           documentId: document.id,
         });
         setCoverUrl(url);
@@ -39,7 +37,7 @@ export function DocumentImage({ library, document }: DocumentImageProps) {
     };
 
     loadCoverUrl();
-  }, [library, document]);
+  }, [document]);
 
   // Lazy load images with intersection observer
   const { isLoaded, hasError, observeImage, handleLoad, handleError } =

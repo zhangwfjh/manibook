@@ -1,3 +1,4 @@
+pub mod connection_manager;
 pub mod database;
 pub mod import;
 pub mod llm;

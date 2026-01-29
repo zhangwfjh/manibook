@@ -5,7 +5,6 @@ import { LibraryDocument } from "@/lib/library";
 
 interface UseBulkOperationsProps {
   documents: LibraryDocument[];
-  currentLibrary: string;
   filterParams: URLSearchParams;
   sortParams: URLSearchParams;
   loadFilteredData: (filterParams: URLSearchParams | undefined, sortParams: URLSearchParams | undefined, forceRefresh?: boolean) => Promise<void>;
@@ -14,7 +13,6 @@ interface UseBulkOperationsProps {
 
 export function useBulkOperations({
   documents,
-  currentLibrary,
   filterParams,
   sortParams,
   loadFilteredData,
@@ -56,7 +54,6 @@ export function useBulkOperations({
 
     try {
       const result = await invoke<{ deletedCount: number; errors?: unknown }>("delete_documents", {
-        libraryName: currentLibrary,
         documentIds: Array.from(selectedDocuments)
       });
 
@@ -73,7 +70,6 @@ export function useBulkOperations({
     }
   }, [
     selectedDocuments,
-    currentLibrary,
     filterParams,
     sortParams,
     loadFilteredData,
@@ -86,7 +82,6 @@ export function useBulkOperations({
 
       try {
         const result = await invoke<{ movedCount: number; errorCount: number; errors?: unknown }>("move_documents", {
-          libraryName: currentLibrary,
           documentIds: Array.from(selectedDocuments),
           doctype,
           category,
@@ -108,7 +103,6 @@ export function useBulkOperations({
     },
     [
       selectedDocuments,
-      currentLibrary,
       filterParams,
       sortParams,
       loadFilteredData,

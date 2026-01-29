@@ -107,7 +107,6 @@ export function LibraryProvider({ children }: LibraryProviderProps) {
   });
 
   const documentHandlers = useDocumentHandlers({
-    currentLibrary: libraryData.currentLibrary,
     filterParams: documentFilters.filterParams,
     sortParams: documentSorting.sortParams,
     loadFilteredData: libraryData.loadFilteredData,
@@ -115,7 +114,6 @@ export function LibraryProvider({ children }: LibraryProviderProps) {
 
   const bulkOperations = useBulkOperations({
     documents: libraryData.documents,
-    currentLibrary: libraryData.currentLibrary,
     filterParams: documentFilters.filterParams,
     sortParams: documentSorting.sortParams,
     loadFilteredData: libraryData.loadFilteredData,

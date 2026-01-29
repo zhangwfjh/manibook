@@ -4,19 +4,20 @@ mod models;
 mod services;
 mod utils;
 
-use crate::config::library::{
-    create_library, get_default_library, get_libraries, get_library_settings, set_default_library,
-};
+use crate::config::library::{create_library, get_libraries, get_library_settings};
 use crate::config::llm::{get_llm_settings, import_llm_settings, set_llm_settings};
 use crate::extractors::Extractor;
 use crate::models::{
     DocumentListResponse, DocumentMetadata, DocumentQuery, ImportError, ImportRequest,
     ImportResponse, ImportResult, Library, LibraryCategory,
 };
+use crate::services::connection_manager::{
+    close_library as cm_close_library, get_library_path, is_library_open, open_library as cm_open_library,
+};
 use crate::services::database::{
     delete_document, get_document_basic_info, get_document_cover_base64, get_document_url,
     get_documents as db_get_documents, get_library_categories as db_get_library_categories,
-    open_database, update_document_file_info, update_document_metadata,
+    update_document_file_info, update_document_metadata,
 };
 use crate::services::import::{process_document_import, process_url_import};
 use crate::services::llm::{extract_metadata_from_text, extract_text_from_images, find_provider};
@@ -28,23 +29,14 @@ use std::path::Path;
 use std::process::Command;
 
 #[tauri::command]
-async fn generate_metadata(
-    library_name: String,
-    document_id: String,
-) -> Result<DocumentMetadata, String> {
-    let settings = get_library_settings()?;
-    let library = settings
-        .libraries
-        .iter()
-        .find(|lib| lib.name == library_name)
-        .ok_or_else(|| format!("Library '{}' not found", library_name))?;
+async fn generate_metadata(document_id: String) -> Result<DocumentMetadata, String> {
+    let library_path = get_library_path()?;
 
-    let conn = open_database(&library.path)?;
     let (filename, url, existing_num_pages, existing_filesize, existing_format, existing_favorite) =
-        get_document_basic_info(&conn, &document_id)?;
+        get_document_basic_info(&document_id)?;
 
     let file_url = get_lib_path(&url)?;
-    let file_path = Path::new(&library.path).join(file_url);
+    let file_path = Path::new(&library_path).join(file_url);
 
     if !file_exists(&file_path) {
         return Err(format!(
@@ -115,15 +107,9 @@ async fn generate_metadata(
 
 #[tauri::command]
 async fn import_documents(
-    library_name: String,
     request: ImportRequest,
 ) -> Result<ImportResponse, String> {
-    let settings = get_library_settings()?;
-    let library = settings
-        .libraries
-        .iter()
-        .find(|lib| lib.name == library_name)
-        .ok_or_else(|| format!("Library '{}' not found", library_name))?;
+    let library_path = get_library_path()?;
 
     let llm_settings = get_llm_settings()?;
 
@@ -133,7 +119,7 @@ async fn import_documents(
     if let Some(file_data) = &request.file_data {
         for file_datum in file_data {
             match process_document_import(
-                &library.path,
+                &library_path,
                 &file_datum.data,
                 &file_datum.filename,
                 &get_extension(&file_datum.filename),
@@ -160,7 +146,7 @@ async fn import_documents(
 
     if let Some(urls) = &request.urls {
         for url in urls {
-            match process_url_import(&library.path, url, &llm_settings).await {
+            match process_url_import(&library_path, url, &llm_settings).await {
                 Ok(result) => results.push(result),
                 Err(e) => {
                     results.push(ImportResult {
@@ -202,41 +188,25 @@ fn get_library(library_name: String) -> Result<Library, String> {
 }
 
 #[tauri::command]
-fn get_document_cover(library_name: String, document_id: String) -> Result<String, String> {
-    let settings = get_library_settings()?;
-    let library = settings
-        .libraries
-        .iter()
-        .find(|lib| lib.name == library_name)
-        .ok_or_else(|| "Library not found".to_string())?;
-
-    let conn = open_database(&library.path)?;
-    get_document_cover_base64(&conn, &document_id)
+fn get_document_cover(document_id: String) -> Result<String, String> {
+    get_document_cover_base64(&document_id)
 }
 
 #[tauri::command]
 fn delete_documents(
-    library_name: String,
     document_ids: Vec<String>,
 ) -> Result<serde_json::Value, String> {
-    let settings = get_library_settings()?;
-    let library = settings
-        .libraries
-        .iter()
-        .find(|lib| lib.name == library_name)
-        .ok_or_else(|| "Library not found".to_string())?;
-
-    let conn = open_database(&library.path)?;
+    let library_path = get_library_path()?;
 
     let mut errors: Vec<serde_json::Value> = vec![];
     let mut success_count = 0;
 
     for document_id in document_ids.clone() {
         match (|| {
-            let url = delete_document(&conn, &document_id)?;
+            let url = delete_document(&document_id)?;
 
             let relative_path = get_lib_path(&url)?;
-            let file_path = Path::new(&library.path).join(relative_path);
+            let file_path = Path::new(&library_path).join(relative_path);
             if file_exists(&file_path) {
                 delete_file(&file_path)?;
             }
@@ -259,19 +229,13 @@ fn delete_documents(
 }
 
 #[tauri::command]
-fn open_document(library_name: String, document_id: String) -> Result<(), String> {
-    let settings = get_library_settings()?;
-    let library = settings
-        .libraries
-        .iter()
-        .find(|lib| lib.name == library_name)
-        .ok_or_else(|| "Library not found".to_string())?;
+fn open_document(document_id: String) -> Result<(), String> {
+    let library_path = get_library_path()?;
 
-    let conn = open_database(&library.path)?;
-    let url = get_document_url(&conn, &document_id)?;
+    let url = get_document_url(&document_id)?;
 
     let relative_path = get_lib_path(&url)?;
-    let file_path = Path::new(&library.path).join(relative_path);
+    let file_path = Path::new(&library_path).join(relative_path);
     if !file_exists(&file_path) {
         return Err("File not found".to_string());
     }
@@ -312,67 +276,64 @@ fn open_document(library_name: String, document_id: String) -> Result<(), String
 
 #[tauri::command]
 fn update_document(
-    library_name: String,
     document_id: String,
     metadata: DocumentMetadata,
 ) -> Result<crate::models::LibraryDocument, String> {
-    let settings = get_library_settings()?;
-    let library = settings
-        .libraries
-        .iter()
-        .find(|lib| lib.name == library_name)
-        .ok_or_else(|| "Library not found".to_string())?;
+    let library_path = get_library_path()?;
 
     let normalized_metadata = normalize_metadata(metadata);
 
-    let conn = open_database(&library.path)?;
-    let existing_info = get_document_basic_info(&conn, &document_id)?;
-    let (existing_filename, existing_url, _, _, _, _) = existing_info;
+    let (existing_filename, existing_url, _existing_num_pages, _existing_filesize, _existing_format, _existing_favorite) =
+        get_document_basic_info(&document_id)?;
 
     let new_category = normalized_metadata.category.clone();
     let new_title = normalized_metadata.title.clone();
 
-    let old_category = conn
-        .query_row(
-            "SELECT category FROM documents WHERE id = ?",
-            rusqlite::params![&document_id],
-            |row| row.get::<_, String>(0),
-        )
-        .map_err(|e| format!("Failed to get existing category: {}", e))?;
+    let (old_category, old_title, old_doctype) =
+        crate::services::connection_manager::with_connection(|conn| {
+            let old_category = conn
+                .query_row(
+                    "SELECT category FROM documents WHERE id = ?",
+                    rusqlite::params![&document_id],
+                    |row| row.get::<_, String>(0),
+                )
+                .map_err(|e| format!("Failed to get existing category: {}", e))?;
 
-    let old_title = conn
-        .query_row(
-            "SELECT title FROM documents WHERE id = ?",
-            rusqlite::params![&document_id],
-            |row| row.get::<_, String>(0),
-        )
-        .map_err(|e| format!("Failed to get existing title: {}", e))?;
+            let old_title = conn
+                .query_row(
+                    "SELECT title FROM documents WHERE id = ?",
+                    rusqlite::params![&document_id],
+                    |row| row.get::<_, String>(0),
+                )
+                .map_err(|e| format!("Failed to get existing title: {}", e))?;
 
-    let old_doctype = conn
-        .query_row(
-            "SELECT doctype FROM documents WHERE id = ?",
-            rusqlite::params![&document_id],
-            |row| row.get::<_, String>(0),
-        )
-        .map_err(|e| format!("Failed to get existing doctype: {}", e))?;
+            let old_doctype = conn
+                .query_row(
+                    "SELECT doctype FROM documents WHERE id = ?",
+                    rusqlite::params![&document_id],
+                    |row| row.get::<_, String>(0),
+                )
+                .map_err(|e| format!("Failed to get existing doctype: {}", e))?;
 
-    update_document_metadata(&conn, &document_id, &normalized_metadata)?;
+            Ok::<_, String>((old_category, old_title, old_doctype))
+        })?;
+
+    update_document_metadata(&document_id, &normalized_metadata)?;
 
     if old_category != new_category
         || old_title != new_title
         || old_doctype != normalized_metadata.doctype
     {
         let (new_filename, new_url) = move_file(
-            &library.path,
+            &library_path,
             &existing_filename,
             &existing_url,
             &normalized_metadata.doctype,
             &new_category,
             &new_title,
-            &conn,
         )?;
 
-        update_document_file_info(&conn, &document_id, &new_filename, &new_url)?;
+        update_document_file_info(&document_id, &new_filename, &new_url)?;
     }
 
     let doc = crate::models::LibraryDocument {
@@ -388,7 +349,6 @@ fn update_document(
 
 #[tauri::command]
 fn move_documents(
-    library_name: String,
     document_ids: Vec<String>,
     doctype: Option<String>,
     category: Option<String>,
@@ -399,37 +359,32 @@ fn move_documents(
         return Err("At least one of doctype or category must be provided".to_string());
     }
 
-    let settings = get_library_settings()?;
-    let library = settings
-        .libraries
-        .iter()
-        .find(|lib| lib.name == library_name)
-        .ok_or_else(|| "Library not found".to_string())?;
-
-    let conn = open_database(&library.path)?;
+    let library_path = get_library_path()?;
 
     let mut errors: Vec<serde_json::Value> = vec![];
     let mut success_count = 0;
 
     for document_id in document_ids {
         match (|| {
-            let mut stmt = conn
-                .prepare(
-                    "SELECT filename, url, category, doctype, title FROM documents WHERE id = ?",
-                )
-                .map_err(|e| format!("Failed to prepare query: {}", e))?;
+            let (existing_filename, existing_url, old_category, old_doctype, title) =
+                crate::services::connection_manager::with_connection(|conn| {
+                    let mut stmt = conn
+                        .prepare(
+                            "SELECT filename, url, category, doctype, title FROM documents WHERE id = ?",
+                        )
+                        .map_err(|e| format!("Failed to prepare query: {}", e))?;
 
-            let (existing_filename, existing_url, old_category, old_doctype, title) = stmt
-                .query_row(rusqlite::params![&document_id], |row| {
-                    Ok((
-                        row.get::<_, String>(0)?,
-                        row.get::<_, String>(1)?,
-                        row.get::<_, String>(2)?,
-                        row.get::<_, String>(3)?,
-                        row.get::<_, String>(4)?,
-                    ))
-                })
-                .map_err(|e| format!("Failed to find document: {}", e))?;
+                    stmt.query_row(rusqlite::params![&document_id], |row| {
+                        Ok((
+                            row.get::<_, String>(0)?,
+                            row.get::<_, String>(1)?,
+                            row.get::<_, String>(2)?,
+                            row.get::<_, String>(3)?,
+                            row.get::<_, String>(4)?,
+                        ))
+                    })
+                    .map_err(|e| format!("Failed to find document: {}", e))
+                })?;
 
             let new_doctype = doctype
                 .as_ref()
@@ -442,25 +397,26 @@ fn move_documents(
                 .unwrap_or(&old_category)
                 .clone();
 
-            let now = chrono::Utc::now().to_rfc3339();
-            conn.execute(
-                "UPDATE documents SET doctype = ?, category = ?, updatedAt = ? WHERE id = ?",
-                rusqlite::params![new_doctype, new_category, now, document_id],
-            )
-            .map_err(|e| format!("Failed to update document: {}", e))?;
+            crate::services::connection_manager::with_connection(|conn| {
+                let now = chrono::Utc::now().to_rfc3339();
+                conn.execute(
+                    "UPDATE documents SET doctype = ?, category = ?, updatedAt = ? WHERE id = ?",
+                    rusqlite::params![new_doctype, new_category, now, document_id],
+                )
+                .map_err(|e| format!("Failed to update document: {}", e))
+            })?;
 
             if old_category != new_category || old_doctype != new_doctype {
                 let (new_filename, new_url) = move_file(
-                    &library.path,
+                    &library_path,
                     &existing_filename,
                     &existing_url,
                     &new_doctype,
                     &new_category,
                     &title,
-                    &conn,
                 )?;
 
-                update_document_file_info(&conn, &document_id, &new_filename, &new_url)?;
+                update_document_file_info(&document_id, &new_filename, &new_url)?;
             }
 
             Ok::<(), String>(())
@@ -483,30 +439,36 @@ fn move_documents(
 
 #[tauri::command]
 fn get_documents(
-    library_name: String,
     query: DocumentQuery,
 ) -> Result<DocumentListResponse, String> {
-    let settings = get_library_settings()?;
-    let library = settings
-        .libraries
-        .iter()
-        .find(|lib| lib.name == library_name)
-        .ok_or_else(|| "Library not found".to_string())?;
-
-    let conn = open_database(&library.path)?;
-    db_get_documents(&conn, &query, &library.path)
+    let library_path = get_library_path()?;
+    db_get_documents(&query, &library_path)
 }
 
 #[tauri::command]
-fn get_library_categories(library_name: String) -> Result<Vec<LibraryCategory>, String> {
+fn get_library_categories() -> Result<Vec<LibraryCategory>, String> {
+    db_get_library_categories()
+}
+
+#[tauri::command]
+fn open_library(library_name: String) -> Result<(), String> {
     let settings = get_library_settings()?;
     let library = settings
         .libraries
-        .iter()
+        .into_iter()
         .find(|lib| lib.name == library_name)
-        .ok_or_else(|| "Library not found".to_string())?;
-    let conn = open_database(&library.path)?;
-    db_get_library_categories(&conn)
+        .ok_or_else(|| format!("Library '{}' not found", library_name))?;
+    cm_open_library(library_name, library.path)
+}
+
+#[tauri::command]
+fn close_library() -> Result<(), String> {
+    cm_close_library()
+}
+
+#[tauri::command]
+fn is_library_open_cmd() -> Option<String> {
+    is_library_open()
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -527,8 +489,9 @@ pub fn run() {
             get_llm_settings,
             set_llm_settings,
             import_llm_settings,
-            get_default_library,
-            set_default_library,
+            open_library,
+            close_library,
+            is_library_open_cmd,
             generate_metadata,
             import_documents,
             get_libraries,

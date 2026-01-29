@@ -34,7 +34,6 @@ export function DialogManager() {
   } = useDialogContext();
 
   const {
-    currentLibrary,
     handleCreateLibrary,
     refreshLibraryData,
     selectedDocuments,
@@ -47,7 +46,6 @@ export function DialogManager() {
   return (
     <>
       <DocumentDetailDialog
-        library={currentLibrary}
         document={selectedDocument}
         open={documentDialogOpen}
         onOpenChange={setDocumentDialogOpen}
@@ -70,7 +68,6 @@ export function DialogManager() {
       <ImportDialog
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
-        currentLibrary={currentLibrary}
         onImportComplete={refreshLibraryData}
       />
 

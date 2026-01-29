@@ -43,7 +43,6 @@ export const DOCTYPE_OPTIONS = ["Book", "Paper", "Report", "Manual", "Others"];
 
 export interface DocumentDisplayProps {
   document: LibraryDocument;
-  library: string;
   style?: React.CSSProperties;
   selectionMode?: boolean;
   selected?: boolean;

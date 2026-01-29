@@ -48,7 +48,7 @@ export function useLibraryData() {
   const fetchCategories = useCallback(async () => {
     if (!currentLibrary) return;
     try {
-      const categories = await invoke<LibraryCategory[]>("get_library_categories", { libraryName: currentLibrary });
+      const categories = await invoke<LibraryCategory[]>("get_library_categories");
       setCategories(categories);
     } catch (error) {
       console.error("Error fetching categories:", error);
@@ -113,7 +113,7 @@ export function useLibraryData() {
         sort_by: params.get('sortBy') || 'createdAt-desc',
       };
 
-      const data = await invoke<DocumentsResponse>('get_documents', { libraryName: currentLibrary, query });
+      const data = await invoke<DocumentsResponse>('get_documents', { query });
       const documents = data?.documents || [];
       const totalPages = Math.ceil((data?.total_count || 0) / (data?.limit || query.limit));
       const pagination = {

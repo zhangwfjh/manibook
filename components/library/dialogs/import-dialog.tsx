@@ -25,14 +25,12 @@ import { invoke } from "@tauri-apps/api/core";
 interface ImportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  currentLibrary: string;
   onImportComplete: () => void;
 }
 
 export function ImportDialog({
   open,
   onOpenChange,
-  currentLibrary,
   onImportComplete,
 }: ImportDialogProps) {
   const [activeTab, setActiveTab] = useState("files");
@@ -122,7 +120,6 @@ export function ImportDialog({
             error: string;
           }>;
         }>("import_documents", {
-          libraryName: currentLibrary,
           request: {
             file_data: fileData,
           },
@@ -187,7 +184,7 @@ export function ImportDialog({
         toast.warning(`${successCount} imported, ${errorCount} failed`);
       }
     },
-    [currentLibrary, onImportComplete, clearBatch, addBatch, updateItemStatus],
+    [onImportComplete, clearBatch, addBatch, updateItemStatus],
   );
 
   const handleDrag = useCallback((e: React.DragEvent) => {
@@ -288,7 +285,6 @@ export function ImportDialog({
           error: string;
         }>;
       }>("import_documents", {
-        libraryName: currentLibrary,
         request: {
           urls: validUrls,
         },
@@ -504,7 +500,6 @@ export function ImportDialog({
         <ImportDrawer
           open={drawerOpen}
           onOpenChange={setDrawerOpen}
-          currentLibrary={currentLibrary}
         />
       </DialogContent>
     </Dialog>

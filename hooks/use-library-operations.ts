@@ -31,6 +31,7 @@ export function useLibraryOperations({
 
     try {
       await invoke("create_library", { name: newLibraryName, path: newLibraryPath });
+      await invoke("open_library", { libraryName: newLibraryName });
       toast.success("Library created successfully");
       setCreateLibraryOpen(false);
       setCurrentLibrary(newLibraryName);

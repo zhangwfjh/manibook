@@ -1,5 +1,5 @@
+use crate::services::connection_manager::with_connection;
 use crate::utils::path::sanitize_filename;
-use rusqlite::Connection;
 use std::fs;
 use std::path::Path;
 
@@ -10,7 +10,6 @@ pub fn move_file(
     new_doctype: &str,
     new_category: &str,
     title: &str,
-    conn: &Connection,
 ) -> Result<(String, String), String> {
     let file_extension = Path::new(current_filename)
         .extension()
@@ -36,16 +35,20 @@ pub fn move_file(
     let mut new_filename = format!("{}.{}", safe_title, file_extension);
 
     let mut counter = 1;
-    while Path::new(&category_dir).join(&new_filename).exists()
-        || conn
-            .query_row(
-                "SELECT COUNT(*) FROM documents WHERE filename = ?",
-                rusqlite::params![&new_filename],
-                |row| row.get::<_, i64>(0),
-            )
-            .unwrap_or(0)
-            > 0
-    {
+    while {
+        let file_exists = Path::new(&category_dir).join(&new_filename).exists();
+        let db_exists = with_connection(|conn| {
+            Ok(conn
+                .query_row(
+                    "SELECT COUNT(*) FROM documents WHERE filename = ?",
+                    rusqlite::params![&new_filename],
+                    |row| row.get::<_, i64>(0),
+                )
+                .unwrap_or(0)
+                > 0)
+        })?;
+        file_exists || db_exists
+    } {
         new_filename = format!("{}_{}.{}", safe_title, counter, file_extension);
         counter += 1;
     }

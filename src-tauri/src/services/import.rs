@@ -1,7 +1,8 @@
 use crate::models::{ImportResult, LLMSettings};
-use crate::services::database::{check_document_exists_by_hash, insert_document, open_database};
+use crate::services::database::{check_document_exists_by_hash, insert_document};
 use crate::services::llm::{extract_metadata_from_text, extract_text_from_images, find_provider};
 use crate::services::storage::{create_category_directory, generate_unique_filename, write_file};
+use crate::services::connection_manager::is_library_open;
 use crate::utils::text::normalize_metadata;
 use nanoid::nanoid;
 use sha256;
@@ -66,15 +67,17 @@ pub async fn process_document_import(
 
     metadata = normalize_metadata(metadata);
 
+    if is_library_open().is_none() {
+        return Err("No library open. Call open_library() first.".to_string());
+    }
+
     let folder_path =
         create_category_directory(library_path, &metadata.doctype, &metadata.category)?;
     let category_dir = Path::new(library_path).join(&folder_path);
 
     let new_filename = generate_unique_filename(&category_dir, &metadata.title, extension)?;
 
-    let conn = open_database(library_path)?;
-
-    if check_document_exists_by_hash(&conn, &hash)? {
+    if check_document_exists_by_hash(&hash)? {
         return Err("File already exists in library".to_string());
     }
 
@@ -91,7 +94,6 @@ pub async fn process_document_import(
     let id = nanoid!();
 
     insert_document(
-        &conn,
         &id,
         &new_filename,
         &url,

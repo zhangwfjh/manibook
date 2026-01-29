@@ -2,6 +2,7 @@ use crate::models::{
     DocumentListResponse, DocumentMetadata, DocumentQuery, FilterCounts, LibraryCategory,
     LibraryDocument,
 };
+use crate::services::connection_manager::with_connection;
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use lazy_static::lazy_static;
 use lru::LruCache;
@@ -16,35 +17,35 @@ lazy_static! {
         Mutex::new(LruCache::new(std::num::NonZeroUsize::new(100).unwrap()));
 }
 
-pub fn open_database(library_path: &str) -> Result<rusqlite::Connection, String> {
+pub(crate) fn open_database(library_path: &str) -> Result<rusqlite::Connection, String> {
     let db_path = Path::new(library_path).join("db.sqlite");
     rusqlite::Connection::open(&db_path)
         .map_err(|e| format!("Failed to open database at {}: {}", db_path.display(), e))
 }
 
 pub fn get_document_basic_info(
-    conn: &rusqlite::Connection,
     document_id: &str,
 ) -> Result<(String, String, i32, i64, String, i32), String> {
-    let mut stmt = conn
-        .prepare("SELECT filename, url, numPages, filesize, format, favorite FROM documents WHERE id = ?")
-        .map_err(|e| format!("Failed to prepare document query: {}", e))?;
+    with_connection(|conn| {
+        let mut stmt = conn
+            .prepare("SELECT filename, url, numPages, filesize, format, favorite FROM documents WHERE id = ?")
+            .map_err(|e| format!("Failed to prepare document query: {}", e))?;
 
-    stmt.query_row(params![document_id], |row| {
-        Ok((
-            row.get::<_, String>(0)?,
-            row.get::<_, String>(1)?,
-            row.get::<_, i32>(2)?,
-            row.get::<_, i64>(3)?,
-            row.get::<_, String>(4)?,
-            row.get::<_, i32>(5)?,
-        ))
+        stmt.query_row(params![document_id], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, i32>(2)?,
+                row.get::<_, i64>(3)?,
+                row.get::<_, String>(4)?,
+                row.get::<_, i32>(5)?,
+            ))
+        })
+        .map_err(|e| format!("Document '{}' not found in database: {}", document_id, e))
     })
-    .map_err(|e| format!("Document '{}' not found in database: {}", document_id, e))
 }
 
 pub fn insert_document(
-    conn: &rusqlite::Connection,
     id: &str,
     filename: &str,
     url: &str,
@@ -52,166 +53,171 @@ pub fn insert_document(
     hash: &str,
     cover: Option<&Vec<u8>>,
 ) -> Result<(), String> {
-    conn.execute(
-        "INSERT INTO documents (id, filename, url, doctype, title, authors, publicationYear, publisher, category, language, keywords, abstract, favorite, metadata, hash, numPages, filesize, format, cover) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        params![
-            id,
-            filename,
-            url,
-            &metadata.doctype,
-            &metadata.title,
-            serde_json::to_string(&metadata.authors).unwrap_or_default(),
-            metadata.publication_year,
-            &metadata.publisher,
-            &metadata.category,
-            &metadata.language,
-            serde_json::to_string(&metadata.keywords).unwrap_or_default(),
-            &metadata.r#abstract,
-            &metadata.favorite,
-            serde_json::to_string(&metadata.metadata).unwrap_or_default(),
-            hash,
-            &metadata.num_pages,
-            &metadata.filesize,
-            &metadata.format,
-            cover,
-        ],
-    )
-    .map_err(|e| format!("Failed to insert document into database: {}", e))?;
+    with_connection(|conn| {
+        conn.execute(
+            "INSERT INTO documents (id, filename, url, doctype, title, authors, publicationYear, publisher, category, language, keywords, abstract, favorite, metadata, hash, numPages, filesize, format, cover) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            params![
+                id,
+                filename,
+                url,
+                &metadata.doctype,
+                &metadata.title,
+                serde_json::to_string(&metadata.authors).unwrap_or_default(),
+                metadata.publication_year,
+                &metadata.publisher,
+                &metadata.category,
+                &metadata.language,
+                serde_json::to_string(&metadata.keywords).unwrap_or_default(),
+                &metadata.r#abstract,
+                &metadata.favorite,
+                serde_json::to_string(&metadata.metadata).unwrap_or_default(),
+                hash,
+                &metadata.num_pages,
+                &metadata.filesize,
+                &metadata.format,
+                cover,
+            ],
+        )
+        .map_err(|e| format!("Failed to insert document into database: {}", e))?;
 
-    Ok(())
+        Ok(())
+    })
 }
 
 pub fn update_document_metadata(
-    conn: &rusqlite::Connection,
     document_id: &str,
     metadata: &DocumentMetadata,
 ) -> Result<(), String> {
-    let now = chrono::Utc::now().to_rfc3339();
+    with_connection(|conn| {
+        let now = chrono::Utc::now().to_rfc3339();
 
-    let sql = r#"
-        UPDATE documents SET
-            title = ?,
-            authors = ?,
-            publicationYear = ?,
-            publisher = ?,
-            category = ?,
-            language = ?,
-            keywords = ?,
-            abstract = ?,
-            doctype = ?,
-            metadata = ?,
-            updatedAt = ?
-        WHERE id = ?
-    "#;
+        let sql = r#"
+            UPDATE documents SET
+                title = ?,
+                authors = ?,
+                publicationYear = ?,
+                publisher = ?,
+                category = ?,
+                language = ?,
+                keywords = ?,
+                abstract = ?,
+                doctype = ?,
+                metadata = ?,
+                updatedAt = ?
+            WHERE id = ?
+        "#;
 
-    let params = params![
-        metadata.title,
-        serde_json::to_string(&metadata.authors).unwrap(),
-        metadata.publication_year,
-        metadata.publisher,
-        metadata.category,
-        metadata.language,
-        serde_json::to_string(&metadata.keywords).unwrap(),
-        metadata.r#abstract,
-        metadata.doctype,
-        metadata
-            .metadata
-            .as_ref()
-            .map(|m| serde_json::to_string(m).unwrap()),
-        now,
-        document_id
-    ];
+        let params = params![
+            metadata.title,
+            serde_json::to_string(&metadata.authors).unwrap(),
+            metadata.publication_year,
+            metadata.publisher,
+            metadata.category,
+            metadata.language,
+            serde_json::to_string(&metadata.keywords).unwrap(),
+            metadata.r#abstract,
+            metadata.doctype,
+            metadata
+                .metadata
+                .as_ref()
+                .map(|m| serde_json::to_string(m).unwrap()),
+            now,
+            document_id
+        ];
 
-    conn.execute(sql, params)
-        .map_err(|e| format!("Failed to update document: {}", e))?;
+        conn.execute(sql, params)
+            .map_err(|e| format!("Failed to update document: {}", e))?;
 
-    Ok(())
+        Ok(())
+    })
 }
 
 pub fn update_document_file_info(
-    conn: &rusqlite::Connection,
     document_id: &str,
     filename: &str,
     url: &str,
 ) -> Result<(), String> {
-    conn.execute(
-        "UPDATE documents SET filename = ?, url = ? WHERE id = ?",
-        params![filename, url, document_id],
-    )
-    .map_err(|e| format!("Failed to update filename and url: {}", e))?;
-    Ok(())
+    with_connection(|conn| {
+        conn.execute(
+            "UPDATE documents SET filename = ?, url = ? WHERE id = ?",
+            params![filename, url, document_id],
+        )
+        .map_err(|e| format!("Failed to update filename and url: {}", e))?;
+        Ok(())
+    })
 }
 
-pub fn check_document_exists_by_hash(
-    conn: &rusqlite::Connection,
-    hash: &str,
-) -> Result<bool, String> {
-    let mut stmt = conn
-        .prepare("SELECT id FROM documents WHERE hash = ?")
-        .map_err(|e| format!("Failed to prepare duplicate check query: {}", e))?;
+pub fn check_document_exists_by_hash(hash: &str) -> Result<bool, String> {
+    with_connection(|conn| {
+        let mut stmt = conn
+            .prepare("SELECT id FROM documents WHERE hash = ?")
+            .map_err(|e| format!("Failed to prepare duplicate check query: {}", e))?;
 
-    let exists = stmt.query_row(params![hash], |_| Ok(())).is_ok();
-    Ok(exists)
+        let exists = stmt.query_row(params![hash], |_| Ok(())).is_ok();
+        Ok(exists)
+    })
 }
 
-pub fn delete_document(conn: &rusqlite::Connection, document_id: &str) -> Result<String, String> {
-    let mut stmt = conn
-        .prepare("SELECT url FROM documents WHERE id = ?")
-        .map_err(|e| format!("Failed to prepare query: {}", e))?;
+pub fn delete_document(document_id: &str) -> Result<String, String> {
+    with_connection(|conn| {
+        let mut stmt = conn
+            .prepare("SELECT url FROM documents WHERE id = ?")
+            .map_err(|e| format!("Failed to prepare query: {}", e))?;
 
-    let url_result: Result<String, rusqlite::Error> =
-        stmt.query_row(params![document_id], |row| row.get::<_, String>(0));
+        let url_result: Result<String, rusqlite::Error> =
+            stmt.query_row(params![document_id], |row| row.get::<_, String>(0));
 
-    let url = match url_result {
-        Ok(url) => url,
-        Err(rusqlite::Error::QueryReturnedNoRows) => return Err("Document not found".to_string()),
-        Err(e) => return Err(format!("Database error: {}", e)),
-    };
+        let url = match url_result {
+            Ok(url) => url,
+            Err(rusqlite::Error::QueryReturnedNoRows) => {
+                return Err("Document not found".to_string())
+            }
+            Err(e) => return Err(format!("Database error: {}", e)),
+        };
 
-    conn.execute("DELETE FROM documents WHERE id = ?", params![document_id])
-        .map_err(|e| format!("Failed to delete document from database: {}", e))?;
+        conn.execute("DELETE FROM documents WHERE id = ?", params![document_id])
+            .map_err(|e| format!("Failed to delete document from database: {}", e))?;
 
-    Ok(url)
+        Ok(url)
+    })
 }
 
-pub fn get_document_url(conn: &rusqlite::Connection, document_id: &str) -> Result<String, String> {
-    let mut stmt = conn
-        .prepare("SELECT url FROM documents WHERE id = ?")
-        .map_err(|e| format!("Failed to prepare query: {}", e))?;
+pub fn get_document_url(document_id: &str) -> Result<String, String> {
+    with_connection(|conn| {
+        let mut stmt = conn
+            .prepare("SELECT url FROM documents WHERE id = ?")
+            .map_err(|e| format!("Failed to prepare query: {}", e))?;
 
-    let url_result: Result<String, rusqlite::Error> =
-        stmt.query_row(params![document_id], |row| row.get::<_, String>(0));
+        let url_result: Result<String, rusqlite::Error> =
+            stmt.query_row(params![document_id], |row| row.get::<_, String>(0));
 
-    match url_result {
-        Ok(url) => Ok(url),
-        Err(rusqlite::Error::QueryReturnedNoRows) => Err("Document not found".to_string()),
-        Err(e) => Err(format!("Database error: {}", e)),
-    }
+        match url_result {
+            Ok(url) => Ok(url),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Err("Document not found".to_string()),
+            Err(e) => Err(format!("Database error: {}", e)),
+        }
+    })
 }
 
-pub fn get_document_cover(
-    conn: &rusqlite::Connection,
-    document_id: &str,
-) -> Result<Option<Vec<u8>>, String> {
-    let mut stmt = conn
-        .prepare("SELECT cover FROM documents WHERE id = ?")
-        .map_err(|e| format!("Failed to prepare query: {}", e))?;
+pub fn get_document_cover(document_id: &str) -> Result<Option<Vec<u8>>, String> {
+    with_connection(|conn| {
+        let mut stmt = conn
+            .prepare("SELECT cover FROM documents WHERE id = ?")
+            .map_err(|e| format!("Failed to prepare query: {}", e))?;
 
-    let cover_result: Result<Option<Vec<u8>>, rusqlite::Error> =
-        stmt.query_row(params![document_id], |row| row.get::<_, Option<Vec<u8>>>(0));
+        let cover_result: Result<Option<Vec<u8>>, rusqlite::Error> =
+            stmt.query_row(params![document_id], |row| row.get::<_, Option<Vec<u8>>>(0));
 
-    match cover_result {
-        Ok(cover_data) => Ok(cover_data),
-        Err(rusqlite::Error::QueryReturnedNoRows) => Err("Document not found".to_string()),
-        Err(e) => Err(format!("Database error: {}", e)),
-    }
+        match cover_result {
+            Ok(cover_data) => Ok(cover_data),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Err("Document not found".to_string()),
+            Err(e) => Err(format!("Database error: {}", e)),
+        }
+    })
 }
 
-pub fn get_document_cover_base64(
-    conn: &rusqlite::Connection,
-    document_id: &str,
-) -> Result<String, String> {
-    let cover_data = get_document_cover(conn, document_id)?;
+pub fn get_document_cover_base64(document_id: &str) -> Result<String, String> {
+    let cover_data = get_document_cover(document_id)?;
 
     match cover_data {
         Some(data) => {
@@ -223,200 +229,204 @@ pub fn get_document_cover_base64(
 }
 
 pub fn get_documents(
-    conn: &rusqlite::Connection,
     query: &DocumentQuery,
     _library_path: &str,
 ) -> Result<DocumentListResponse, String> {
-    let mut where_clauses = Vec::new();
-    let mut params: Vec<String> = Vec::new();
+    with_connection(|conn| {
+        let mut where_clauses = Vec::new();
+        let mut params: Vec<String> = Vec::new();
 
-    if let Some(category) = &query.category {
-        let category_parts: Vec<&str> = category.split(" > ").collect();
-        if category_parts.len() >= 1 {
-            where_clauses.push("doctype = ?".to_string());
-            params.push(category_parts[0].to_string());
-            if category_parts.len() > 1 {
-                let category_path = category_parts[1..].join(" > ");
-                where_clauses.push("category LIKE ?".to_string());
-                params.push(format!("{}%", category_path));
+        if let Some(category) = &query.category {
+            let category_parts: Vec<&str> = category.split(" > ").collect();
+            if category_parts.len() >= 1 {
+                where_clauses.push("doctype = ?".to_string());
+                params.push(category_parts[0].to_string());
+                if category_parts.len() > 1 {
+                    let category_path = category_parts[1..].join(" > ");
+                    where_clauses.push("(category = ? OR category LIKE ?)".to_string());
+                    params.push(category_path.clone());
+                    params.push(format!("{} > %", category_path));
+                }
             }
         }
-    }
 
-    if !query.keywords.is_empty() {
-        let keyword_conditions: Vec<String> = query
-            .keywords
-            .iter()
-            .map(|_| "keywords LIKE ?".to_string())
-            .collect();
-        where_clauses.push(format!("({})", keyword_conditions.join(" OR ")));
-        for keyword in &query.keywords {
-            params.push(format!("%{}%", keyword));
+        if !query.keywords.is_empty() {
+            let keyword_conditions: Vec<String> = query
+                .keywords
+                .iter()
+                .map(|_| "keywords LIKE ?".to_string())
+                .collect();
+            where_clauses.push(format!("({})", keyword_conditions.join(" OR ")));
+            for keyword in &query.keywords {
+                params.push(format!("%{}%", keyword));
+            }
         }
-    }
 
-    if !query.formats.is_empty() {
-        let placeholders: Vec<&str> = query.formats.iter().map(|_| "?").collect();
-        where_clauses.push(format!("format IN ({})", placeholders.join(", ")));
-        params.extend(query.formats.iter().map(|f| f.to_lowercase()));
-    }
-
-    if !query.authors.is_empty() {
-        let author_conditions: Vec<String> = query
-            .authors
-            .iter()
-            .map(|_| "authors LIKE ?".to_string())
-            .collect();
-        where_clauses.push(format!("({})", author_conditions.join(" OR ")));
-        for author in &query.authors {
-            params.push(format!("%{}%", author));
+        if !query.formats.is_empty() {
+            let placeholders: Vec<&str> = query.formats.iter().map(|_| "?").collect();
+            where_clauses.push(format!("format IN ({})", placeholders.join(", ")));
+            params.extend(query.formats.iter().map(|f| f.to_lowercase()));
         }
-    }
 
-    if !query.publishers.is_empty() {
-        let placeholders: Vec<&str> = query.publishers.iter().map(|_| "?").collect();
-        where_clauses.push(format!("publisher IN ({})", placeholders.join(", ")));
-        params.extend(query.publishers.clone());
-    }
-
-    if !query.languages.is_empty() {
-        let placeholders: Vec<&str> = query.languages.iter().map(|_| "?").collect();
-        where_clauses.push(format!("language IN ({})", placeholders.join(", ")));
-        params.extend(query.languages.clone());
-    }
-
-    if query.favorites_only {
-        where_clauses.push("favorite = 1".to_string());
-    }
-
-    if let Some(search) = &query.search_query {
-        let search_conditions = vec![
-            "title LIKE ?",
-            "authors LIKE ?",
-            "keywords LIKE ?",
-            "publisher LIKE ?",
-            "abstract LIKE ?",
-        ];
-        where_clauses.push(format!("({})", search_conditions.join(" OR ")));
-        for _ in 0..5 {
-            params.push(format!("%{}%", search));
+        if !query.authors.is_empty() {
+            let author_conditions: Vec<String> = query
+                .authors
+                .iter()
+                .map(|_| "authors LIKE ?".to_string())
+                .collect();
+            where_clauses.push(format!("({})", author_conditions.join(" OR ")));
+            for author in &query.authors {
+                params.push(format!("%{}%", author));
+            }
         }
-    }
 
-    let where_clause = if where_clauses.is_empty() {
-        String::new()
-    } else {
-        format!("WHERE {}", where_clauses.join(" AND "))
-    };
+        if !query.publishers.is_empty() {
+            let placeholders: Vec<&str> = query.publishers.iter().map(|_| "?").collect();
+            where_clauses.push(format!("publisher IN ({})", placeholders.join(", ")));
+            params.extend(query.publishers.clone());
+        }
 
-    let (sort_field, sort_order) = query
-        .sort_by
-        .split_once('-')
-        .unwrap_or(("createdAt", "desc"));
-    let order_by = match sort_field {
-        "title" => "title",
-        "author" => "authors",
-        "publisher" => "publisher",
-        "publicationYear" => "publicationYear",
-        "language" => "language",
-        "doctype" => "doctype",
-        "numPages" => "numPages",
-        "favorite" => "favorite",
-        "updatedAt" => "updatedAt",
-        "filesize" => "filesize",
-        "createdAt" | _ => "createdAt",
-    };
+        if !query.languages.is_empty() {
+            let placeholders: Vec<&str> = query.languages.iter().map(|_| "?").collect();
+            where_clauses.push(format!("language IN ({})", placeholders.join(", ")));
+            params.extend(query.languages.clone());
+        }
 
-    let limit = query.limit.min(200);
-    let offset = (query.page.saturating_sub(1)) * limit;
+        if query.favorites_only {
+            where_clauses.push("favorite = 1".to_string());
+        }
 
-    let sql = format!(
+        if let Some(search) = &query.search_query {
+            let search_conditions = vec![
+                "title LIKE ?",
+                "authors LIKE ?",
+                "keywords LIKE ?",
+                "publisher LIKE ?",
+                "abstract LIKE ?",
+            ];
+            where_clauses.push(format!("({})", search_conditions.join(" OR ")));
+            for _ in 0..5 {
+                params.push(format!("%{}%", search));
+            }
+        }
+
+        let where_clause = if where_clauses.is_empty() {
+            String::new()
+        } else {
+            format!("WHERE {}", where_clauses.join(" AND "))
+        };
+
+        let (sort_field, sort_order) = query
+            .sort_by
+            .split_once('-')
+            .unwrap_or(("createdAt", "desc"));
+        let order_by = match sort_field {
+            "title" => "title",
+            "author" => "authors",
+            "publisher" => "publisher",
+            "publicationYear" => "publicationYear",
+            "language" => "language",
+            "doctype" => "doctype",
+            "numPages" => "numPages",
+            "favorite" => "favorite",
+            "updatedAt" => "updatedAt",
+            "filesize" => "filesize",
+            "createdAt" | _ => "createdAt",
+        };
+
+        let limit = query.limit.min(200);
+        let offset = (query.page.saturating_sub(1)) * limit;
+
+        let sql = format!(
         "SELECT id, filename, url, doctype, title, authors, publicationYear, publisher, category, language, keywords, abstract, favorite, numPages, filesize, format, metadata, updatedAt FROM documents {} ORDER BY {} {} LIMIT ? OFFSET ?",
         where_clause, order_by, sort_order
     );
-    let mut params_with_pagination = params.clone();
-    params_with_pagination.push(limit.to_string());
-    params_with_pagination.push(offset.to_string());
+        let mut params_with_pagination = params.clone();
+        params_with_pagination.push(limit.to_string());
+        params_with_pagination.push(offset.to_string());
 
-    let mut stmt = conn
-        .prepare(&sql)
-        .map_err(|e| format!("Failed to prepare query: {}", e))?;
-    let documents_iter = stmt
-        .query_map(params_from_iter(params_with_pagination.iter()), |row| {
-            Ok(LibraryDocument {
-                id: row.get(0)?,
-                path: {
-                    let url: String = row.get(2)?;
-                    if url.starts_with("lib://") {
-                        url[6..].to_string()
-                    } else {
-                        url
-                    }
-                },
-                filename: row.get(1)?,
-                url: row.get(2)?,
-                metadata: DocumentMetadata {
-                    doctype: row.get(3)?,
-                    title: row.get(4)?,
-                    authors: serde_json::from_str(&row.get::<_, String>(5)?).unwrap_or_default(),
-                    publication_year: row.get(6)?,
-                    publisher: row.get(7)?,
-                    category: row.get(8)?,
-                    language: row.get(9)?,
-                    keywords: serde_json::from_str(&row.get::<_, String>(10)?).unwrap_or_default(),
-                    r#abstract: row.get(11)?,
-                    favorite: row.get::<_, i64>(12)? != 0,
-                    num_pages: row.get(13)?,
-                    filesize: row.get(14)?,
-                    format: row.get(15)?,
-                    metadata: row
-                        .get::<_, Option<String>>(16)?
-                        .and_then(|m| serde_json::from_str(&m).ok()),
-                    updated_at: row.get::<_, String>(17)?,
-                },
-                category_path: vec![],
+        let mut stmt = conn
+            .prepare(&sql)
+            .map_err(|e| format!("Failed to prepare query: {}", e))?;
+        let documents_iter = stmt
+            .query_map(params_from_iter(params_with_pagination.iter()), |row| {
+                Ok(LibraryDocument {
+                    id: row.get(0)?,
+                    path: {
+                        let url: String = row.get(2)?;
+                        if url.starts_with("lib://") {
+                            url[6..].to_string()
+                        } else {
+                            url
+                        }
+                    },
+                    filename: row.get(1)?,
+                    url: row.get(2)?,
+                    metadata: DocumentMetadata {
+                        doctype: row.get(3)?,
+                        title: row.get(4)?,
+                        authors: serde_json::from_str(&row.get::<_, String>(5)?)
+                            .unwrap_or_default(),
+                        publication_year: row.get(6)?,
+                        publisher: row.get(7)?,
+                        category: row.get(8)?,
+                        language: row.get(9)?,
+                        keywords: serde_json::from_str(&row.get::<_, String>(10)?)
+                            .unwrap_or_default(),
+                        r#abstract: row.get(11)?,
+                        favorite: row.get::<_, i64>(12)? != 0,
+                        num_pages: row.get(13)?,
+                        filesize: row.get(14)?,
+                        format: row.get(15)?,
+                        metadata: row
+                            .get::<_, Option<String>>(16)?
+                            .and_then(|m| serde_json::from_str(&m).ok()),
+                        updated_at: row.get::<_, String>(17)?,
+                    },
+                    category_path: vec![],
+                })
             })
-        })
-        .map_err(|e| format!("Failed to execute query: {}", e))?;
+            .map_err(|e| format!("Failed to execute query: {}", e))?;
 
-    let documents: Vec<LibraryDocument> = documents_iter
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| format!("Failed to collect results: {}", e))?;
+        let documents: Vec<LibraryDocument> = documents_iter
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| format!("Failed to collect results: {}", e))?;
 
-    let count_sql = format!("SELECT COUNT(*) FROM documents {}", where_clause);
-    let total_count: usize = conn
-        .query_row(&count_sql, params_from_iter(params.iter()), |row| {
-            row.get(0)
-        })
-        .map_err(|e| format!("Failed to get count: {}", e))?;
+        let count_sql = format!("SELECT COUNT(*) FROM documents {}", where_clause);
+        let total_count: usize = conn
+            .query_row(&count_sql, params_from_iter(params.iter()), |row| {
+                row.get(0)
+            })
+            .map_err(|e| format!("Failed to get count: {}", e))?;
 
-    let cache_key = serde_json::to_string(&query).unwrap_or_default();
-    let mut cache = FILTER_CACHE.lock().unwrap();
-    let filter_options = if let Some((cached, timestamp)) = cache.get(&cache_key) {
-        if timestamp.elapsed() < Duration::from_secs(300) {
-            cached.clone()
+        let cache_key = serde_json::to_string(&query).unwrap_or_default();
+        let mut cache = FILTER_CACHE.lock().unwrap();
+        let filter_options = if let Some((cached, timestamp)) = cache.get(&cache_key) {
+            if timestamp.elapsed() < Duration::from_secs(300) {
+                cached.clone()
+            } else {
+                cache.pop(&cache_key);
+                compute_filter_counts(conn, &where_clause, &params)?
+            }
         } else {
-            cache.pop(&cache_key);
             compute_filter_counts(conn, &where_clause, &params)?
-        }
-    } else {
-        compute_filter_counts(conn, &where_clause, &params)?
-    };
+        };
 
-    cache.put(cache_key, (filter_options.clone(), Instant::now()));
+        cache.put(cache_key, (filter_options.clone(), Instant::now()));
 
-    let total_pages = (total_count + limit - 1) / limit;
-    let has_next = query.page < total_pages;
-    let has_prev = query.page > 1;
+        let total_pages = (total_count + limit - 1) / limit;
+        let has_next = query.page < total_pages;
+        let has_prev = query.page > 1;
 
-    Ok(DocumentListResponse {
-        documents,
-        total_count,
-        page: query.page,
-        limit,
-        has_next,
-        has_prev,
-        filter_options,
+        Ok(DocumentListResponse {
+            documents,
+            total_count,
+            page: query.page,
+            limit,
+            has_next,
+            has_prev,
+            filter_options,
+        })
     })
 }
 
@@ -530,79 +540,86 @@ fn compute_filter_counts(
     Ok(filter_options)
 }
 
-pub fn get_library_categories(conn: &rusqlite::Connection) -> Result<Vec<LibraryCategory>, String> {
-    let mut stmt = conn
-        .prepare(
-            "SELECT doctype, category, COUNT(*) as count
+pub fn get_library_categories() -> Result<Vec<LibraryCategory>, String> {
+    with_connection(|conn| {
+        let mut stmt = conn
+            .prepare(
+                "SELECT doctype, category, COUNT(*) as count
          FROM documents
          WHERE category IS NOT NULL AND category != ''
          GROUP BY doctype, category
          ORDER BY doctype, category",
-        )
-        .map_err(|e| format!("Failed to prepare query: {}", e))?;
+            )
+            .map_err(|e| format!("Failed to prepare query: {}", e))?;
 
-    let category_data: Vec<(String, String, i64)> = stmt
-        .query_map(params![], |row| {
-            Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, i64>(2)?,
-            ))
-        })
-        .map_err(|e| format!("Failed to execute query: {}", e))?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| format!("Failed to collect results: {}", e))?;
+        let category_data: Vec<(String, String, i64)> = stmt
+            .query_map(params![], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, i64>(2)?,
+                ))
+            })
+            .map_err(|e| format!("Failed to execute query: {}", e))?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| format!("Failed to collect results: {}", e))?;
 
-    let mut doctype_map: HashMap<String, LibraryCategory> = HashMap::new();
+        let mut doctype_map: HashMap<String, LibraryCategory> = HashMap::new();
 
-    for (doctype, category, count) in category_data {
-        let doctype_category =
-            doctype_map
-                .entry(doctype.clone())
-                .or_insert_with(|| LibraryCategory {
-                    name: doctype.clone(),
-                    path: vec![doctype.clone()],
-                    children: vec![],
-                    documents: vec![],
-                });
-
-        build_nested_categories(doctype_category, &category, count as usize);
-    }
-
-    fn build_nested_categories(parent: &mut LibraryCategory, category_path: &str, count: usize) {
-        let parts: Vec<String> = category_path
-            .split('>')
-            .map(|s| s.trim().to_string())
-            .collect();
-        let mut current = parent;
-
-        for (i, part) in parts.iter().enumerate() {
-            let child_index = current.children.iter().position(|c| c.name == *part);
-            let child_index = match child_index {
-                Some(idx) => idx,
-                None => {
-                    let mut child_path = current.path.clone();
-                    child_path.push(part.clone());
-                    let new_child = LibraryCategory {
-                        name: part.clone(),
-                        path: child_path,
+        for (doctype, category, count) in category_data {
+            let doctype_category =
+                doctype_map
+                    .entry(doctype.clone())
+                    .or_insert_with(|| LibraryCategory {
+                        name: doctype.clone(),
+                        path: vec![doctype.clone()],
                         children: vec![],
                         documents: vec![],
-                    };
-                    current.children.push(new_child);
-                    current.children.len() - 1
+                    });
+
+            build_nested_categories(doctype_category, &category, count as usize);
+        }
+
+        fn build_nested_categories(
+            parent: &mut LibraryCategory,
+            category_path: &str,
+            count: usize,
+        ) {
+            let parts: Vec<String> = category_path
+                .split('>')
+                .map(|s| s.trim().to_string())
+                .collect();
+            let mut current = parent;
+
+            for (i, part) in parts.iter().enumerate() {
+                let child_index = current.children.iter().position(|c| c.name == *part);
+                let child_index = match child_index {
+                    Some(idx) => idx,
+                    None => {
+                        let mut child_path = current.path.clone();
+                        child_path.push(part.clone());
+                        let new_child = LibraryCategory {
+                            name: part.clone(),
+                            path: child_path,
+                            children: vec![],
+                            documents: vec![],
+                        };
+                        current.children.push(new_child);
+                        current.children.len() - 1
+                    }
+                };
+
+                current = &mut current.children[child_index];
+
+                if i == parts.len() - 1 {
+                    current.documents = vec![None; count];
                 }
-            };
-
-            current = &mut current.children[child_index];
-
-            if i == parts.len() - 1 {
-                current.documents = vec![None; count];
             }
         }
-    }
 
-    let categories: Vec<LibraryCategory> = doctype_map.into_iter().map(|(_, cat)| cat).collect();
+        let categories: Vec<LibraryCategory> =
+            doctype_map.into_iter().map(|(_, cat)| cat).collect();
 
-    Ok(categories)
+        Ok(categories)
+    })
 }
