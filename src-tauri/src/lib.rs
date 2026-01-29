@@ -12,7 +12,8 @@ use crate::models::{
     ImportResponse, ImportResult, Library, LibraryCategory,
 };
 use crate::services::connection_manager::{
-    close_library as cm_close_library, get_library_path, is_library_open, open_library as cm_open_library,
+    close_library as cm_close_library, get_library_path, is_library_open,
+    open_library as cm_open_library,
 };
 use crate::services::database::{
     delete_document, get_document_basic_info, get_document_cover_base64, get_document_url,
@@ -106,9 +107,7 @@ async fn generate_metadata(document_id: String) -> Result<DocumentMetadata, Stri
 }
 
 #[tauri::command]
-async fn import_documents(
-    request: ImportRequest,
-) -> Result<ImportResponse, String> {
+async fn import_documents(request: ImportRequest) -> Result<ImportResponse, String> {
     let library_path = get_library_path()?;
 
     let llm_settings = get_llm_settings()?;
@@ -193,9 +192,7 @@ fn get_document_cover(document_id: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-fn delete_documents(
-    document_ids: Vec<String>,
-) -> Result<serde_json::Value, String> {
+fn delete_documents(document_ids: Vec<String>) -> Result<serde_json::Value, String> {
     let library_path = get_library_path()?;
 
     let mut errors: Vec<serde_json::Value> = vec![];
@@ -283,8 +280,14 @@ fn update_document(
 
     let normalized_metadata = normalize_metadata(metadata);
 
-    let (existing_filename, existing_url, _existing_num_pages, _existing_filesize, _existing_format, _existing_favorite) =
-        get_document_basic_info(&document_id)?;
+    let (
+        existing_filename,
+        existing_url,
+        _existing_num_pages,
+        _existing_filesize,
+        _existing_format,
+        _existing_favorite,
+    ) = get_document_basic_info(&document_id)?;
 
     let new_category = normalized_metadata.category.clone();
     let new_title = normalized_metadata.title.clone();
@@ -438,9 +441,7 @@ fn move_documents(
 }
 
 #[tauri::command]
-fn get_documents(
-    query: DocumentQuery,
-) -> Result<DocumentListResponse, String> {
+fn get_documents(query: DocumentQuery) -> Result<DocumentListResponse, String> {
     let library_path = get_library_path()?;
     db_get_documents(&query, &library_path)
 }

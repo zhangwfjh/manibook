@@ -20,19 +20,19 @@ const DocumentCardComponent = ({
   onFavoriteToggle,
   onDelete,
   selectionMode = false,
-  selected = false,
   onToggleSelection,
+  selected,
 }: DocumentDisplayProps) => {
   const { metadata } = document;
 
   const formattedFileSize = useMemo(
     () => (metadata.filesize ? formatFileSize(metadata.filesize) : null),
-    [metadata.filesize]
+    [metadata.filesize],
   );
 
   const formatIcon = useMemo(
     () => (metadata.format ? getFormatIcon(metadata.format) : null),
-    [metadata.format]
+    [metadata.format],
   );
 
   const handleCardClick = useCallback(() => {
@@ -46,8 +46,8 @@ const DocumentCardComponent = ({
   return (
     <Card
       className={`group w-full h-full flex flex-row hover:shadow-lg transition-shadow duration-200 cursor-pointer border-border/50 hover:border-border ${
-        selected ? "ring-2 ring-ring" : ""
-      } ${selected ? "ring-2 ring-primary" : ""}`}
+        selected ? "ring-2 ring-primary" : ""
+      }`}
       onClick={handleCardClick}
     >
       <div className="flex-1 flex flex-col min-w-0">

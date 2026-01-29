@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { memo, useRef, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -12,17 +12,9 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { HeartIcon, BookOpenIcon, TrashIcon } from "lucide-react";
 import { formatFileSize, LibraryDocument } from "@/lib/library";
-
-interface DocumentListProps {
-  documents: LibraryDocument[];
-  onClick?: (document: LibraryDocument) => void;
-  onOpen?: (document: LibraryDocument) => void;
-  onFavoriteToggle?: (document: LibraryDocument) => void;
-  onDelete?: (document: LibraryDocument) => void;
-  selectionMode?: boolean;
-  selectedDocuments?: Set<string>;
-  onToggleDocumentSelection?: (documentId: string) => void;
-}
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { DocumentRow } from "./document-row";
+import { DocumentListProps } from "../types";
 
 const DocumentListComponent = ({
   documents,
@@ -32,11 +24,31 @@ const DocumentListComponent = ({
   onDelete,
   selectionMode = false,
   selectedDocuments = new Set(),
-  onToggleDocumentSelection,
+  onToggleSelection,
+  useVirtualization: useVirtualizationProp,
 }: DocumentListProps) => {
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  const useVirtualization = useMemo(() => {
+    if (useVirtualizationProp !== undefined) return useVirtualizationProp;
+    return documents.length > 50;
+  }, [useVirtualizationProp, documents.length]);
+
+  const virtualizer = useVirtualizer({
+    count: documents.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 72,
+    overscan: 5,
+  });
+
+  const virtualRows = useMemo(
+    () => virtualizer.getVirtualItems(),
+    [virtualizer],
+  );
+
   const handleRowClick = (document: LibraryDocument) => {
     if (selectionMode) {
-      onToggleDocumentSelection?.(document.id);
+      onToggleSelection?.(document.id);
     } else {
       onClick?.(document);
     }
@@ -49,28 +61,28 @@ const DocumentListComponent = ({
 
   const handleFavoriteToggleClick = (
     e: React.MouseEvent,
-    document: LibraryDocument
+    document: LibraryDocument,
   ) => {
-    e.stopPropagation(); // Prevent row click
+    e.stopPropagation();
     onFavoriteToggle?.(document);
   };
 
   const handleDeleteClick = (
     e: React.MouseEvent,
-    document: LibraryDocument
+    document: LibraryDocument,
   ) => {
-    e.stopPropagation(); // Prevent row click
+    e.stopPropagation();
     onDelete?.(document);
   };
 
   const handleSelectAll = () => {
     const allSelected = documents.every((doc) => selectedDocuments.has(doc.id));
     if (allSelected) {
-      documents.forEach((doc) => onToggleDocumentSelection?.(doc.id));
+      documents.forEach((doc) => onToggleSelection?.(doc.id));
     } else {
       documents.forEach((doc) => {
         if (!selectedDocuments.has(doc.id)) {
-          onToggleDocumentSelection?.(doc.id);
+          onToggleSelection?.(doc.id);
         }
       });
     }
@@ -80,31 +92,100 @@ const DocumentListComponent = ({
     documents.length > 0 &&
     documents.every((doc) => selectedDocuments.has(doc.id));
 
+  if (documents.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        No documents found
+      </div>
+    );
+  }
+
+  const tableHeader = (
+    <TableHeader>
+      <TableRow>
+        {selectionMode && (
+          <TableHead className="w-12">
+            <Checkbox checked={allSelected} onCheckedChange={handleSelectAll} />
+          </TableHead>
+        )}
+        <TableHead>Title</TableHead>
+        <TableHead>Authors</TableHead>
+        <TableHead>Year</TableHead>
+        <TableHead>Type</TableHead>
+        <TableHead>Publisher</TableHead>
+        <TableHead>Language</TableHead>
+        <TableHead>Pages</TableHead>
+        <TableHead>Format</TableHead>
+        <TableHead>File Size</TableHead>
+        {!selectionMode && <TableHead className="w-25">Actions</TableHead>}
+      </TableRow>
+    </TableHeader>
+  );
+
+  if (useVirtualization) {
+    return (
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center border-b px-4 py-2 bg-muted/50 text-sm font-medium">
+          {selectionMode && (
+            <div className="w-10 shrink-0">
+              <Checkbox
+                checked={allSelected}
+                onCheckedChange={handleSelectAll}
+              />
+            </div>
+          )}
+          <div className="flex-1 min-w-0">Title</div>
+          <div className="w-20 shrink-0">Year</div>
+          <div className="w-24 shrink-0">Type</div>
+          <div className="flex-1 min-w-0">Publisher</div>
+          <div className="w-20 shrink-0">Language</div>
+          <div className="w-16 shrink-0">Pages</div>
+          <div className="w-16 shrink-0">Format</div>
+          <div className="w-20 shrink-0">Size</div>
+          {!selectionMode && <div className="w-16 shrink-0">Actions</div>}
+        </div>
+        <div
+          ref={parentRef}
+          style={{
+            height: `${Math.min(600, virtualizer.getTotalSize())}px`,
+            overflow: "auto",
+          }}
+          className="border rounded-md"
+        >
+          <div
+            style={{
+              height: `${virtualizer.getTotalSize()}px`,
+              width: "100%",
+              position: "relative",
+            }}
+          >
+            {virtualRows.map((virtualRow) => (
+              <DocumentRow
+                key={virtualRow.key}
+                document={documents[virtualRow.index]}
+                selectionMode={selectionMode}
+                selectedDocuments={selectedDocuments}
+                onToggleSelection={onToggleSelection}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: `${virtualRow.size}px`,
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-md border">
       <Table>
-        <TableHeader>
-          <TableRow>
-            {selectionMode && (
-              <TableHead className="w-12">
-                <Checkbox
-                  checked={allSelected}
-                  onCheckedChange={handleSelectAll}
-                />
-              </TableHead>
-            )}
-            <TableHead>Title</TableHead>
-            <TableHead>Authors</TableHead>
-            <TableHead>Year</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Publisher</TableHead>
-            <TableHead>Language</TableHead>
-            <TableHead>Pages</TableHead>
-            <TableHead>Format</TableHead>
-            <TableHead>File Size</TableHead>
-            {!selectionMode && <TableHead className="w-25">Actions</TableHead>}
-          </TableRow>
-        </TableHeader>
+        {tableHeader}
         <TableBody>
           {documents.map((document, index) => (
             <TableRow
@@ -118,9 +199,7 @@ const DocumentListComponent = ({
                 <TableCell>
                   <Checkbox
                     checked={selectedDocuments.has(document.id)}
-                    onCheckedChange={() =>
-                      onToggleDocumentSelection?.(document.id)
-                    }
+                    onCheckedChange={() => onToggleSelection?.(document.id)}
                     onClick={(e) => e.stopPropagation()}
                   />
                 </TableCell>

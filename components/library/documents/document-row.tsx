@@ -5,6 +5,7 @@ import { HeartIcon, BookOpenIcon, TrashIcon } from "lucide-react";
 import { formatFileSize } from "@/lib/library";
 import { DocumentMetadata } from "./metadata";
 import { DocumentDisplayProps } from "../types";
+import { useDocumentActionsContext } from "@/contexts/DocumentActionsContext";
 
 interface DocumentRowProps extends Omit<DocumentDisplayProps, "library"> {
   style?: React.CSSProperties;
@@ -12,45 +13,52 @@ interface DocumentRowProps extends Omit<DocumentDisplayProps, "library"> {
 
 function DocumentRowComponent({
   document,
-  onClick,
-  onOpen,
-  onFavoriteToggle,
-  onDelete,
   style,
   selectionMode = false,
-  selected = false,
-  onToggleSelection,
+  selectedDocuments,
 }: DocumentRowProps) {
+  const {
+    handleOpen: contextHandleOpen,
+    handleFavoriteToggle,
+    handleDocumentDelete,
+    onDocumentClick,
+    handleToggleDocumentSelection,
+  } = useDocumentActionsContext();
+
+  const selected = selectedDocuments
+    ? selectedDocuments.has(document.id)
+    : false;
+
   const handleClick = useCallback(() => {
     if (selectionMode) {
-      onToggleSelection?.(document.id);
+      handleToggleDocumentSelection(document.id);
     } else {
-      onClick?.(document);
+      onDocumentClick(document);
     }
-  }, [document, onClick, selectionMode, onToggleSelection]);
+  }, [document, onDocumentClick, selectionMode, handleToggleDocumentSelection]);
 
   const handleOpen = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      onOpen?.(document);
+      contextHandleOpen(document);
     },
-    [document, onOpen]
+    [document, contextHandleOpen],
   );
 
   const handleFavorite = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      onFavoriteToggle?.(document);
+      handleFavoriteToggle(document);
     },
-    [document, onFavoriteToggle]
+    [document, handleFavoriteToggle],
   );
 
   const handleDelete = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      onDelete?.(document);
+      handleDocumentDelete(document);
     },
-    [document, onDelete]
+    [document, handleDocumentDelete],
   );
 
   const { metadata } = document;

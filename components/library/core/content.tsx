@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { invoke } from "@tauri-apps/api/core";
 import {
   Breadcrumb,
@@ -18,7 +18,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { DocumentCard } from "@/components/library/documents/card";
 import { DocumentList } from "@/components/library/documents/list";
-import { VirtualList } from "@/components/library/documents/virtual-list";
 import { DocumentCardSkeleton } from "@/components/library/documents/card-skeleton";
 import { DocumentListSkeleton } from "@/components/library/documents/list-skeleton";
 import { Pagination } from "@/components/library/ui/pagination";
@@ -71,10 +70,6 @@ export function Content({ viewMode }: ContentProps) {
   const totalCount = pagination?.totalCount || 0;
 
   const paginatedItems = documents;
-
-  const useVirtualList = useMemo(() => {
-    return viewMode === "list" && paginatedItems.length > 50;
-  }, [viewMode, paginatedItems.length]);
 
   const paginationComponent = (
     <Pagination
@@ -258,21 +253,6 @@ export function Content({ viewMode }: ContentProps) {
 
           {paginationComponent}
         </>
-      ) : useVirtualList ? (
-        <>
-          <VirtualList
-            documents={paginatedItems}
-            onClick={onDocumentClick}
-            onOpen={handleOpen}
-            onFavoriteToggle={handleFavoriteToggle}
-            onDelete={handleDocumentDelete}
-            selectionMode={selectionMode}
-            selectedDocuments={selectedDocuments}
-            onToggleDocumentSelection={handleToggleDocumentSelection}
-          />
-
-          {paginationComponent}
-        </>
       ) : (
         <>
           <DocumentList
@@ -283,7 +263,7 @@ export function Content({ viewMode }: ContentProps) {
             onDelete={handleDocumentDelete}
             selectionMode={selectionMode}
             selectedDocuments={selectedDocuments}
-            onToggleDocumentSelection={handleToggleDocumentSelection}
+            onToggleSelection={handleToggleDocumentSelection}
           />
 
           {paginationComponent}
