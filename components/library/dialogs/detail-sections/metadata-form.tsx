@@ -4,11 +4,11 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { XIcon } from "lucide-react";
-import { DocumentMetadata } from "@/lib/library";
+import { Metadata } from "@/lib/library";
 
 interface DialogMetadataFormProps {
-  editedMetadata: DocumentMetadata | null;
-  onChange: (metadata: DocumentMetadata) => void;
+  editedMetadata: Metadata | null;
+  onChange: (metadata: Metadata) => void;
   validationErrors: Record<string, string>;
 }
 
@@ -17,12 +17,12 @@ export function MetadataForm({
   onChange,
   validationErrors,
 }: DialogMetadataFormProps) {
-  const handleFieldChange = (field: keyof DocumentMetadata, value: unknown) => {
+  const handleFieldChange = (field: keyof Metadata, value: unknown) => {
     const updated = {
       ...editedMetadata,
       [field]: value,
     };
-    onChange(updated as DocumentMetadata);
+    onChange(updated as Metadata);
   };
 
   const handleAuthorsChange = (e: React.ChangeEvent<HTMLInputElement>) => {

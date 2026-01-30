@@ -10,7 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { LibraryDocument, DocumentMetadata } from "@/lib/library";
+import { Document, Metadata } from "@/lib/library";
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import {
@@ -23,12 +23,12 @@ import {
 import { ActionsSection } from "./actions-section";
 
 interface DocumentDetailDialogProps {
-  document: LibraryDocument | null;
+  document: Document | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onOpen?: (document: LibraryDocument) => void;
-  onDelete?: (document: LibraryDocument) => void;
-  onUpdate?: (updatedDoc: LibraryDocument) => void;
+  onOpen?: (document: Document) => void;
+  onDelete?: (document: Document) => void;
+  onUpdate?: (updatedDoc: Document) => void;
 }
 
 export function DocumentDetailDialog({
@@ -40,7 +40,7 @@ export function DocumentDetailDialog({
   onUpdate,
 }: DocumentDetailDialogProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [editedMetadata, setEditedMetadata] = useState<DocumentMetadata | null>(
+  const [editedMetadata, setEditedMetadata] = useState<Metadata | null>(
     document?.metadata || null,
   );
   const [validationErrors, setValidationErrors] = useState<
@@ -100,7 +100,7 @@ export function DocumentDetailDialog({
       metadataToSave.authors = ["Unknown Author"];
     }
 
-    const updatedDocument: LibraryDocument = {
+    const updatedDocument: Document = {
       ...document,
       metadata: metadataToSave,
     };
@@ -129,7 +129,7 @@ export function DocumentDetailDialog({
 
     setIsGenerating(true);
     try {
-      const metadata = await invoke<DocumentMetadata>("generate_metadata", {
+      const metadata = await invoke<Metadata>("generate_metadata", {
         documentId: document.id,
       });
 

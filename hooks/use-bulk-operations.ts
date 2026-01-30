@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { toast } from "sonner";
-import { LibraryDocument } from "@/lib/library";
+import { Document } from "@/lib/library";
 
 interface UseBulkOperationsProps {
-  documents: LibraryDocument[];
+  documents: Document[];
   filterParams: URLSearchParams;
   sortParams: URLSearchParams;
   loadFilteredData: (filterParams: URLSearchParams | undefined, sortParams: URLSearchParams | undefined, forceRefresh?: boolean) => Promise<void>;

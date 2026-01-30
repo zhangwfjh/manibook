@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { HeartIcon, BookOpenIcon, TrashIcon } from "lucide-react";
-import { formatFileSize, LibraryDocument } from "@/lib/library";
+import { formatFileSize, Document } from "@/lib/library";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { DocumentRow } from "./document-row";
 import { DocumentListProps } from "../types";
@@ -43,7 +43,7 @@ export const DocumentList = ({
 
   const virtualRows = virtualizer.getVirtualItems();
 
-  const handleRowClick = (document: LibraryDocument) => {
+  const handleRowClick = (document: Document) => {
     if (selectionMode) {
       onToggleSelection?.(document.id);
     } else {
@@ -51,23 +51,20 @@ export const DocumentList = ({
     }
   };
 
-  const handleOpenClick = (e: React.MouseEvent, document: LibraryDocument) => {
+  const handleOpenClick = (e: React.MouseEvent, document: Document) => {
     e.stopPropagation();
     onOpen?.(document);
   };
 
   const handleFavoriteToggleClick = (
     e: React.MouseEvent,
-    document: LibraryDocument,
+    document: Document,
   ) => {
     e.stopPropagation();
     onFavoriteToggle?.(document);
   };
 
-  const handleDeleteClick = (
-    e: React.MouseEvent,
-    document: LibraryDocument,
-  ) => {
+  const handleDeleteClick = (e: React.MouseEvent, document: Document) => {
     e.stopPropagation();
     onDelete?.(document);
   };

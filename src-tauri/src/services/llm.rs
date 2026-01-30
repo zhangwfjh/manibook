@@ -1,4 +1,4 @@
-use crate::models::{ChatMessage, ChatRequest, ChatResponse, DocumentMetadata, LLMProvider};
+use crate::models::{ChatMessage, ChatRequest, ChatResponse, Metadata, LLMProvider};
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use std::time::Duration;
 
@@ -113,7 +113,7 @@ pub async fn call_openai_api(
         .ok_or_else(|| "LLM API returned empty response".to_string())
 }
 
-pub fn parse_metadata_response(response: &str) -> Result<DocumentMetadata, String> {
+pub fn parse_metadata_response(response: &str) -> Result<Metadata, String> {
     let json_string = if let Some(captures) = regex::Regex::new(r"```json\n([\s\S]*?)\n```")
         .unwrap()
         .captures(response)
@@ -226,7 +226,7 @@ pub fn parse_metadata_response(response: &str) -> Result<DocumentMetadata, Strin
         .to_string();
     let extra_metadata = metadata.get("metadata").cloned();
 
-    let meta = DocumentMetadata {
+    let meta = Metadata {
         doctype,
         title,
         authors,
@@ -290,7 +290,7 @@ pub async fn extract_text_from_images(
 pub async fn extract_metadata_from_text(
     text: &str,
     provider: &LLMProvider,
-) -> Result<DocumentMetadata, String> {
+) -> Result<Metadata, String> {
     let truncated_text = text.chars().take(5000).collect::<String>();
 
     let messages = vec![
@@ -304,7 +304,7 @@ pub async fn extract_metadata_from_text(
         },
     ];
 
-    let mut metadata: Option<DocumentMetadata> = None;
+    let mut metadata: Option<Metadata> = None;
     for retry in 0..3 {
         match call_openai_api(messages.clone(), provider, Some("json_object")).await {
             Ok(response) => match parse_metadata_response(&response) {

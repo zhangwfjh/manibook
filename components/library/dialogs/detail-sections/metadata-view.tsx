@@ -1,7 +1,7 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { DocumentMetadata } from "@/lib/library";
+import { Metadata } from "@/lib/library";
 import {
   UsersIcon,
   CalendarIcon,
@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 interface DialogMetadataViewProps {
-  metadata: DocumentMetadata;
+  metadata: Metadata;
 }
 
 export function MetadataView({ metadata }: DialogMetadataViewProps) {

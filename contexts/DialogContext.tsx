@@ -1,9 +1,9 @@
 import React, { createContext, useContext, ReactNode } from "react";
-import { LibraryDocument } from "@/lib/library";
+import { Document } from "@/lib/library";
 
 interface DialogContextType {
-  selectedDocument: LibraryDocument | null;
-  setSelectedDocument: (document: LibraryDocument | null) => void;
+  selectedDocument: Document | null;
+  setSelectedDocument: (document: Document | null) => void;
   documentDialogOpen: boolean;
   setDocumentDialogOpen: (open: boolean) => void;
 
@@ -32,7 +32,7 @@ interface DialogProviderProps {
 
 export function DialogProvider({ children }: DialogProviderProps) {
   const [selectedDocument, setSelectedDocument] =
-    React.useState<LibraryDocument | null>(null);
+    React.useState<Document | null>(null);
   const [documentDialogOpen, setDocumentDialogOpen] = React.useState(false);
 
   const [createLibraryOpen, setCreateLibraryOpen] = React.useState(false);

@@ -25,7 +25,7 @@ pub struct LLMSettings {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct DocumentMetadata {
+pub struct Metadata {
     pub doctype: String,
     pub title: String,
     pub authors: Vec<String>,
@@ -47,22 +47,22 @@ pub struct DocumentMetadata {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct LibraryDocument {
+pub struct Document {
     pub id: String,
     pub path: String,
     pub filename: String,
     pub url: String,
-    pub metadata: DocumentMetadata,
+    pub metadata: Metadata,
     #[serde(rename = "categoryPath")]
     pub category_path: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct LibraryCategory {
+pub struct Category {
     pub name: String,
     pub path: Vec<String>,
-    pub children: Vec<LibraryCategory>,
-    pub documents: Vec<Option<LibraryDocument>>,
+    pub children: Vec<Category>,
+    pub documents: Vec<Option<Document>>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -87,7 +87,7 @@ pub struct FileData {
 pub struct ImportResult {
     pub success: bool,
     pub filename: Option<String>,
-    pub metadata: Option<DocumentMetadata>,
+    pub metadata: Option<Metadata>,
     pub error: Option<String>,
 }
 
@@ -139,7 +139,7 @@ pub struct FilterCounts {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct DocumentListResponse {
-    pub documents: Vec<LibraryDocument>,
+    pub documents: Vec<Document>,
     pub total_count: usize,
     pub page: usize,
     pub limit: usize,

@@ -1,4 +1,4 @@
-use crate::models::DocumentMetadata;
+use crate::models::Metadata;
 
 pub fn to_proper_title_case(s: &str) -> String {
     if s.is_empty() {
@@ -54,7 +54,7 @@ pub fn to_proper_title_case(s: &str) -> String {
         .join(" ")
 }
 
-pub fn normalize_metadata(mut metadata: DocumentMetadata) -> DocumentMetadata {
+pub fn normalize_metadata(mut metadata: Metadata) -> Metadata {
     metadata.doctype = to_proper_title_case(&metadata.doctype);
     metadata.title = to_proper_title_case(&metadata.title);
     metadata.authors = metadata

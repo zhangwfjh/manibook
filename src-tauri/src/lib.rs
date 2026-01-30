@@ -8,8 +8,8 @@ use crate::config::library::{create_library, get_libraries, get_library_settings
 use crate::config::llm::{get_llm_settings, import_llm_settings, set_llm_settings};
 use crate::extractors::Extractor;
 use crate::models::{
-    DocumentListResponse, DocumentMetadata, DocumentQuery, ImportError, ImportRequest,
-    ImportResponse, ImportResult, Library, LibraryCategory,
+    Category, DocumentListResponse, DocumentQuery, ImportError, ImportRequest, ImportResponse,
+    ImportResult, Library, Metadata,
 };
 use crate::services::connection_manager::{
     close_library as cm_close_library, get_library_path, is_library_open,
@@ -30,7 +30,7 @@ use std::path::Path;
 use std::process::Command;
 
 #[tauri::command]
-async fn generate_metadata(document_id: String) -> Result<DocumentMetadata, String> {
+async fn generate_metadata(document_id: String) -> Result<Metadata, String> {
     let library_path = get_library_path()?;
 
     let (filename, url, existing_num_pages, existing_filesize, existing_format, existing_favorite) =
@@ -274,8 +274,8 @@ fn open_document(document_id: String) -> Result<(), String> {
 #[tauri::command]
 fn update_document(
     document_id: String,
-    metadata: DocumentMetadata,
-) -> Result<crate::models::LibraryDocument, String> {
+    metadata: Metadata,
+) -> Result<crate::models::Document, String> {
     let library_path = get_library_path()?;
 
     let normalized_metadata = normalize_metadata(metadata);
@@ -339,7 +339,7 @@ fn update_document(
         update_document_file_info(&document_id, &new_filename, &new_url)?;
     }
 
-    let doc = crate::models::LibraryDocument {
+    let doc = crate::models::Document {
         id: document_id,
         path: String::new(),
         filename: String::new(),
@@ -447,7 +447,7 @@ fn get_documents(query: DocumentQuery) -> Result<DocumentListResponse, String> {
 }
 
 #[tauri::command]
-fn get_library_categories() -> Result<Vec<LibraryCategory>, String> {
+fn get_library_categories() -> Result<Vec<Category>, String> {
     db_get_library_categories()
 }
 

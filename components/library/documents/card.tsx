@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/tooltip";
 import { CalendarIcon } from "lucide-react";
 import { formatFileSize, getFormatIcon } from "@/lib/library";
-import { DocumentMetadata } from "./metadata";
+import { Metadata } from "./metadata";
 import { DocumentActions } from "./document-actions";
 import { DocumentImage } from "./document-image";
 import { DocumentDisplayProps } from "../types";
@@ -49,7 +49,7 @@ export const DocumentCard = ({
       <div className="flex-1 flex flex-col min-w-0">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-2">
-            <DocumentMetadata metadata={metadata} />
+            <Metadata metadata={metadata} />
             <DocumentActions
               document={document}
               onOpen={onOpen}

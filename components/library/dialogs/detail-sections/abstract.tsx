@@ -1,13 +1,13 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { DocumentMetadata } from "@/lib/library";
+import { Metadata } from "@/lib/library";
 
 interface DialogAbstractSectionProps {
-  metadata: DocumentMetadata;
+  metadata: Metadata;
   isEditing: boolean;
-  editedMetadata: DocumentMetadata | null;
-  onChange: (metadata: DocumentMetadata) => void;
+  editedMetadata: Metadata | null;
+  onChange: (metadata: Metadata) => void;
 }
 
 export function AbstractSection({
@@ -20,7 +20,7 @@ export function AbstractSection({
     onChange({
       ...editedMetadata,
       abstract: value,
-    } as DocumentMetadata);
+    } as Metadata);
   };
 
   return (

@@ -5,12 +5,12 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
-import { LibraryDocument } from "@/lib/library";
+import { Document } from "@/lib/library";
 import { useImageLoading } from "@/hooks/use-image-loading";
 import { invoke } from "@tauri-apps/api/core";
 
 interface DocumentImageProps {
-  document: LibraryDocument;
+  document: Document;
 }
 
 export function DocumentImage({ document }: DocumentImageProps) {

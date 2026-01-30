@@ -1,6 +1,5 @@
 use crate::models::{
-    DocumentListResponse, DocumentMetadata, DocumentQuery, FilterCounts, LibraryCategory,
-    LibraryDocument,
+    Category, Document, DocumentListResponse, DocumentQuery, FilterCounts, Metadata,
 };
 use crate::services::connection_manager::with_connection;
 use base64::{engine::general_purpose::STANDARD, Engine as _};
@@ -49,7 +48,7 @@ pub fn insert_document(
     id: &str,
     filename: &str,
     url: &str,
-    metadata: &DocumentMetadata,
+    metadata: &Metadata,
     hash: &str,
     cover: Option<&Vec<u8>>,
 ) -> Result<(), String> {
@@ -84,10 +83,7 @@ pub fn insert_document(
     })
 }
 
-pub fn update_document_metadata(
-    document_id: &str,
-    metadata: &DocumentMetadata,
-) -> Result<(), String> {
+pub fn update_document_metadata(document_id: &str, metadata: &Metadata) -> Result<(), String> {
     with_connection(|conn| {
         let now = chrono::Utc::now().to_rfc3339();
 
@@ -352,7 +348,7 @@ pub fn get_documents(
             .map_err(|e| format!("Failed to prepare query: {}", e))?;
         let documents_iter = stmt
             .query_map(params_from_iter(params_with_pagination.iter()), |row| {
-                Ok(LibraryDocument {
+                Ok(Document {
                     id: row.get(0)?,
                     path: {
                         let url: String = row.get(2)?;
@@ -364,7 +360,7 @@ pub fn get_documents(
                     },
                     filename: row.get(1)?,
                     url: row.get(2)?,
-                    metadata: DocumentMetadata {
+                    metadata: Metadata {
                         doctype: row.get(3)?,
                         title: row.get(4)?,
                         authors: serde_json::from_str(&row.get::<_, String>(5)?)
@@ -390,7 +386,7 @@ pub fn get_documents(
             })
             .map_err(|e| format!("Failed to execute query: {}", e))?;
 
-        let documents: Vec<LibraryDocument> = documents_iter
+        let documents: Vec<Document> = documents_iter
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| format!("Failed to collect results: {}", e))?;
 
@@ -542,7 +538,7 @@ fn compute_filter_counts(
     Ok(filter_options)
 }
 
-pub fn get_library_categories() -> Result<Vec<LibraryCategory>, String> {
+pub fn get_library_categories() -> Result<Vec<Category>, String> {
     with_connection(|conn| {
         let mut stmt = conn
             .prepare(
@@ -566,27 +562,22 @@ pub fn get_library_categories() -> Result<Vec<LibraryCategory>, String> {
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| format!("Failed to collect results: {}", e))?;
 
-        let mut doctype_map: HashMap<String, LibraryCategory> = HashMap::new();
+        let mut doctype_map: HashMap<String, Category> = HashMap::new();
 
         for (doctype, category, count) in category_data {
-            let doctype_category =
-                doctype_map
-                    .entry(doctype.clone())
-                    .or_insert_with(|| LibraryCategory {
-                        name: doctype.clone(),
-                        path: vec![doctype.clone()],
-                        children: vec![],
-                        documents: vec![],
-                    });
+            let doctype_category = doctype_map
+                .entry(doctype.clone())
+                .or_insert_with(|| Category {
+                    name: doctype.clone(),
+                    path: vec![doctype.clone()],
+                    children: vec![],
+                    documents: vec![],
+                });
 
             build_nested_categories(doctype_category, &category, count as usize);
         }
 
-        fn build_nested_categories(
-            parent: &mut LibraryCategory,
-            category_path: &str,
-            count: usize,
-        ) {
+        fn build_nested_categories(parent: &mut Category, category_path: &str, count: usize) {
             let parts: Vec<String> = category_path
                 .split('>')
                 .map(|s| s.trim().to_string())
@@ -600,7 +591,7 @@ pub fn get_library_categories() -> Result<Vec<LibraryCategory>, String> {
                     None => {
                         let mut child_path = current.path.clone();
                         child_path.push(part.clone());
-                        let new_child = LibraryCategory {
+                        let new_child = Category {
                             name: part.clone(),
                             path: child_path,
                             children: vec![],
@@ -619,8 +610,7 @@ pub fn get_library_categories() -> Result<Vec<LibraryCategory>, String> {
             }
         }
 
-        let categories: Vec<LibraryCategory> =
-            doctype_map.into_iter().map(|(_, cat)| cat).collect();
+        let categories: Vec<Category> = doctype_map.into_iter().map(|(_, cat)| cat).collect();
 
         Ok(categories)
     })

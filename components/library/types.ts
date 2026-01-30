@@ -1,6 +1,6 @@
 // Shared types for library components
 
-import { LibraryDocument } from "@/lib/library";
+import { Document } from "@/lib/library";
 
 export type ViewMode = "card" | "list";
 
@@ -42,10 +42,10 @@ export const SORT_OPTIONS: { value: SortOption; label: string }[] = [
 export const DOCTYPE_OPTIONS = ["Book", "Paper", "Report", "Manual", "Others"];
 
 export interface DocumentActionsProps {
-  onClick?: (document: LibraryDocument) => void;
-  onOpen?: (document: LibraryDocument) => void;
-  onFavoriteToggle?: (document: LibraryDocument) => void;
-  onDelete?: (document: LibraryDocument) => void;
+  onClick?: (document: Document) => void;
+  onOpen?: (document: Document) => void;
+  onFavoriteToggle?: (document: Document) => void;
+  onDelete?: (document: Document) => void;
 }
 
 export interface DocumentSelectionProps {
@@ -57,7 +57,7 @@ export interface DocumentSelectionProps {
 export interface DocumentDisplayProps
   extends DocumentActionsProps,
   DocumentSelectionProps {
-  document: LibraryDocument;
+  document: Document;
   style?: React.CSSProperties;
   selected?: boolean;
 }
@@ -65,6 +65,6 @@ export interface DocumentDisplayProps
 export interface DocumentListProps
   extends DocumentActionsProps,
   DocumentSelectionProps {
-  documents: LibraryDocument[];
+  documents: Document[];
   useVirtualization?: boolean;
 }

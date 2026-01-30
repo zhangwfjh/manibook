@@ -1,4 +1,4 @@
-export interface DocumentMetadata {
+export interface Metadata {
   doctype: string;
   title: string;
   authors: string[];
@@ -17,18 +17,18 @@ export interface DocumentMetadata {
   [key: string]: unknown;
 }
 
-export interface LibraryDocument {
+export interface Document {
   id: string;
   path: string;
   filename: string;
-  metadata: DocumentMetadata;
+  metadata: Metadata;
 }
 
-export interface LibraryCategory {
+export interface Category {
   name: string;
   path: string[];
-  children: LibraryCategory[];
-  documents: LibraryDocument[];
+  children: Category[];
+  documents: Document[];
 }
 
 export interface Library {

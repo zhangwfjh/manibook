@@ -1,5 +1,5 @@
 import { createContext, useContext, ReactNode } from "react";
-import { LibraryDocument, Library, LibraryCategory } from "@/lib/library";
+import { Document, Library, Category } from "@/lib/library";
 import { PaginationInfo } from "@/lib/library/types";
 import { useLibraryData } from "@/hooks/use-library-data";
 import { useDocumentFilters } from "@/hooks/use-document-filters";
@@ -13,8 +13,8 @@ interface LibraryContextType {
   libraryName: string;
   setLibraryName: (library: string) => void;
   libraries: Library[];
-  documents: LibraryDocument[];
-  categories: LibraryCategory[];
+  documents: Document[];
+  categories: Category[];
   loading: boolean;
   pagination: PaginationInfo | null;
   currentPage: number;
@@ -63,12 +63,10 @@ interface LibraryContextType {
   handleCreateLibrary: () => Promise<void>;
   resetCreateDialog: () => void;
 
-  handleOpen: (doc: LibraryDocument) => void;
-  handleDocumentDelete: (document: LibraryDocument) => Promise<void>;
-  handleDocumentUpdate: (
-    updatedDoc: LibraryDocument,
-  ) => Promise<LibraryDocument | undefined>;
-  handleFavoriteToggle: (document: LibraryDocument) => Promise<void>;
+  handleOpen: (doc: Document) => void;
+  handleDocumentDelete: (document: Document) => Promise<void>;
+  handleDocumentUpdate: (updatedDoc: Document) => Promise<Document | undefined>;
+  handleFavoriteToggle: (document: Document) => Promise<void>;
 
   selectionMode: boolean;
   selectedDocuments: Set<string>;

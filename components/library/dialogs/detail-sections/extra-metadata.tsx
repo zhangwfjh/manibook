@@ -3,13 +3,13 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { XIcon } from "lucide-react";
-import { DocumentMetadata } from "@/lib/library";
+import { Metadata } from "@/lib/library";
 
 interface DialogExtraMetadataProps {
-  metadata: DocumentMetadata;
+  metadata: Metadata;
   isEditing: boolean;
-  editedMetadata: DocumentMetadata | null;
-  onChange: (metadata: DocumentMetadata) => void;
+  editedMetadata: Metadata | null;
+  onChange: (metadata: Metadata) => void;
 }
 
 export function ExtraMetadata({
@@ -24,7 +24,7 @@ export function ExtraMetadata({
     onChange({
       ...editedMetadata,
       metadata: newMetadata,
-    } as DocumentMetadata);
+    } as Metadata);
   };
 
   const handleFieldRemove = (key: string) => {
@@ -34,7 +34,7 @@ export function ExtraMetadata({
     onChange({
       ...editedMetadata,
       metadata: newMetadata,
-    } as DocumentMetadata);
+    } as Metadata);
   };
 
   const handleFieldAdd = () => {
@@ -44,7 +44,7 @@ export function ExtraMetadata({
     onChange({
       ...editedMetadata,
       metadata: newMetadata,
-    } as DocumentMetadata);
+    } as Metadata);
   };
 
   return (
@@ -71,7 +71,7 @@ export function ExtraMetadata({
                       onChange({
                         ...editedMetadata,
                         metadata: newMetadata,
-                      } as DocumentMetadata);
+                      } as Metadata);
                     }}
                     className="flex-1"
                   />

@@ -1,17 +1,17 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { LibraryDocument, LibraryCategory, Library } from "@/lib/library";
+import { Document, Category, Library } from "@/lib/library";
 import { PaginationInfo } from "@/lib/library/types";
 
 interface CacheEntry {
-  documents: LibraryDocument[];
+  documents: Document[];
   pagination: PaginationInfo | null;
   filterOptions: Record<string, Record<string, number>>;
   timestamp: number;
 }
 
 interface DocumentsResponse {
-  documents: LibraryDocument[];
+  documents: Document[];
   total_count: number;
   limit: number;
   page: number;
@@ -23,8 +23,8 @@ interface DocumentsResponse {
 export function useLibraryData() {
   const [libraryName, setLibraryName] = useState<string>("");
   const [libraries, setLibraries] = useState<Library[]>([]);
-  const [documents, setDocuments] = useState<LibraryDocument[]>([]);
-  const [categories, setCategories] = useState<LibraryCategory[]>([]);
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -47,7 +47,7 @@ export function useLibraryData() {
 
   const fetchCategories = useCallback(async () => {
     try {
-      const categories = await invoke<LibraryCategory[]>("get_library_categories");
+      const categories = await invoke<Category[]>("get_library_categories");
       setCategories(categories);
     } catch (error) {
       console.error("Error fetching categories:", error);

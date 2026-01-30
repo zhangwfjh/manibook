@@ -2,11 +2,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChevronRightIcon, ChevronDownIcon, FolderIcon } from "lucide-react";
-import { LibraryCategory } from "@/lib/library";
+import { Category } from "@/lib/library";
 import { useLibraryContext } from "@/contexts/LibraryContext";
 
 interface CategoryNodeProps {
-  category: LibraryCategory;
+  category: Category;
   level: number;
   selectedCategory: string;
   onCategorySelect: (categoryPath: string) => void;

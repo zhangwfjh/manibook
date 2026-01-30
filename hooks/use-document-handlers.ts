@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { toast } from "sonner";
-import { LibraryDocument } from "@/lib/library";
+import { Document } from "@/lib/library";
 
 interface UseDocumentHandlersProps {
   filterParams: URLSearchParams;
@@ -13,7 +13,7 @@ export function useDocumentHandlers({
   sortParams,
   loadFilteredData,
 }: UseDocumentHandlersProps) {
-  const handleOpen = async (doc: LibraryDocument) => {
+  const handleOpen = async (doc: Document) => {
     try {
       await invoke("open_document", {
         documentId: doc.id
@@ -24,7 +24,7 @@ export function useDocumentHandlers({
     }
   };
 
-  const handleDocumentDelete = async (document: LibraryDocument) => {
+  const handleDocumentDelete = async (document: Document) => {
     try {
       await invoke("delete_documents", {
         documentIds: [document.id]
@@ -36,9 +36,9 @@ export function useDocumentHandlers({
     await loadFilteredData(filterParams, sortParams, true);
   };
 
-  const handleDocumentUpdate = async (updatedDoc: LibraryDocument): Promise<LibraryDocument | undefined> => {
+  const handleDocumentUpdate = async (updatedDoc: Document): Promise<Document | undefined> => {
     try {
-      const result = await invoke<LibraryDocument>("update_document", {
+      const result = await invoke<Document>("update_document", {
         documentId: updatedDoc.id,
         metadata: updatedDoc.metadata,
       });
@@ -51,7 +51,7 @@ export function useDocumentHandlers({
     }
   };
 
-  const handleFavoriteToggle = async (document: LibraryDocument) => {
+  const handleFavoriteToggle = async (document: Document) => {
     const updatedDoc = {
       ...document,
       metadata: {

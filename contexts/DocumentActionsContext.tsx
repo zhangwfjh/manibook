@@ -1,13 +1,13 @@
 import React, { createContext, useContext, ReactNode } from "react";
-import { LibraryDocument } from "@/lib/library";
+import { Document } from "@/lib/library";
 
 interface DocumentActionsContextType {
-  handleOpen: (doc: LibraryDocument) => void;
-  handleFavoriteToggle: (document: LibraryDocument) => Promise<void>;
-  handleDocumentDelete: (document: LibraryDocument) => Promise<void>;
-  handleDocumentUpdate: (updatedDoc: LibraryDocument) => Promise<void>;
+  handleOpen: (doc: Document) => void;
+  handleFavoriteToggle: (document: Document) => Promise<void>;
+  handleDocumentDelete: (document: Document) => Promise<void>;
+  handleDocumentUpdate: (updatedDoc: Document) => Promise<void>;
   handleToggleDocumentSelection: (documentId: string) => void;
-  onDocumentClick: (document: LibraryDocument) => void;
+  onDocumentClick: (document: Document) => void;
 }
 
 const DocumentActionsContext = createContext<
@@ -34,7 +34,7 @@ export function useDocumentActionsContext(): DocumentActionsContextType {
   const context = useContext(DocumentActionsContext);
   if (context === undefined) {
     throw new Error(
-      "useDocumentActionsContext must be used within a DocumentActionsProvider"
+      "useDocumentActionsContext must be used within a DocumentActionsProvider",
     );
   }
   return context;

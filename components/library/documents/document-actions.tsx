@@ -13,13 +13,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { HeartIcon, BookOpenIcon, TrashIcon } from "lucide-react";
-import { LibraryDocument } from "@/lib/library";
+import { Document } from "@/lib/library";
 
 interface DocumentActionsProps {
-  document: LibraryDocument;
-  onOpen?: (document: LibraryDocument) => void;
-  onFavoriteToggle?: (document: LibraryDocument) => void;
-  onDelete?: (document: LibraryDocument) => void;
+  document: Document;
+  onOpen?: (document: Document) => void;
+  onFavoriteToggle?: (document: Document) => void;
+  onDelete?: (document: Document) => void;
 }
 
 export function DocumentActions({

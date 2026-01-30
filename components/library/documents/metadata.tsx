@@ -1,9 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import { UsersIcon } from "lucide-react";
-import { DocumentMetadata as MetadataType } from "@/lib/library";
+import { Metadata as MetadataType } from "@/lib/library";
 import { CardTitle } from "@/components/ui/card";
 
-interface DocumentMetadataProps {
+interface MetadataProps {
   metadata: MetadataType;
   showYear?: boolean;
   showDoctype?: boolean;
@@ -11,13 +11,13 @@ interface DocumentMetadataProps {
   compact?: boolean;
 }
 
-export function DocumentMetadata({
+export function Metadata({
   metadata,
   showYear = false,
   showDoctype = false,
   showCategory = false,
   compact = false,
-}: DocumentMetadataProps) {
+}: MetadataProps) {
   const titleClass = compact
     ? "font-medium max-w-xs truncate"
     : "text-lg leading-tight line-clamp-2";

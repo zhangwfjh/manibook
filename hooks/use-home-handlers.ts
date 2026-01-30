@@ -1,15 +1,15 @@
-import { LibraryDocument } from '@/lib/library';
+import { Document } from '@/lib/library';
 import { useLibraryContext } from '@/contexts/LibraryContext';
 
 export function useHomeHandlers(
-  setSelectedDocument: (doc: LibraryDocument | null) => void,
+  setSelectedDocument: (doc: Document | null) => void,
   setDialogOpen: (open: boolean) => void,
   selectionMode: boolean,
   handleToggleDocumentSelection: (id: string) => void
 ) {
   const { handleDocumentUpdate } = useLibraryContext();
 
-  const handleDocumentClick = (document: LibraryDocument) => {
+  const handleDocumentClick = (document: Document) => {
     if (selectionMode) {
       handleToggleDocumentSelection(document.id);
     } else {
@@ -18,7 +18,7 @@ export function useHomeHandlers(
     }
   };
 
-  const handleDocumentUpdateWrapper = async (updatedDoc: LibraryDocument) => {
+  const handleDocumentUpdateWrapper = async (updatedDoc: Document) => {
     const resultDoc = await handleDocumentUpdate(updatedDoc);
     if (resultDoc) {
       setSelectedDocument(resultDoc);
