@@ -1,3 +1,5 @@
+"use client";
+
 import { DocumentDetailDialog } from "@/components/library/dialogs/detail-dialog";
 import { CreateLibraryDialog } from "@/components/library/dialogs/create-library-dialog";
 import { ImportDialog } from "@/components/library/dialogs/import-dialog";

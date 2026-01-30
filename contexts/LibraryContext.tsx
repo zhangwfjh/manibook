@@ -1,3 +1,5 @@
+"use client";
+
 import { createContext, useContext, ReactNode } from "react";
 import { Document, Library, Category } from "@/lib/library";
 import { PaginationInfo } from "@/lib/library/types";
