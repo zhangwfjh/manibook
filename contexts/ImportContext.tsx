@@ -1,10 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  ReactNode,
-  useState,
-  useCallback,
-} from "react";
+import { createContext, useContext, ReactNode, useState } from "react";
 
 export interface ImportItem {
   id: string;
@@ -30,7 +24,7 @@ export interface ImportContextType {
   updateItemStatus: (
     itemId: string,
     status: ImportItem["status"],
-    options?: { completedAt?: Date; error?: string }
+    options?: { completedAt?: Date; error?: string },
   ) => void;
   cancelItem: (itemId: string) => void;
   clearBatch: () => void;
@@ -45,7 +39,7 @@ interface ImportProviderProps {
 export function ImportProvider({ children }: ImportProviderProps) {
   const [currentBatch, setCurrentBatch] = useState<ImportBatch | null>(null);
 
-  const addBatch = useCallback((items: Omit<ImportItem, "id">[]) => {
+  const addBatch = (items: Omit<ImportItem, "id">[]) => {
     const batchId = `batch-${Date.now()}`;
     const importItems: ImportItem[] = items.map((item, index) => ({
       ...item,
@@ -62,40 +56,37 @@ export function ImportProvider({ children }: ImportProviderProps) {
 
     setCurrentBatch(newBatch);
     return batchId;
-  }, []);
+  };
 
-  const updateItemStatus = useCallback(
-    (
-      itemId: string,
-      status: ImportItem["status"],
-      options?: { completedAt?: Date; error?: string }
-    ) => {
-      setCurrentBatch((prevBatch) => {
-        if (!prevBatch) return null;
+  const updateItemStatus = (
+    itemId: string,
+    status: ImportItem["status"],
+    options?: { completedAt?: Date; error?: string },
+  ) => {
+    setCurrentBatch((prevBatch) => {
+      if (!prevBatch) return null;
 
-        const updatedItems = prevBatch.items.map((item) =>
-          item.id === itemId ? { ...item, status, ...options } : item
-        );
+      const updatedItems = prevBatch.items.map((item) =>
+        item.id === itemId ? { ...item, status, ...options } : item,
+      );
 
-        let completed = 0;
-        let failed = 0;
-        updatedItems.forEach((item) => {
-          if (item.status === "success") completed++;
-          if (item.status === "failed" || item.status === "canceled") failed++;
-        });
-
-        return {
-          ...prevBatch,
-          completed,
-          failed,
-          items: updatedItems,
-        };
+      let completed = 0;
+      let failed = 0;
+      updatedItems.forEach((item) => {
+        if (item.status === "success") completed++;
+        if (item.status === "failed" || item.status === "canceled") failed++;
       });
-    },
-    []
-  );
 
-  const cancelItem = useCallback((itemId: string) => {
+      return {
+        ...prevBatch,
+        completed,
+        failed,
+        items: updatedItems,
+      };
+    });
+  };
+
+  const cancelItem = (itemId: string) => {
     setCurrentBatch((prevBatch) => {
       if (!prevBatch) return null;
 
@@ -121,11 +112,11 @@ export function ImportProvider({ children }: ImportProviderProps) {
         items: updatedItems,
       };
     });
-  }, []);
+  };
 
-  const clearBatch = useCallback(() => {
+  const clearBatch = () => {
     setCurrentBatch(null);
-  }, []);
+  };
 
   const value: ImportContextType = {
     currentBatch,

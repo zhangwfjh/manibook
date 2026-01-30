@@ -1,4 +1,4 @@
-import React, { memo, useCallback } from "react";
+import React from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -12,78 +12,63 @@ interface DialogMetadataFormProps {
   validationErrors: Record<string, string>;
 }
 
-function DialogMetadataFormComponent({
+export function MetadataForm({
   editedMetadata,
   onChange,
   validationErrors,
 }: DialogMetadataFormProps) {
-  const handleFieldChange = useCallback(
-    (field: keyof DocumentMetadata, value: unknown) => {
-      const updated = {
-        ...editedMetadata,
-        [field]: value,
-      };
-      onChange(updated as DocumentMetadata);
-    },
-    [editedMetadata, onChange]
-  );
+  const handleFieldChange = (field: keyof DocumentMetadata, value: unknown) => {
+    const updated = {
+      ...editedMetadata,
+      [field]: value,
+    };
+    onChange(updated as DocumentMetadata);
+  };
 
-  const handleAuthorsChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const authors = e.target.value
-        .split(",")
-        .map((a) => a.trim())
-        .filter((a) => a);
-      handleFieldChange("authors", authors);
-    },
-    [handleFieldChange]
-  );
+  const handleAuthorsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const authors = e.target.value
+      .split(",")
+      .map((a) => a.trim())
+      .filter((a) => a);
+    handleFieldChange("authors", authors);
+  };
 
-  const handleCategoryMainChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const newMain = e.target.value;
-      const currentParts = editedMetadata?.category?.split(" > ") || [];
-      const currentSub = currentParts.slice(1).join(" > ") || "";
-      const newCategory = newMain + (currentSub ? ` > ${currentSub}` : "");
-      handleFieldChange("category", newCategory);
-    },
-    [editedMetadata?.category, handleFieldChange]
-  );
+  const handleCategoryMainChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newMain = e.target.value;
+    const currentParts = editedMetadata?.category?.split(" > ") || [];
+    const currentSub = currentParts.slice(1).join(" > ") || "";
+    const newCategory = newMain + (currentSub ? ` > ${currentSub}` : "");
+    handleFieldChange("category", newCategory);
+  };
 
-  const handleCategorySubChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const newSub = e.target.value;
-      const currentParts = editedMetadata?.category?.split(" > ") || [];
-      const currentMain = currentParts[0] || "";
-      const newCategory = currentMain + (newSub ? ` > ${newSub}` : "");
-      handleFieldChange("category", newCategory);
-    },
-    [editedMetadata?.category, handleFieldChange]
-  );
+  const handleCategorySubChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newSub = e.target.value;
+    const currentParts = editedMetadata?.category?.split(" > ") || [];
+    const currentMain = currentParts[0] || "";
+    const newCategory = currentMain + (newSub ? ` > ${newSub}` : "");
+    handleFieldChange("category", newCategory);
+  };
 
-  const handleKeywordRemove = useCallback(
-    (index: number) => {
-      const keywords =
-        editedMetadata?.keywords?.filter((_, i) => i !== index) || [];
-      handleFieldChange("keywords", keywords);
-    },
-    [editedMetadata?.keywords, handleFieldChange]
-  );
+  const handleKeywordRemove = (index: number) => {
+    const keywords =
+      editedMetadata?.keywords?.filter((_, i) => i !== index) || [];
+    handleFieldChange("keywords", keywords);
+  };
 
-  const handleKeywordKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>, newValue: string) => {
-      if (e.key === "Enter" || e.key === ",") {
-        e.preventDefault();
-        if (newValue.trim()) {
-          const keywords = [...(editedMetadata?.keywords || []), newValue.trim()];
-          handleFieldChange("keywords", keywords);
-        }
-      } else if (e.key === "Backspace" && !newValue) {
-        handleKeywordRemove((editedMetadata?.keywords?.length || 0) - 1);
+  const handleKeywordKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    newValue: string,
+  ) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      if (newValue.trim()) {
+        const keywords = [...(editedMetadata?.keywords || []), newValue.trim()];
+        handleFieldChange("keywords", keywords);
       }
-    },
-    [editedMetadata?.keywords, handleKeywordRemove, handleFieldChange]
-  );
+    } else if (e.key === "Backspace" && !newValue) {
+      handleKeywordRemove((editedMetadata?.keywords?.length || 0) - 1);
+    }
+  };
 
   if (!editedMetadata) return null;
 
@@ -140,7 +125,7 @@ function DialogMetadataFormComponent({
             onChange={(e) =>
               handleFieldChange(
                 "publicationYear",
-                e.target.value ? parseInt(e.target.value) : undefined
+                e.target.value ? parseInt(e.target.value) : undefined,
               )
             }
             className="mt-1"
@@ -294,7 +279,7 @@ interface KeywordEditorProps {
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>, value: string) => void;
 }
 
-const KeywordEditorComponent = ({
+export const KeywordEditor = ({
   keywords,
   onRemove,
   onKeyDown,
@@ -336,9 +321,3 @@ const KeywordEditorComponent = ({
     </div>
   );
 };
-
-const KeywordEditor = React.memo(KeywordEditorComponent);
-KeywordEditor.displayName = "KeywordEditor";
-
-export const MetadataForm = memo(DialogMetadataFormComponent);
-MetadataForm.displayName = "MetadataForm";

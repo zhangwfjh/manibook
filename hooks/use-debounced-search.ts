@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 
 export function useDebouncedSearch(
   initialValue: string = '',
@@ -21,9 +21,9 @@ export function useDebouncedSearch(
   // Track searching state based on whether value differs from debounced value
   const isSearching = value !== debouncedValue;
 
-  const updateSearch = useCallback((newValue: string) => {
+  const updateSearch = (newValue: string) => {
     setValue(newValue);
-  }, []);
+  };
 
   return {
     searchValue: value,

@@ -1,4 +1,4 @@
-import React, { memo, useCallback } from "react";
+import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { HeartIcon, BookOpenIcon, TrashIcon } from "lucide-react";
@@ -11,7 +11,7 @@ interface DocumentRowProps extends Omit<DocumentDisplayProps, "library"> {
   style?: React.CSSProperties;
 }
 
-function DocumentRowComponent({
+export function DocumentRow({
   document,
   style,
   selectionMode = false,
@@ -29,37 +29,28 @@ function DocumentRowComponent({
     ? selectedDocuments.has(document.id)
     : false;
 
-  const handleClick = useCallback(() => {
+  const handleClick = () => {
     if (selectionMode) {
       handleToggleDocumentSelection(document.id);
     } else {
       onDocumentClick(document);
     }
-  }, [document, onDocumentClick, selectionMode, handleToggleDocumentSelection]);
+  };
 
-  const handleOpen = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      contextHandleOpen(document);
-    },
-    [document, contextHandleOpen],
-  );
+  const handleOpen = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    contextHandleOpen(document);
+  };
 
-  const handleFavorite = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      handleFavoriteToggle(document);
-    },
-    [document, handleFavoriteToggle],
-  );
+  const handleFavorite = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    handleFavoriteToggle(document);
+  };
 
-  const handleDelete = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      handleDocumentDelete(document);
-    },
-    [document, handleDocumentDelete],
-  );
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    handleDocumentDelete(document);
+  };
 
   const { metadata } = document;
 
@@ -134,6 +125,3 @@ function DocumentRowComponent({
     </div>
   );
 }
-
-export const DocumentRow = memo(DocumentRowComponent);
-DocumentRow.displayName = "DocumentRow";

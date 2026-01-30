@@ -1,4 +1,3 @@
-import React, { useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   TrashIcon,
@@ -8,7 +7,6 @@ import {
   BookOpenIcon,
   RefreshCwIcon,
 } from "lucide-react";
-
 
 interface ActionsSectionProps {
   isEditing: boolean;
@@ -31,17 +29,9 @@ export function ActionsSection({
   onOpen,
   onGenerateMetadata,
 }: ActionsSectionProps) {
-  const handleSave = useCallback(() => {
-    onSave();
-  }, [onSave]);
-
   return (
     <div className="flex justify-between items-center pt-4 border-t">
-      <Button
-        variant="destructive"
-        onClick={onDelete}
-        disabled={isEditing}
-      >
+      <Button variant="destructive" onClick={onDelete} disabled={isEditing}>
         <TrashIcon className="h-4 w-4 mr-2" />
         Delete
       </Button>
@@ -55,9 +45,7 @@ export function ActionsSection({
               disabled={isGenerating}
             >
               <RefreshCwIcon
-                className={`h-4 w-4 mr-2 ${
-                  isGenerating ? "animate-spin" : ""
-                }`}
+                className={`h-4 w-4 mr-2 ${isGenerating ? "animate-spin" : ""}`}
               />
               Generate
             </Button>
@@ -65,7 +53,7 @@ export function ActionsSection({
               <XIcon className="h-4 w-4 mr-2" />
               Cancel
             </Button>
-            <Button onClick={handleSave}>
+            <Button onClick={onSave}>
               <SaveIcon className="h-4 w-4 mr-2" />
               Save
             </Button>

@@ -155,8 +155,6 @@ export function useLibraryData() {
     fetchLibraries();
   }, [fetchLibraries]);
 
-
-
   useEffect(() => {
     if (libraryName) {
       fetchCategories();

@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,21 +30,15 @@ export function DocumentActions({
 }: DocumentActionsProps) {
   const { metadata } = document;
 
-  const handleOpenClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      onOpen?.(document);
-    },
-    [onOpen, document]
-  );
+  const handleOpenClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onOpen?.(document);
+  };
 
-  const handleFavoriteClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      onFavoriteToggle?.(document);
-    },
-    [onFavoriteToggle, document]
-  );
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onFavoriteToggle?.(document);
+  };
 
   return (
     <>
@@ -85,7 +79,9 @@ export function DocumentActions({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Document</AlertDialogTitle>
             <AlertDialogDescription>
-                     Are you sure you want to delete &ldquo;{metadata.title || "this document"}&rdquo;? This action cannot be undone.
+              Are you sure you want to delete &ldquo;
+              {metadata.title || "this document"}&rdquo;? This action cannot be
+              undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

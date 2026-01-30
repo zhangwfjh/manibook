@@ -11,7 +11,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { LibraryDocument, DocumentMetadata } from "@/lib/library";
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import {
   MetadataForm,
@@ -41,7 +41,7 @@ export function DocumentDetailDialog({
 }: DocumentDetailDialogProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedMetadata, setEditedMetadata] = useState<DocumentMetadata | null>(
-    document?.metadata || null
+    document?.metadata || null,
   );
   const [validationErrors, setValidationErrors] = useState<
     Record<string, string>
@@ -49,28 +49,28 @@ export function DocumentDetailDialog({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const handleOpenChange = useCallback((newOpen: boolean) => {
+  const handleOpenChange = (newOpen: boolean) => {
     onOpenChange(newOpen);
     if (!newOpen) {
       setIsEditing(false);
     }
-  }, [onOpenChange]);
+  };
 
-  const handleOpen = useCallback(() => {
+  const handleOpen = () => {
     onOpen?.(document!);
-  }, [document, onOpen]);
+  };
 
-  const handleEdit = useCallback(() => {
+  const handleEdit = () => {
     setIsEditing(true);
     setEditedMetadata(document?.metadata || null);
-  }, [document?.metadata]);
+  };
 
-  const handleCancel = useCallback(() => {
+  const handleCancel = () => {
     setIsEditing(false);
     setEditedMetadata(document?.metadata || null);
-  }, [document?.metadata]);
+  };
 
-  const handleSave = useCallback(async () => {
+  const handleSave = async () => {
     if (!editedMetadata || !document) return;
 
     const errors: Record<string, string> = {};
@@ -112,25 +112,25 @@ export function DocumentDetailDialog({
       console.error("Error updating document:", error);
       alert("Error updating document");
     }
-  }, [editedMetadata, document, onUpdate]);
+  };
 
-  const handleDelete = useCallback(() => {
+  const handleDelete = () => {
     setIsDeleteDialogOpen(true);
-  }, []);
+  };
 
-  const confirmDelete = useCallback(() => {
+  const confirmDelete = () => {
     onDelete?.(document!);
     handleOpenChange(false);
     setIsDeleteDialogOpen(false);
-  }, [document, onDelete, handleOpenChange]);
+  };
 
-  const handleGenerateMetadata = useCallback(async () => {
+  const handleGenerateMetadata = async () => {
     if (!document) return;
 
     setIsGenerating(true);
     try {
       const metadata = await invoke<DocumentMetadata>("generate_metadata", {
-        documentId: document.id
+        documentId: document.id,
       });
 
       if (metadata) {
@@ -157,12 +157,12 @@ export function DocumentDetailDialog({
       alert(
         `Error: ${
           error instanceof Error ? error.message : "Failed to generate metadata"
-        }`
+        }`,
       );
     } finally {
       setIsGenerating(false);
     }
-  }, [document]);
+  };
 
   if (!document) return null;
 
@@ -204,16 +204,16 @@ export function DocumentDetailDialog({
           </div>
         </ScrollArea>
 
-         <ActionsSection
-           isEditing={isEditing}
-           isGenerating={isGenerating}
-           onEdit={handleEdit}
-           onCancel={handleCancel}
-           onSave={handleSave}
-           onDelete={handleDelete}
-           onOpen={handleOpen}
-           onGenerateMetadata={handleGenerateMetadata}
-         />
+        <ActionsSection
+          isEditing={isEditing}
+          isGenerating={isGenerating}
+          onEdit={handleEdit}
+          onCancel={handleCancel}
+          onSave={handleSave}
+          onDelete={handleDelete}
+          onOpen={handleOpen}
+          onGenerateMetadata={handleGenerateMetadata}
+        />
       </DialogContent>
 
       <AlertDialog

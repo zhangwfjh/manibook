@@ -1,4 +1,4 @@
-import React, { useMemo, memo, useCallback } from "react";
+import React from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -13,7 +13,7 @@ import { DocumentActions } from "./document-actions";
 import { DocumentImage } from "./document-image";
 import { DocumentDisplayProps } from "../types";
 
-const DocumentCardComponent = ({
+export const DocumentCard = ({
   document,
   onClick,
   onOpen,
@@ -25,23 +25,19 @@ const DocumentCardComponent = ({
 }: DocumentDisplayProps) => {
   const { metadata } = document;
 
-  const formattedFileSize = useMemo(
-    () => (metadata.filesize ? formatFileSize(metadata.filesize) : null),
-    [metadata.filesize],
-  );
+  const formattedFileSize = metadata.filesize
+    ? formatFileSize(metadata.filesize)
+    : null;
 
-  const formatIcon = useMemo(
-    () => (metadata.format ? getFormatIcon(metadata.format) : null),
-    [metadata.format],
-  );
+  const formatIcon = metadata.format ? getFormatIcon(metadata.format) : null;
 
-  const handleCardClick = useCallback(() => {
+  const handleCardClick = () => {
     if (selectionMode) {
       onToggleSelection?.(document.id);
     } else {
       onClick?.(document);
     }
-  }, [onClick, document, selectionMode, onToggleSelection]);
+  };
 
   return (
     <Card
@@ -151,5 +147,3 @@ const DocumentCardComponent = ({
     </Card>
   );
 };
-
-export const DocumentCard = memo(DocumentCardComponent);

@@ -1,4 +1,3 @@
-import React, { memo, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -13,38 +12,32 @@ interface DialogExtraMetadataProps {
   onChange: (metadata: DocumentMetadata) => void;
 }
 
-function DialogExtraMetadataComponent({
+export function ExtraMetadata({
   metadata,
   isEditing,
   editedMetadata,
   onChange,
 }: DialogExtraMetadataProps) {
-  const handleFieldChange = useCallback(
-    (key: string, value: string) => {
-      const currentMetadata = editedMetadata?.metadata || {};
-      const newMetadata = { ...currentMetadata, [key]: value };
-      onChange({
-        ...editedMetadata,
-        metadata: newMetadata,
-      } as DocumentMetadata);
-    },
-    [editedMetadata, onChange]
-  );
+  const handleFieldChange = (key: string, value: string) => {
+    const currentMetadata = editedMetadata?.metadata || {};
+    const newMetadata = { ...currentMetadata, [key]: value };
+    onChange({
+      ...editedMetadata,
+      metadata: newMetadata,
+    } as DocumentMetadata);
+  };
 
-  const handleFieldRemove = useCallback(
-    (key: string) => {
-      const currentMetadata = editedMetadata?.metadata || {};
-      const newMetadata = { ...currentMetadata };
-      delete newMetadata[key];
-      onChange({
-        ...editedMetadata,
-        metadata: newMetadata,
-      } as DocumentMetadata);
-    },
-    [editedMetadata, onChange]
-  );
+  const handleFieldRemove = (key: string) => {
+    const currentMetadata = editedMetadata?.metadata || {};
+    const newMetadata = { ...currentMetadata };
+    delete newMetadata[key];
+    onChange({
+      ...editedMetadata,
+      metadata: newMetadata,
+    } as DocumentMetadata);
+  };
 
-  const handleFieldAdd = useCallback(() => {
+  const handleFieldAdd = () => {
     const currentMetadata = editedMetadata?.metadata || {};
     const newKey = `field_${Object.keys(currentMetadata).length + 1}`;
     const newMetadata = { ...currentMetadata, [newKey]: "" };
@@ -52,7 +45,7 @@ function DialogExtraMetadataComponent({
       ...editedMetadata,
       metadata: newMetadata,
     } as DocumentMetadata);
-  }, [editedMetadata, onChange]);
+  };
 
   return (
     <Card className="max-w-full">
@@ -140,6 +133,3 @@ function DialogExtraMetadataComponent({
     </Card>
   );
 }
-
-export const ExtraMetadata = memo(DialogExtraMetadataComponent);
-ExtraMetadata.displayName = "ExtraMetadata";

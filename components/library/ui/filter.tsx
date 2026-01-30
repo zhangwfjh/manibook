@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -26,23 +26,16 @@ export function Filter({
   const [isOpen, setIsOpen] = useState(true);
   const [itemSearch, setItemSearch] = useState("");
 
-  const availableItems = useMemo(() => {
-    return Object.keys(filterOptions || {}).sort();
-  }, [filterOptions]);
+  const availableItems = Object.keys(filterOptions || {}).sort();
 
-  const getItemCount = useCallback(
-    (item: string): number => {
-      return (filterOptions || {})[item] || 0;
-    },
-    [filterOptions]
+  const getItemCount = (item: string): number => {
+    return (filterOptions || {})[item] || 0;
+  };
+
+  const searchLower = itemSearch.toLowerCase();
+  const filteredItems = availableItems.filter((item) =>
+    item.toLowerCase().includes(searchLower),
   );
-
-  const filteredItems = useMemo(() => {
-    const searchLower = itemSearch.toLowerCase();
-    return availableItems.filter((item) =>
-      item.toLowerCase().includes(searchLower)
-    );
-  }, [availableItems, itemSearch]);
 
   const handleItemToggle = (item: string) => {
     if (selectedItems.includes(item)) {

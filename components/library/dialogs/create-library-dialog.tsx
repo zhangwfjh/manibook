@@ -14,7 +14,6 @@ import { Label } from "@/components/ui/label";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { FolderIcon } from "lucide-react";
-import { useCallback } from "react";
 
 interface CreateLibraryDialogProps {
   open: boolean;
@@ -42,7 +41,7 @@ export function CreateLibraryDialog({
     onSubmit();
   };
 
-  const handleBrowse = useCallback(async () => {
+  const handleBrowse = async () => {
     try {
       const selectedPath = await openDialog({
         directory: true,
@@ -55,7 +54,7 @@ export function CreateLibraryDialog({
     } catch (error) {
       console.error("Failed to open folder dialog:", error);
     }
-  }, [onPathChange]);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

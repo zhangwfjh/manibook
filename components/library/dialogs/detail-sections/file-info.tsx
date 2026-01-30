@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
@@ -14,7 +14,7 @@ interface DialogFileInfoProps {
   document: LibraryDocument;
 }
 
-function DialogFileInfoComponent({ document }: DialogFileInfoProps) {
+export function FileInfo({ document }: DialogFileInfoProps) {
   const { metadata } = document;
 
   return (
@@ -91,6 +91,3 @@ function DialogFileInfoComponent({ document }: DialogFileInfoProps) {
     </Card>
   );
 }
-
-export const FileInfo = memo(DialogFileInfoComponent);
-FileInfo.displayName = "FileInfo";

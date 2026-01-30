@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import {
   HoverCard,
@@ -43,17 +43,14 @@ export function DocumentImage({ document }: DocumentImageProps) {
   const { isLoaded, hasError, observeImage, handleLoad, handleError } =
     useImageLoading();
 
-  const imageRef = useCallback(
-    (img: HTMLImageElement) => {
-      if (coverUrl) {
-        observeImage(img, coverUrl);
-        if (!isLoaded(coverUrl) && !hasError(coverUrl)) {
-          handleLoad(coverUrl);
-        }
+  const imageRef = (img: HTMLImageElement) => {
+    if (coverUrl) {
+      observeImage(img, coverUrl);
+      if (!isLoaded(coverUrl) && !hasError(coverUrl)) {
+        handleLoad(coverUrl);
       }
-    },
-    [coverUrl, isLoaded, hasError, observeImage, handleLoad],
-  );
+    }
+  };
 
   if (coverLoading) {
     return (

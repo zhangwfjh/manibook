@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { useDebouncedSearch } from "./use-debounced-search";
 
 export function useDocumentFilters() {
@@ -57,7 +57,7 @@ export function useDocumentFilters() {
     return params;
   }, [selectedCategory, selectedKeywords, selectedFormats, selectedAuthors, selectedPublishers, selectedLanguages, debouncedSearchQuery, showFavoritesOnly]);
 
-  const resetFilters = useCallback(() => {
+  const resetFilters = () => {
     setSelectedCategory("");
     setSelectedKeywords([]);
     setSelectedFormats([]);
@@ -66,7 +66,7 @@ export function useDocumentFilters() {
     setSelectedLanguages([]);
     setSearchQuery("");
     setShowFavoritesOnly(false);
-  }, [setSearchQuery]);
+  };
 
   // Check if any filters are active
   const hasActiveFilters = useMemo(() => {

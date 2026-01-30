@@ -14,7 +14,7 @@ interface DialogMetadataViewProps {
   metadata: DocumentMetadata;
 }
 
-function DialogMetadataViewComponent({ metadata }: DialogMetadataViewProps) {
+export function MetadataView({ metadata }: DialogMetadataViewProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div className="space-y-3">
@@ -132,6 +132,3 @@ function DialogMetadataViewComponent({ metadata }: DialogMetadataViewProps) {
     </div>
   );
 }
-
-export const MetadataView = React.memo(DialogMetadataViewComponent);
-MetadataView.displayName = "MetadataView";

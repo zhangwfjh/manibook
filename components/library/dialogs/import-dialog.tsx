@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,6 +47,16 @@ export function ImportDialog({
   const [urls, setUrls] = useState<string[]>([""]);
   const [urlErrors, setUrlErrors] = useState<string[]>([]);
 
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
   useEffect(() => {
     if (currentBatch) {
       const allDone = !currentBatch.items.some(
@@ -64,153 +74,139 @@ export function ImportDialog({
     }
   }, [open]);
 
-  const handleFileImport = useCallback(
-    async (event: React.ChangeEvent<HTMLInputElement>) => {
-      const files = event.target.files;
-      if (!files || files.length === 0) return;
+  const handleFileImport = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
 
-      const allowedExtensions = ["pdf", "djvu", "epub"];
-      const filteredFiles = Array.from(files).filter((file) => {
-        const extension = file.name.split(".").pop()?.toLowerCase();
-        return allowedExtensions.includes(extension || "");
-      });
+    const allowedExtensions = ["pdf", "djvu", "epub"];
+    const filteredFiles = Array.from(files).filter((file) => {
+      const extension = file.name.split(".").pop()?.toLowerCase();
+      return allowedExtensions.includes(extension || "");
+    });
 
-      if (filteredFiles.length === 0) {
-        toast.error(
-          "No valid files selected. Only PDF, DJVU, and EPUB files are allowed.",
-        );
-        return;
-      }
+    if (filteredFiles.length === 0) {
+      toast.error(
+        "No valid files selected. Only PDF, DJVU, and EPUB files are allowed.",
+      );
+      return;
+    }
 
-      clearBatch();
+    clearBatch();
 
-      const importItems = filteredFiles.map((file) => ({
+    const importItems = filteredFiles.map((file) => ({
+      filename: file.name,
+      status: "importing" as const,
+      abortController: new AbortController(),
+    }));
+
+    const batchId = addBatch(importItems);
+    setDrawerOpen(true);
+    setImporting(true);
+
+    // Read file data
+    const fileDataPromises = filteredFiles.map(async (file) => {
+      const buffer = await file.arrayBuffer();
+      return {
         filename: file.name,
-        status: "importing" as const,
-        abortController: new AbortController(),
-      }));
+        data: Array.from(new Uint8Array(buffer)),
+      };
+    });
 
-      const batchId = addBatch(importItems);
-      setDrawerOpen(true);
-      setImporting(true);
+    let successCount = 0;
+    let errorCount = 0;
 
-      // Read file data
-      const fileDataPromises = filteredFiles.map(async (file) => {
-        const buffer = await file.arrayBuffer();
-        return {
-          filename: file.name,
-          data: Array.from(new Uint8Array(buffer)),
-        };
+    try {
+      const fileData = await Promise.all(fileDataPromises);
+
+      const result = await invoke<{
+        results: Array<{
+          success: boolean;
+          filename?: string;
+          error?: string;
+        }>;
+        errors: Array<{
+          source: string;
+          error: string;
+        }>;
+      }>("import_documents", {
+        request: {
+          file_data: fileData,
+        },
       });
 
-      let successCount = 0;
-      let errorCount = 0;
+      // Update status for each file
+      filteredFiles.forEach((file, index) => {
+        const itemId = `${batchId}-item-${index}`;
+        const fileResult = result.results[index];
 
-      try {
-        const fileData = await Promise.all(fileDataPromises);
-
-        const result = await invoke<{
-          results: Array<{
-            success: boolean;
-            filename?: string;
-            error?: string;
-          }>;
-          errors: Array<{
-            source: string;
-            error: string;
-          }>;
-        }>("import_documents", {
-          request: {
-            file_data: fileData,
-          },
-        });
-
-        // Update status for each file
-        filteredFiles.forEach((file, index) => {
-          const itemId = `${batchId}-item-${index}`;
-          const fileResult = result.results[index];
-
-          if (fileResult?.success) {
+        if (fileResult?.success) {
+          updateItemStatus(itemId, "success", {
+            completedAt: new Date(),
+          });
+          successCount++;
+        } else {
+          const errorMsg = fileResult?.error || "Import failed";
+          if (errorMsg.toLowerCase().includes("already exists")) {
             updateItemStatus(itemId, "success", {
               completedAt: new Date(),
             });
             successCount++;
           } else {
-            const errorMsg = fileResult?.error || "Import failed";
-            if (errorMsg.toLowerCase().includes("already exists")) {
-              updateItemStatus(itemId, "success", {
-                completedAt: new Date(),
-              });
-              successCount++;
-            } else {
-              updateItemStatus(itemId, "failed", { error: errorMsg });
-              errorCount++;
-            }
+            updateItemStatus(itemId, "failed", { error: errorMsg });
+            errorCount++;
           }
+        }
+      });
+    } catch (error) {
+      console.error("Import error:", error);
+      filteredFiles.forEach((_, index) => {
+        const itemId = `${batchId}-item-${index}`;
+        updateItemStatus(itemId, "failed", {
+          error: error instanceof Error ? error.message : "Import failed",
         });
-      } catch (error) {
-        console.error("Import error:", error);
-        filteredFiles.forEach((_, index) => {
-          const itemId = `${batchId}-item-${index}`;
-          updateItemStatus(itemId, "failed", {
-            error: error instanceof Error ? error.message : "Import failed",
-          });
-          errorCount++;
-        });
-      } finally {
-        setImporting(false);
-      }
+        errorCount++;
+      });
+    } finally {
+      setImporting(false);
+    }
 
-      onImportComplete();
+    onImportComplete();
 
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-      if (folderInputRef.current) {
-        folderInputRef.current.value = "";
-      }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+    if (folderInputRef.current) {
+      folderInputRef.current.value = "";
+    }
 
-      if (errorCount === 0) {
-        toast.success(
-          `Successfully imported ${successCount} file${
-            successCount > 1 ? "s" : ""
-          }!`,
-        );
-      } else if (successCount === 0) {
-        toast.error(
-          `Failed to import ${errorCount} file${errorCount > 1 ? "s" : ""}`,
-        );
-      } else {
-        toast.warning(`${successCount} imported, ${errorCount} failed`);
-      }
-    },
-    [onImportComplete, clearBatch, addBatch, updateItemStatus],
-  );
+    if (errorCount === 0) {
+      toast.success(
+        `Successfully imported ${successCount} file${
+          successCount > 1 ? "s" : ""
+        }!`,
+      );
+    } else if (successCount === 0) {
+      toast.error(
+        `Failed to import ${errorCount} file${errorCount > 1 ? "s" : ""}`,
+      );
+    } else {
+      toast.warning(`${successCount} imported, ${errorCount} failed`);
+    }
+  };
 
-  const handleDrag = useCallback((e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFileImport({
+        target: { files: e.dataTransfer.files },
+      } as React.ChangeEvent<HTMLInputElement>);
     }
-  }, []);
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setDragActive(false);
-
-      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-        handleFileImport({
-          target: { files: e.dataTransfer.files },
-        } as React.ChangeEvent<HTMLInputElement>);
-      }
-    },
-    [handleFileImport],
-  );
+  };
 
   const addUrl = () => {
     setUrls([...urls, ""]);
@@ -497,10 +493,7 @@ export function ImportDialog({
           </Button>
         )}
 
-        <ImportDrawer
-          open={drawerOpen}
-          onOpenChange={setDrawerOpen}
-        />
+        <ImportDrawer open={drawerOpen} onOpenChange={setDrawerOpen} />
       </DialogContent>
     </Dialog>
   );

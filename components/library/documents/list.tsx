@@ -1,4 +1,4 @@
-import React, { memo, useRef, useMemo } from "react";
+import React, { useRef } from "react";
 import {
   Table,
   TableBody,
@@ -16,7 +16,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { DocumentRow } from "./document-row";
 import { DocumentListProps } from "../types";
 
-const DocumentListComponent = ({
+export const DocumentList = ({
   documents,
   onClick,
   onOpen,
@@ -29,10 +29,10 @@ const DocumentListComponent = ({
 }: DocumentListProps) => {
   const parentRef = useRef<HTMLDivElement>(null);
 
-  const useVirtualization = useMemo(() => {
-    if (useVirtualizationProp !== undefined) return useVirtualizationProp;
-    return documents.length > 50;
-  }, [useVirtualizationProp, documents.length]);
+  const useVirtualization =
+    useVirtualizationProp !== undefined
+      ? useVirtualizationProp
+      : documents.length > 50;
 
   const virtualizer = useVirtualizer({
     count: documents.length,
@@ -41,10 +41,7 @@ const DocumentListComponent = ({
     overscan: 5,
   });
 
-  const virtualRows = useMemo(
-    () => virtualizer.getVirtualItems(),
-    [virtualizer],
-  );
+  const virtualRows = virtualizer.getVirtualItems();
 
   const handleRowClick = (document: LibraryDocument) => {
     if (selectionMode) {
@@ -280,5 +277,3 @@ const DocumentListComponent = ({
     </div>
   );
 };
-
-export const DocumentList = memo(DocumentListComponent);

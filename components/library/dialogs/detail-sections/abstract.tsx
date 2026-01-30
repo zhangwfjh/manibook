@@ -1,4 +1,3 @@
-import React, { memo, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,21 +10,18 @@ interface DialogAbstractSectionProps {
   onChange: (metadata: DocumentMetadata) => void;
 }
 
-function DialogAbstractSectionComponent({
+export function AbstractSection({
   metadata,
   isEditing,
   editedMetadata,
   onChange,
 }: DialogAbstractSectionProps) {
-  const handleChange = useCallback(
-    (value: string) => {
-      onChange({
-        ...editedMetadata,
-        abstract: value,
-      } as DocumentMetadata);
-    },
-    [editedMetadata, onChange]
-  );
+  const handleChange = (value: string) => {
+    onChange({
+      ...editedMetadata,
+      abstract: value,
+    } as DocumentMetadata);
+  };
 
   return (
     <Card className="max-w-full">
@@ -59,6 +55,3 @@ function DialogAbstractSectionComponent({
     </Card>
   );
 }
-
-export const AbstractSection = memo(DialogAbstractSectionComponent);
-AbstractSection.displayName = "AbstractSection";

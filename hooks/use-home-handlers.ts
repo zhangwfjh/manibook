@@ -1,4 +1,3 @@
-import { useCallback } from 'react';
 import { LibraryDocument } from '@/lib/library';
 import { useLibraryContext } from '@/contexts/LibraryContext';
 
@@ -10,24 +9,21 @@ export function useHomeHandlers(
 ) {
   const { handleDocumentUpdate } = useLibraryContext();
 
-  const handleDocumentClick = useCallback(
-    (document: LibraryDocument) => {
-      if (selectionMode) {
-        handleToggleDocumentSelection(document.id);
-      } else {
-        setSelectedDocument(document);
-        setDialogOpen(true);
-      }
-    },
-    [selectionMode, handleToggleDocumentSelection, setSelectedDocument, setDialogOpen]
-  );
+  const handleDocumentClick = (document: LibraryDocument) => {
+    if (selectionMode) {
+      handleToggleDocumentSelection(document.id);
+    } else {
+      setSelectedDocument(document);
+      setDialogOpen(true);
+    }
+  };
 
-  const handleDocumentUpdateWrapper = useCallback(async (updatedDoc: LibraryDocument) => {
+  const handleDocumentUpdateWrapper = async (updatedDoc: LibraryDocument) => {
     const resultDoc = await handleDocumentUpdate(updatedDoc);
     if (resultDoc) {
       setSelectedDocument(resultDoc);
     }
-  }, [handleDocumentUpdate, setSelectedDocument]);
+  };
 
   return {
     handleDocumentClick,

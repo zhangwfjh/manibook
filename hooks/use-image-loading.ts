@@ -1,27 +1,27 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef } from "react";
 
 export function useImageLoading() {
   const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
   const [errorImages, setErrorImages] = useState<Set<string>>(new Set());
   const observerRef = useRef<IntersectionObserver | null>(null);
 
-  const handleLoad = useCallback((src: string) => {
+  const handleLoad = (src: string) => {
     setLoadedImages(prev => new Set(prev).add(src));
-  }, []);
+  };
 
-  const handleError = useCallback((src: string) => {
+  const handleError = (src: string) => {
     setErrorImages(prev => new Set(prev).add(src));
-  }, []);
+  };
 
-  const isLoaded = useCallback((src: string): boolean => {
+  const isLoaded = (src: string): boolean => {
     return loadedImages.has(src);
-  }, [loadedImages]);
+  };
 
-  const hasError = useCallback((src: string): boolean => {
+  const hasError = (src: string): boolean => {
     return errorImages.has(src);
-  }, [errorImages]);
+  };
 
-  const observeImage = useCallback((
+  const observeImage = (
     element: HTMLElement,
     src: string
   ) => {
@@ -50,7 +50,7 @@ export function useImageLoading() {
         observerRef.current.unobserve(element);
       }
     };
-  }, [isLoaded, hasError]);
+  };
 
   return {
     handleLoad,
