@@ -16,30 +16,25 @@ import {
 } from "@/components/ui/alert-dialog";
 import { HeartIcon, BookOpenIcon, TrashIcon } from "lucide-react";
 import { Document } from "@/lib/library";
+import { useLibraryContext } from "@/contexts/LibraryContext";
 
 interface DocumentActionsProps {
   document: Document;
-  onOpen?: (document: Document) => void;
-  onFavoriteToggle?: (document: Document) => void;
-  onDelete?: (document: Document) => void;
 }
 
-export function DocumentActions({
-  document,
-  onOpen,
-  onFavoriteToggle,
-  onDelete,
-}: DocumentActionsProps) {
+export function DocumentActions({ document }: DocumentActionsProps) {
+  const { handleOpen, handleFavoriteToggle, handleDocumentDelete } =
+    useLibraryContext();
   const { metadata } = document;
 
   const handleOpenClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onOpen?.(document);
+    handleOpen(document);
   };
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onFavoriteToggle?.(document);
+    handleFavoriteToggle(document);
   };
 
   return (
@@ -92,7 +87,7 @@ export function DocumentActions({
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={(e) => {
                 e.stopPropagation();
-                onDelete?.(document);
+                handleDocumentDelete(document);
               }}
             >
               Delete

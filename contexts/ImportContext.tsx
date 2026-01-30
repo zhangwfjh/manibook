@@ -30,6 +30,8 @@ export interface ImportContextType {
   ) => void;
   cancelItem: (itemId: string) => void;
   clearBatch: () => void;
+  importDialogOpen: boolean;
+  setImportDialogOpen: (open: boolean) => void;
 }
 
 const ImportContext = createContext<ImportContextType | undefined>(undefined);
@@ -40,6 +42,7 @@ interface ImportProviderProps {
 
 export function ImportProvider({ children }: ImportProviderProps) {
   const [currentBatch, setCurrentBatch] = useState<ImportBatch | null>(null);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const addBatch = (items: Omit<ImportItem, "id">[]) => {
     const batchId = `batch-${Date.now()}`;
@@ -126,6 +129,8 @@ export function ImportProvider({ children }: ImportProviderProps) {
     updateItemStatus,
     cancelItem,
     clearBatch,
+    importDialogOpen,
+    setImportDialogOpen,
   };
 
   return (

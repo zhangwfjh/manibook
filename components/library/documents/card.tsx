@@ -9,23 +9,23 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { CalendarIcon } from "lucide-react";
+import { Document } from "@/lib/library";
 import { formatFileSize, getFormatIcon } from "@/lib/library";
 import { Metadata } from "./metadata";
 import { DocumentActions } from "./document-actions";
 import { DocumentImage } from "./document-image";
-import { DocumentDisplayProps } from "../types";
+import { useLibraryContext } from "@/contexts/LibraryContext";
 
-export const DocumentCard = ({
-  document,
-  onClick,
-  onOpen,
-  onFavoriteToggle,
-  onDelete,
-  selectionMode = false,
-  onToggleSelection,
-  selected,
-}: DocumentDisplayProps) => {
+export const DocumentCard = ({ document }: { document: Document }) => {
+  const {
+    handleDocumentClick,
+    handleToggleDocumentSelection,
+    selectionMode,
+    selectedDocuments,
+  } = useLibraryContext();
+
   const { metadata } = document;
+  const selected = selectedDocuments?.has(document.id) ?? false;
 
   const formattedFileSize = metadata.filesize
     ? formatFileSize(metadata.filesize)
@@ -35,9 +35,9 @@ export const DocumentCard = ({
 
   const handleCardClick = () => {
     if (selectionMode) {
-      onToggleSelection?.(document.id);
+      handleToggleDocumentSelection(document.id);
     } else {
-      onClick?.(document);
+      handleDocumentClick(document);
     }
   };
 
@@ -52,12 +52,7 @@ export const DocumentCard = ({
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-2">
             <Metadata metadata={metadata} />
-            <DocumentActions
-              document={document}
-              onOpen={onOpen}
-              onFavoriteToggle={onFavoriteToggle}
-              onDelete={onDelete}
-            />
+            <DocumentActions document={document} />
           </div>
           <div className="flex gap-5">
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
@@ -127,15 +122,17 @@ export const DocumentCard = ({
                   <div className="text-sm">
                     <div className="font-medium mb-2">All Keywords:</div>
                     <div className="flex flex-wrap gap-1">
-                      {metadata.keywords.map((keyword, index) => (
-                        <Badge
-                          key={index}
-                          variant="secondary"
-                          className="text-xs"
-                        >
-                          {keyword}
-                        </Badge>
-                      ))}
+                      {metadata.keywords.map(
+                        (keyword: string, index: number) => (
+                          <Badge
+                            key={index}
+                            variant="secondary"
+                            className="text-xs"
+                          >
+                            {keyword}
+                          </Badge>
+                        ),
+                      )}
                     </div>
                   </div>
                 </TooltipContent>

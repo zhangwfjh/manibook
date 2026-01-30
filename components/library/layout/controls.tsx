@@ -24,7 +24,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { BulkMoveDropdown } from "./bulk-move-dropdown";
 import { ViewMode, SORT_OPTIONS } from "../types";
 import { useLibraryContext } from "@/contexts/LibraryContext";
-import { useDialogContext } from "@/contexts/DialogContext";
+import { useImportContext } from "@/contexts/ImportContext";
 
 export function Controls({
   viewMode,
@@ -46,9 +46,10 @@ export function Controls({
     handleSelectAllDocuments,
     handleClearSelection,
     handleBulkMove,
+    setBulkDeleteDialogOpen,
   } = useLibraryContext();
 
-  const { setImportDialogOpen, setBulkDeleteDialogOpen } = useDialogContext();
+  const { setImportDialogOpen } = useImportContext();
   return (
     <div className="mb-6 space-y-4">
       <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">

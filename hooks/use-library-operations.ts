@@ -10,6 +10,7 @@ interface UseLibraryOperationsProps {
   newLibraryPath: string;
   setNewLibraryPath: (path: string) => void;
   resetCreateDialog: () => void;
+  setBulkDeleteDialogOpen: (open: boolean) => void;
 }
 
 export function useLibraryOperations({
@@ -21,6 +22,7 @@ export function useLibraryOperations({
   newLibraryPath,
   setNewLibraryPath,
   resetCreateDialog,
+  setBulkDeleteDialogOpen,
 }: UseLibraryOperationsProps) {
 
   const handleCreateLibrary = async () => {
@@ -47,5 +49,6 @@ export function useLibraryOperations({
   return {
     handleCreateLibrary,
     resetCreateDialog,
+    setBulkDeleteDialogOpen,
   };
 }

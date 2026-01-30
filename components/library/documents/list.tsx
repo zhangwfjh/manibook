@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef } from "react";
+import { useRef, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -16,19 +16,28 @@ import { HeartIcon, BookOpenIcon, TrashIcon } from "lucide-react";
 import { formatFileSize, Document } from "@/lib/library";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { DocumentRow } from "./document-row";
-import { DocumentListProps } from "../types";
+import { useLibraryContext } from "@/contexts/LibraryContext";
 
+interface DocumentListProps {
+  documents: Document[];
+  useVirtualization?: boolean;
+}
+
+/* @no-memo */
 export const DocumentList = ({
   documents,
-  onClick,
-  onOpen,
-  onFavoriteToggle,
-  onDelete,
-  selectionMode = false,
-  selectedDocuments = new Set(),
-  onToggleSelection,
   useVirtualization: useVirtualizationProp,
 }: DocumentListProps) => {
+  const {
+    handleDocumentClick,
+    handleToggleDocumentSelection,
+    handleOpen,
+    handleFavoriteToggle,
+    handleDocumentDelete,
+    selectionMode,
+    selectedDocuments,
+  } = useLibraryContext();
+
   const parentRef = useRef<HTMLDivElement>(null);
 
   const useVirtualization =
@@ -36,49 +45,39 @@ export const DocumentList = ({
       ? useVirtualizationProp
       : documents.length > 50;
 
-  const virtualizer = useVirtualizer({
-    count: documents.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 72,
-    overscan: 5,
-  });
+  // eslint-disable-next-line react-hooks/incompatible-library
+  const virtualizer = useVirtualizer(
+    useMemo(
+      () => ({
+        count: documents.length,
+        getScrollElement: () => parentRef.current,
+        estimateSize: () => 72,
+        overscan: 5,
+      }),
+      [documents.length],
+    ),
+  );
 
   const virtualRows = virtualizer.getVirtualItems();
 
   const handleRowClick = (document: Document) => {
     if (selectionMode) {
-      onToggleSelection?.(document.id);
+      handleToggleDocumentSelection(document.id);
     } else {
-      onClick?.(document);
+      handleDocumentClick(document);
     }
   };
 
-  const handleOpenClick = (e: React.MouseEvent, document: Document) => {
-    e.stopPropagation();
-    onOpen?.(document);
-  };
-
-  const handleFavoriteToggleClick = (
-    e: React.MouseEvent,
-    document: Document,
-  ) => {
-    e.stopPropagation();
-    onFavoriteToggle?.(document);
-  };
-
-  const handleDeleteClick = (e: React.MouseEvent, document: Document) => {
-    e.stopPropagation();
-    onDelete?.(document);
-  };
-
   const handleSelectAll = () => {
-    const allSelected = documents.every((doc) => selectedDocuments.has(doc.id));
+    const allSelected = documents.every((doc) =>
+      selectedDocuments?.has(doc.id),
+    );
     if (allSelected) {
-      documents.forEach((doc) => onToggleSelection?.(doc.id));
+      documents.forEach((doc) => handleToggleDocumentSelection(doc.id));
     } else {
       documents.forEach((doc) => {
-        if (!selectedDocuments.has(doc.id)) {
-          onToggleSelection?.(doc.id);
+        if (!selectedDocuments?.has(doc.id)) {
+          handleToggleDocumentSelection(doc.id);
         }
       });
     }
@@ -86,6 +85,7 @@ export const DocumentList = ({
 
   const allSelected =
     documents.length > 0 &&
+    selectedDocuments !== undefined &&
     documents.every((doc) => selectedDocuments.has(doc.id));
 
   if (documents.length === 0) {
@@ -159,9 +159,6 @@ export const DocumentList = ({
               <DocumentRow
                 key={virtualRow.key}
                 document={documents[virtualRow.index]}
-                selectionMode={selectionMode}
-                selectedDocuments={selectedDocuments}
-                onToggleSelection={onToggleSelection}
                 style={{
                   position: "absolute",
                   top: 0,
@@ -187,15 +184,17 @@ export const DocumentList = ({
             <TableRow
               key={index}
               className={`cursor-pointer hover:bg-muted/50 ${
-                selectedDocuments.has(document.id) ? "bg-muted" : ""
+                selectedDocuments?.has(document.id) ? "bg-muted" : ""
               }`}
               onClick={() => handleRowClick(document)}
             >
               {selectionMode && (
                 <TableCell>
                   <Checkbox
-                    checked={selectedDocuments.has(document.id)}
-                    onCheckedChange={() => onToggleSelection?.(document.id)}
+                    checked={selectedDocuments?.has(document.id) ?? false}
+                    onCheckedChange={() =>
+                      handleToggleDocumentSelection(document.id)
+                    }
                     onClick={(e) => e.stopPropagation()}
                   />
                 </TableCell>
@@ -238,14 +237,20 @@ export const DocumentList = ({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={(e) => handleOpenClick(e, document)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpen(document);
+                      }}
                     >
                       <BookOpenIcon className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={(e) => handleFavoriteToggleClick(e, document)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleFavoriteToggle(document);
+                      }}
                       className={
                         document.metadata.favorite
                           ? "text-red-500"
@@ -261,7 +266,10 @@ export const DocumentList = ({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={(e) => handleDeleteClick(e, document)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDocumentDelete(document);
+                      }}
                       className="text-muted-foreground hover:text-red-500"
                     >
                       <TrashIcon className="h-4 w-4" />

@@ -29,30 +29,13 @@ export const SORT_OPTIONS: { value: SortOption; label: string }[] = [
 
 export const DOCTYPE_OPTIONS = ["Book", "Paper", "Report", "Manual", "Others"];
 
-export interface DocumentActionsProps {
-  onClick?: (document: Document) => void;
-  onOpen?: (document: Document) => void;
-  onFavoriteToggle?: (document: Document) => void;
-  onDelete?: (document: Document) => void;
-}
-
 export interface DocumentSelectionProps {
   selectionMode?: boolean;
   selectedDocuments?: Set<string>;
   onToggleSelection?: (documentId: string) => void;
 }
 
-export interface DocumentDisplayProps
-  extends DocumentActionsProps,
-  DocumentSelectionProps {
+export interface DocumentRowProps {
   document: Document;
   style?: React.CSSProperties;
-  selected?: boolean;
-}
-
-export interface DocumentListProps
-  extends DocumentActionsProps,
-  DocumentSelectionProps {
-  documents: Document[];
-  useVirtualization?: boolean;
 }

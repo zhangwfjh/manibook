@@ -25,7 +25,6 @@ import { DocumentListSkeleton } from "@/components/library/documents/list-skelet
 import { Pagination } from "@/components/library/ui/pagination";
 import { BookOpenIcon, LibraryIcon } from "lucide-react";
 import { useLibraryContext } from "@/contexts/LibraryContext";
-import { useDocumentActionsContext } from "@/contexts/DocumentActionsContext";
 import { usePaginationControls } from "@/hooks/use-pagination-controls";
 
 type ViewMode = "card" | "list";
@@ -43,8 +42,6 @@ export function Content({ viewMode }: ContentProps) {
     loading,
     pagination,
     loadPage,
-    selectionMode,
-    selectedDocuments,
     setSelectedCategory,
     libraries,
     setCreateLibraryOpen,
@@ -52,23 +49,8 @@ export function Content({ viewMode }: ContentProps) {
     sortParams,
   } = useLibraryContext();
 
-  const {
-    handleOpen,
-    handleFavoriteToggle,
-    handleDocumentDelete,
-    handleToggleDocumentSelection,
-    onDocumentClick,
-  } = useDocumentActionsContext();
-
-  const {
-    currentPage,
-    totalPages,
-    hasNextPage,
-    hasPrevPage,
-    nextPage,
-    prevPage,
-    goToPage,
-  } = usePaginationControls(pagination, loadPage, filterParams, sortParams);
+  const { currentPage, totalPages, nextPage, prevPage, goToPage } =
+    usePaginationControls(pagination, loadPage, filterParams, sortParams);
   const totalCount = pagination?.totalCount || 0;
 
   const paginatedItems = documents;
@@ -77,8 +59,6 @@ export function Content({ viewMode }: ContentProps) {
     <Pagination
       currentPage={currentPage}
       totalPages={totalPages}
-      hasNextPage={hasNextPage}
-      hasPrevPage={hasPrevPage}
       onNextPage={nextPage}
       onPrevPage={prevPage}
       onGoToPage={goToPage}
@@ -239,17 +219,7 @@ export function Content({ viewMode }: ContentProps) {
         <>
           <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-2 gap-6">
             {paginatedItems.map((document) => (
-              <DocumentCard
-                key={document.id}
-                document={document}
-                onClick={onDocumentClick}
-                onOpen={handleOpen}
-                onFavoriteToggle={handleFavoriteToggle}
-                onDelete={handleDocumentDelete}
-                selectionMode={selectionMode}
-                selected={selectedDocuments.has(document.id)}
-                onToggleSelection={handleToggleDocumentSelection}
-              />
+              <DocumentCard key={document.id} document={document} />
             ))}
           </div>
 
@@ -257,16 +227,7 @@ export function Content({ viewMode }: ContentProps) {
         </>
       ) : (
         <>
-          <DocumentList
-            documents={paginatedItems}
-            onClick={onDocumentClick}
-            onOpen={handleOpen}
-            onFavoriteToggle={handleFavoriteToggle}
-            onDelete={handleDocumentDelete}
-            selectionMode={selectionMode}
-            selectedDocuments={selectedDocuments}
-            onToggleSelection={handleToggleDocumentSelection}
-          />
+          <DocumentList documents={paginatedItems} />
 
           {paginationComponent}
         </>

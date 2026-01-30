@@ -13,37 +13,33 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useDialogContext } from "@/contexts/DialogContext";
 import { useLibraryContext } from "@/contexts/LibraryContext";
-import { useDocumentActionsContext } from "@/contexts/DocumentActionsContext";
+import { useImportContext } from "@/contexts/ImportContext";
 
 export function DialogManager() {
   const {
     selectedDocument,
-    documentDialogOpen,
-    setDocumentDialogOpen,
     createLibraryOpen,
     setCreateLibraryOpen,
     newLibraryName,
     setNewLibraryName,
     newLibraryPath,
     setNewLibraryPath,
-    importDialogOpen,
-    setImportDialogOpen,
+    documentDialogOpen,
+    setDocumentDialogOpen,
     bulkDeleteDialogOpen,
     setBulkDeleteDialogOpen,
     resetCreateDialog,
-  } = useDialogContext();
-
-  const {
     handleCreateLibrary,
     refreshLibraryData,
     selectedDocuments,
     handleBulkDelete,
+    handleOpen,
+    handleDocumentDelete,
+    handleDocumentUpdate,
   } = useLibraryContext();
 
-  const { handleOpen, handleDocumentDelete, handleDocumentUpdate } =
-    useDocumentActionsContext();
+  const { importDialogOpen, setImportDialogOpen } = useImportContext();
 
   return (
     <>

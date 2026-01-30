@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, ReactNode } from "react";
+import { createContext, useContext, ReactNode, useState } from "react";
 import { Document, Library, Category } from "@/lib/library";
 import { PaginationInfo } from "@/lib/library/types";
 import { useLibraryData } from "@/hooks/use-library-data";
@@ -9,7 +9,6 @@ import { useDocumentSorting } from "@/hooks/use-document-sorting";
 import { useLibraryOperations } from "@/hooks/use-library-operations";
 import { useDocumentHandlers } from "@/hooks/use-document-handlers";
 import { useBulkOperations } from "@/hooks/use-bulk-operations";
-import { useDialogContext } from "@/contexts/DialogContext";
 
 interface LibraryContextType {
   libraryName: string;
@@ -56,6 +55,11 @@ interface LibraryContextType {
   setSortBy: (sort: string) => void;
   sortParams: URLSearchParams;
 
+  selectedDocument: Document | null;
+  setSelectedDocument: (document: Document | null) => void;
+  documentDialogOpen: boolean;
+  setDocumentDialogOpen: (open: boolean) => void;
+
   createLibraryOpen: boolean;
   setCreateLibraryOpen: (open: boolean) => void;
   newLibraryName: string;
@@ -69,6 +73,7 @@ interface LibraryContextType {
   handleDocumentDelete: (document: Document) => Promise<void>;
   handleDocumentUpdate: (updatedDoc: Document) => Promise<Document | undefined>;
   handleFavoriteToggle: (document: Document) => Promise<void>;
+  handleDocumentClick: (document: Document) => void;
 
   selectionMode: boolean;
   selectedDocuments: Set<string>;
@@ -92,17 +97,35 @@ export function LibraryProvider({ children }: LibraryProviderProps) {
   const libraryData = useLibraryData();
   const documentFilters = useDocumentFilters();
   const documentSorting = useDocumentSorting();
-  const dialogContext = useDialogContext();
+
+  // Dialog states
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(
+    null,
+  );
+  const [documentDialogOpen, setDocumentDialogOpen] = useState(false);
+
+  const [createLibraryOpen, setCreateLibraryOpen] = useState(false);
+  const [newLibraryName, setNewLibraryName] = useState("");
+  const [newLibraryPath, setNewLibraryPath] = useState("");
+
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+
+  const resetCreateDialog = () => {
+    setNewLibraryName("");
+    setNewLibraryPath("");
+    setCreateLibraryOpen(false);
+  };
 
   const libraryOperations = useLibraryOperations({
     setLibraryName: libraryData.setLibraryName,
     onLibrariesChange: libraryData.refreshLibraries,
-    setCreateLibraryOpen: dialogContext.setCreateLibraryOpen,
-    newLibraryName: dialogContext.newLibraryName,
-    setNewLibraryName: dialogContext.setNewLibraryName,
-    newLibraryPath: dialogContext.newLibraryPath,
-    setNewLibraryPath: dialogContext.setNewLibraryPath,
-    resetCreateDialog: dialogContext.resetCreateDialog,
+    setCreateLibraryOpen,
+    newLibraryName,
+    setNewLibraryName,
+    newLibraryPath,
+    setNewLibraryPath,
+    resetCreateDialog,
+    setBulkDeleteDialogOpen,
   });
 
   const documentHandlers = useDocumentHandlers({
@@ -116,30 +139,59 @@ export function LibraryProvider({ children }: LibraryProviderProps) {
     filterParams: documentFilters.filterParams,
     sortParams: documentSorting.sortParams,
     loadFilteredData: libraryData.loadFilteredData,
-    resetBulkDeleteDialog: dialogContext.resetBulkDeleteDialog,
+    setBulkDeleteDialogOpen,
   });
 
   const { ...restLibraryData } = libraryData;
+
+  const handleDocumentClick = (document: Document) => {
+    if (bulkOperations.selectionMode) {
+      bulkOperations.handleToggleDocumentSelection(document.id);
+    } else {
+      setSelectedDocument(document);
+      setDocumentDialogOpen(true);
+    }
+  };
+
+  const handleDocumentUpdateWrapper = async (
+    updatedDoc: Document,
+  ): Promise<Document | undefined> => {
+    const resultDoc = await documentHandlers.handleDocumentUpdate(updatedDoc);
+    if (resultDoc) {
+      setSelectedDocument(resultDoc);
+    }
+    return resultDoc;
+  };
 
   const value: LibraryContextType = {
     ...restLibraryData,
     ...documentFilters,
     ...documentSorting,
-    // Dialog states
-    createLibraryOpen: dialogContext.createLibraryOpen,
-    setCreateLibraryOpen: dialogContext.setCreateLibraryOpen,
-    newLibraryName: dialogContext.newLibraryName,
-    setNewLibraryName: dialogContext.setNewLibraryName,
-    newLibraryPath: dialogContext.newLibraryPath,
-    setNewLibraryPath: dialogContext.setNewLibraryPath,
+    // Document dialog states
+    selectedDocument,
+    setSelectedDocument,
+    documentDialogOpen,
+    setDocumentDialogOpen,
+    // Create library dialog states
+    createLibraryOpen,
+    setCreateLibraryOpen,
+    newLibraryName,
+    setNewLibraryName,
+    newLibraryPath,
+    setNewLibraryPath,
     // Library operation handlers
     handleCreateLibrary: libraryOperations.handleCreateLibrary,
-    resetCreateDialog: libraryOperations.resetCreateDialog,
-    ...documentHandlers,
+    resetCreateDialog,
+    handleDocumentUpdate: handleDocumentUpdateWrapper,
+    handleOpen: documentHandlers.handleOpen,
+    handleDocumentDelete: documentHandlers.handleDocumentDelete,
+    handleFavoriteToggle: documentHandlers.handleFavoriteToggle,
     ...bulkOperations,
-    // Bulk operations dialog states
-    bulkDeleteDialogOpen: dialogContext.bulkDeleteDialogOpen,
-    setBulkDeleteDialogOpen: dialogContext.setBulkDeleteDialogOpen,
+    // Bulk delete dialog state
+    bulkDeleteDialogOpen,
+    setBulkDeleteDialogOpen,
+    // Document click handler
+    handleDocumentClick: handleDocumentClick,
   };
 
   return (

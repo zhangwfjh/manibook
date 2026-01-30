@@ -13,8 +13,6 @@ import {
 interface PaginationControlsProps {
   currentPage: number;
   totalPages: number;
-  hasNextPage: boolean;
-  hasPrevPage: boolean;
   onNextPage: () => void;
   onPrevPage: () => void;
   onGoToPage: (page: number) => void;
@@ -24,14 +22,15 @@ interface PaginationControlsProps {
 export function Pagination({
   currentPage,
   totalPages,
-  hasNextPage,
-  hasPrevPage,
   onNextPage,
   onPrevPage,
   onGoToPage,
   className = "",
 }: PaginationControlsProps) {
   if (totalPages <= 1) return null;
+
+  const hasNextPage = currentPage < totalPages;
+  const hasPrevPage = currentPage > 1;
 
   const renderPageItems = () => {
     const items = [];
@@ -54,13 +53,13 @@ export function Pagination({
           >
             1
           </PaginationLink>
-        </PaginationItem>
+        </PaginationItem>,
       );
       if (startPage > 2) {
         items.push(
           <PaginationItem key="ellipsis-start">
             <PaginationEllipsis />
-          </PaginationItem>
+          </PaginationItem>,
         );
       }
     }
@@ -75,7 +74,7 @@ export function Pagination({
           >
             {i}
           </PaginationLink>
-        </PaginationItem>
+        </PaginationItem>,
       );
     }
 
@@ -85,7 +84,7 @@ export function Pagination({
         items.push(
           <PaginationItem key="ellipsis-end">
             <PaginationEllipsis />
-          </PaginationItem>
+          </PaginationItem>,
         );
       }
       items.push(
@@ -96,7 +95,7 @@ export function Pagination({
           >
             {totalPages}
           </PaginationLink>
-        </PaginationItem>
+        </PaginationItem>,
       );
     }
 

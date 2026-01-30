@@ -6,42 +6,33 @@ import { Button } from "@/components/ui/button";
 import { HeartIcon, BookOpenIcon, TrashIcon } from "lucide-react";
 import { formatFileSize } from "@/lib/library";
 import { Metadata } from "./metadata";
-import { DocumentDisplayProps } from "../types";
-import { useDocumentActionsContext } from "@/contexts/DocumentActionsContext";
+import { DocumentRowProps } from "../types";
+import { useLibraryContext } from "@/contexts/LibraryContext";
 
-interface DocumentRowProps extends Omit<DocumentDisplayProps, "library"> {
-  style?: React.CSSProperties;
-}
-
-export function DocumentRow({
-  document,
-  style,
-  selectionMode = false,
-  selectedDocuments,
-}: DocumentRowProps) {
+export function DocumentRow({ document, style }: DocumentRowProps) {
   const {
-    handleOpen: contextHandleOpen,
+    handleOpen,
     handleFavoriteToggle,
     handleDocumentDelete,
-    onDocumentClick,
+    handleDocumentClick,
     handleToggleDocumentSelection,
-  } = useDocumentActionsContext();
+    selectionMode,
+    selectedDocuments,
+  } = useLibraryContext();
 
-  const selected = selectedDocuments
-    ? selectedDocuments.has(document.id)
-    : false;
+  const selected = selectedDocuments?.has(document.id) ?? false;
 
   const handleClick = () => {
     if (selectionMode) {
       handleToggleDocumentSelection(document.id);
     } else {
-      onDocumentClick(document);
+      handleDocumentClick(document);
     }
   };
 
-  const handleOpen = (e: React.MouseEvent) => {
+  const handleOpenClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    contextHandleOpen(document);
+    handleOpen(document);
   };
 
   const handleFavorite = (e: React.MouseEvent) => {
@@ -95,7 +86,7 @@ export function DocumentRow({
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleOpen}
+            onClick={handleOpenClick}
             className="h-6 w-6 p-0"
           >
             <BookOpenIcon className="h-4 w-4" />
