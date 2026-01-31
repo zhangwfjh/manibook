@@ -2,10 +2,15 @@ use crate::models::{Jobs, LLMSettings};
 use crate::utils::settings::{read_json_file_with_default, write_json_file};
 use std::fs;
 use std::path::Path;
+use tauri::{AppHandle, Manager};
 
 #[tauri::command]
-pub fn get_llm_settings() -> Result<LLMSettings, String> {
-    let settings_path = Path::new("settings").join("llm.json");
+pub fn get_llm_settings(app: AppHandle) -> Result<LLMSettings, String> {
+    let config_dir = app
+        .path()
+        .app_config_dir()
+        .map_err(|e| format!("Failed to get app config dir: {}", e))?;
+    let settings_path = config_dir.join("llm.json");
     read_json_file_with_default(
         &settings_path,
         LLMSettings {
@@ -19,7 +24,7 @@ pub fn get_llm_settings() -> Result<LLMSettings, String> {
 }
 
 #[tauri::command]
-pub fn set_llm_settings(settings: LLMSettings) -> Result<(), String> {
+pub fn set_llm_settings(app: AppHandle, settings: LLMSettings) -> Result<(), String> {
     if !settings.jobs.metadataExtraction.is_empty()
         && !settings
             .providers
@@ -37,12 +42,16 @@ pub fn set_llm_settings(settings: LLMSettings) -> Result<(), String> {
         return Err("Invalid image text extraction provider".to_string());
     }
 
-    let settings_path = Path::new("settings").join("llm.json");
+    let config_dir = app
+        .path()
+        .app_config_dir()
+        .map_err(|e| format!("Failed to get app config dir: {}", e))?;
+    let settings_path = config_dir.join("llm.json");
     write_json_file(&settings_path, &settings)
 }
 
 #[tauri::command]
-pub fn import_llm_settings(file_path: String) -> Result<(), String> {
+pub fn import_llm_settings(app: AppHandle, file_path: String) -> Result<(), String> {
     let path = Path::new(&file_path);
     if !path.exists() {
         return Err(format!("File not found: {}", file_path));
@@ -53,5 +62,5 @@ pub fn import_llm_settings(file_path: String) -> Result<(), String> {
     let settings: LLMSettings =
         serde_json::from_str(&data).map_err(|e| format!("Failed to parse JSON: {}", e))?;
 
-    set_llm_settings(settings)
+    set_llm_settings(app, settings)
 }

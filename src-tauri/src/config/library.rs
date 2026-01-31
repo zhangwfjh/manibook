@@ -2,10 +2,15 @@ use crate::models::{Library, LibrarySettings};
 use crate::utils::settings::{read_json_file_with_default, write_json_file};
 use std::fs;
 use std::path::Path;
+use tauri::{AppHandle, Manager};
 
 #[tauri::command]
-pub fn get_libraries() -> Result<Vec<Library>, String> {
-    let settings_path = Path::new("settings").join("library.json");
+pub fn get_libraries(app: AppHandle) -> Result<Vec<Library>, String> {
+    let config_dir = app
+        .path()
+        .app_config_dir()
+        .map_err(|e| format!("Failed to get app config dir: {}", e))?;
+    let settings_path = config_dir.join("library.json");
     match fs::read_to_string(&settings_path) {
         Ok(data) => match serde_json::from_str::<LibrarySettings>(&data) {
             Ok(settings) => Ok(settings.libraries),
@@ -15,8 +20,12 @@ pub fn get_libraries() -> Result<Vec<Library>, String> {
     }
 }
 
-pub fn get_library_settings() -> Result<LibrarySettings, String> {
-    let settings_path = Path::new("settings").join("library.json");
+pub fn get_library_settings(app: &AppHandle) -> Result<LibrarySettings, String> {
+    let config_dir = app
+        .path()
+        .app_config_dir()
+        .map_err(|e| format!("Failed to get app config dir: {}", e))?;
+    let settings_path = config_dir.join("library.json");
     read_json_file_with_default(
         &settings_path,
         LibrarySettings {
@@ -27,7 +36,7 @@ pub fn get_library_settings() -> Result<LibrarySettings, String> {
 }
 
 #[tauri::command]
-pub fn create_library(name: String, path: String) -> Result<(), String> {
+pub fn create_library(app: AppHandle, name: String, path: String) -> Result<(), String> {
     if name.trim().is_empty() || path.trim().is_empty() {
         return Err("Name and path are required".to_string());
     }
@@ -36,7 +45,11 @@ pub fn create_library(name: String, path: String) -> Result<(), String> {
         return Err("Invalid path format".to_string());
     }
 
-    let settings_path = Path::new("settings").join("library.json");
+    let config_dir = app
+        .path()
+        .app_config_dir()
+        .map_err(|e| format!("Failed to get app config dir: {}", e))?;
+    let settings_path = config_dir.join("library.json");
     let mut settings: LibrarySettings = match fs::read_to_string(&settings_path) {
         Ok(data) => {
             serde_json::from_str(&data).map_err(|e| format!("Failed to parse settings: {}", e))?

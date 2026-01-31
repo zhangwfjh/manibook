@@ -24,9 +24,10 @@ use base64::{engine::general_purpose::STANDARD, Engine as _};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
+use tauri::AppHandle;
 
 #[tauri::command]
-async fn generate_metadata(document_id: String) -> Result<Metadata, String> {
+async fn generate_metadata(app: AppHandle, document_id: String) -> Result<Metadata, String> {
     let library_path = get_library_path()?;
 
     let (filename, url, existing_num_pages, existing_filesize, existing_format, existing_favorite) =
@@ -54,7 +55,7 @@ async fn generate_metadata(document_id: String) -> Result<Metadata, String> {
     let mut foreword = extraction.foreword;
     let images = extraction.images;
 
-    let llm_settings = get_llm_settings()?;
+    let llm_settings = get_llm_settings(app)?;
 
     foreword = extract_text_from_images_if_needed(&foreword, &images, &llm_settings)
         .await
@@ -76,10 +77,10 @@ async fn generate_metadata(document_id: String) -> Result<Metadata, String> {
 }
 
 #[tauri::command]
-async fn import_documents(request: ImportRequest) -> Result<ImportResponse, String> {
+async fn import_documents(app: AppHandle, request: ImportRequest) -> Result<ImportResponse, String> {
     let library_path = get_library_path()?;
 
-    let llm_settings = get_llm_settings()?;
+    let llm_settings = get_llm_settings(app)?;
 
     let mut results = Vec::new();
     let mut errors = Vec::new();
@@ -146,8 +147,8 @@ async fn import_documents(request: ImportRequest) -> Result<ImportResponse, Stri
 }
 
 #[tauri::command]
-fn get_library(library_name: String) -> Result<Library, String> {
-    let settings = get_library_settings()?;
+fn get_library(app: AppHandle, library_name: String) -> Result<Library, String> {
+    let settings = get_library_settings(&app)?;
     settings
         .libraries
         .into_iter()
@@ -418,8 +419,8 @@ fn move_documents(
 }
 
 #[tauri::command]
-fn open_library(library_name: String) -> Result<(), String> {
-    let settings = get_library_settings()?;
+fn open_library(app: AppHandle, library_name: String) -> Result<(), String> {
+    let settings = get_library_settings(&app)?;
     let library = settings
         .libraries
         .into_iter()
