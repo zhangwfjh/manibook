@@ -70,9 +70,13 @@ jobs:
         run: bun install
 
       - name: Build Tauri app
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@v0.6.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          projectPath: '.'
+          tagName: ${{ github.ref_name }}
+          releaseName: Release ${{ github.ref_name }}
+          releaseBody: See CHANGELOG.md for details
+          releaseDraft: true
+          prerelease: false
           args: ${{ matrix.args }}
