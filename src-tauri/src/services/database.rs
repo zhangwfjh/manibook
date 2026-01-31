@@ -1,8 +1,6 @@
-use crate::models::{
-    Category, Document, DocumentListResponse, DocumentQuery, FilterCounts, Metadata,
-};
+use crate::models::{Category, Document, DocumentList, DocumentQuery, FilterCounts, Metadata};
 use crate::services::connection_manager::with_connection;
-use base64::{engine::general_purpose::STANDARD, Engine as _};
+use crate::utils::database::handle_query_result;
 use lazy_static::lazy_static;
 use lru::LruCache;
 use rusqlite::{params, params_from_iter};
@@ -22,7 +20,7 @@ pub(crate) fn open_database(library_path: &str) -> Result<rusqlite::Connection, 
         .map_err(|e| format!("Failed to open database at {}: {}", db_path.display(), e))
 }
 
-pub fn get_document_basic_info(
+pub fn get_basic_info(
     document_id: &str,
 ) -> Result<(String, String, i32, i64, String, i32), String> {
     with_connection(|conn| {
@@ -83,7 +81,7 @@ pub fn insert_document(
     })
 }
 
-pub fn update_document_metadata(document_id: &str, metadata: &Metadata) -> Result<(), String> {
+pub fn update_metadata(document_id: &str, metadata: &Metadata) -> Result<(), String> {
     with_connection(|conn| {
         let now = chrono::Utc::now().to_rfc3339();
 
@@ -130,11 +128,7 @@ pub fn update_document_metadata(document_id: &str, metadata: &Metadata) -> Resul
     })
 }
 
-pub fn update_document_file_info(
-    document_id: &str,
-    filename: &str,
-    url: &str,
-) -> Result<(), String> {
+pub fn update_file_info(document_id: &str, filename: &str, url: &str) -> Result<(), String> {
     with_connection(|conn| {
         conn.execute(
             "UPDATE documents SET filename = ?, url = ? WHERE id = ?",
@@ -145,7 +139,7 @@ pub fn update_document_file_info(
     })
 }
 
-pub fn check_document_exists_by_hash(hash: &str) -> Result<bool, String> {
+pub fn check_exists_by_hash(hash: &str) -> Result<bool, String> {
     with_connection(|conn| {
         let mut stmt = conn
             .prepare("SELECT id FROM documents WHERE hash = ?")
@@ -165,13 +159,7 @@ pub fn delete_document(document_id: &str) -> Result<String, String> {
         let url_result: Result<String, rusqlite::Error> =
             stmt.query_row(params![document_id], |row| row.get::<_, String>(0));
 
-        let url = match url_result {
-            Ok(url) => url,
-            Err(rusqlite::Error::QueryReturnedNoRows) => {
-                return Err("Document not found".to_string())
-            }
-            Err(e) => return Err(format!("Database error: {}", e)),
-        };
+        let url = handle_query_result(url_result, "Document not found")?;
 
         conn.execute("DELETE FROM documents WHERE id = ?", params![document_id])
             .map_err(|e| format!("Failed to delete document from database: {}", e))?;
@@ -180,7 +168,7 @@ pub fn delete_document(document_id: &str) -> Result<String, String> {
     })
 }
 
-pub fn get_document_url(document_id: &str) -> Result<String, String> {
+pub fn get_url(document_id: &str) -> Result<String, String> {
     with_connection(|conn| {
         let mut stmt = conn
             .prepare("SELECT url FROM documents WHERE id = ?")
@@ -189,15 +177,11 @@ pub fn get_document_url(document_id: &str) -> Result<String, String> {
         let url_result: Result<String, rusqlite::Error> =
             stmt.query_row(params![document_id], |row| row.get::<_, String>(0));
 
-        match url_result {
-            Ok(url) => Ok(url),
-            Err(rusqlite::Error::QueryReturnedNoRows) => Err("Document not found".to_string()),
-            Err(e) => Err(format!("Database error: {}", e)),
-        }
+        handle_query_result(url_result, "Document not found")
     })
 }
 
-pub fn get_document_cover(document_id: &str) -> Result<Option<Vec<u8>>, String> {
+pub fn get_cover(document_id: &str) -> Result<Option<Vec<u8>>, String> {
     with_connection(|conn| {
         let mut stmt = conn
             .prepare("SELECT cover FROM documents WHERE id = ?")
@@ -206,37 +190,19 @@ pub fn get_document_cover(document_id: &str) -> Result<Option<Vec<u8>>, String> 
         let cover_result: Result<Option<Vec<u8>>, rusqlite::Error> =
             stmt.query_row(params![document_id], |row| row.get::<_, Option<Vec<u8>>>(0));
 
-        match cover_result {
-            Ok(cover_data) => Ok(cover_data),
-            Err(rusqlite::Error::QueryReturnedNoRows) => Err("Document not found".to_string()),
-            Err(e) => Err(format!("Database error: {}", e)),
-        }
+        handle_query_result(cover_result, "Document not found")
     })
 }
 
-pub fn get_document_cover_base64(document_id: &str) -> Result<String, String> {
-    let cover_data = get_document_cover(document_id)?;
-
-    match cover_data {
-        Some(data) => {
-            let base64 = STANDARD.encode(&data);
-            Ok(format!("data:image/webp;base64,{}", base64))
-        }
-        None => Err("Cover not found".to_string()),
-    }
-}
-
-pub fn get_documents(
-    query: &DocumentQuery,
-    _library_path: &str,
-) -> Result<DocumentListResponse, String> {
+#[tauri::command]
+pub fn get_documents(query: DocumentQuery) -> Result<DocumentList, String> {
     with_connection(|conn| {
         let mut where_clauses = Vec::new();
         let mut params: Vec<String> = Vec::new();
 
         if let Some(category) = &query.category {
             let category_parts: Vec<&str> = category.split(" > ").collect();
-            if category_parts.len() >= 1 {
+            if !category_parts.is_empty() {
                 where_clauses.push("doctype = ?".to_string());
                 params.push(category_parts[0].to_string());
                 if category_parts.len() > 1 {
@@ -295,7 +261,7 @@ pub fn get_documents(
         }
 
         if let Some(search) = &query.search_query {
-            let search_conditions = vec![
+            let search_conditions = [
                 "title LIKE ?",
                 "authors LIKE ?",
                 "keywords LIKE ?",
@@ -329,7 +295,7 @@ pub fn get_documents(
             "favorite" => "favorite",
             "updatedAt" => "updatedAt",
             "filesize" => "filesize",
-            "createdAt" | _ => "createdAt",
+            _ => "createdAt",
         };
 
         let limit = query.limit.min(200);
@@ -352,8 +318,8 @@ pub fn get_documents(
                     id: row.get(0)?,
                     path: {
                         let url: String = row.get(2)?;
-                        if url.starts_with("lib://") {
-                            url[6..].to_string()
+                        if let Some(stripped) = url.strip_prefix("lib://") {
+                            stripped.to_string()
                         } else {
                             url
                         }
@@ -412,11 +378,11 @@ pub fn get_documents(
 
         cache.put(cache_key, (filter_options.clone(), Instant::now()));
 
-        let total_pages = (total_count + limit - 1) / limit;
+        let total_pages = total_count.div_ceil(limit);
         let has_next = query.page < total_pages;
         let has_prev = query.page > 1;
 
-        Ok(DocumentListResponse {
+        Ok(DocumentList {
             documents,
             total_count,
             page: query.page,
@@ -538,6 +504,7 @@ fn compute_filter_counts(
     Ok(filter_options)
 }
 
+#[tauri::command]
 pub fn get_library_categories() -> Result<Vec<Category>, String> {
     with_connection(|conn| {
         let mut stmt = conn
@@ -610,7 +577,7 @@ pub fn get_library_categories() -> Result<Vec<Category>, String> {
             }
         }
 
-        let categories: Vec<Category> = doctype_map.into_iter().map(|(_, cat)| cat).collect();
+        let categories: Vec<Category> = doctype_map.into_values().collect();
 
         Ok(categories)
     })

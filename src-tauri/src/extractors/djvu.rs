@@ -1,5 +1,6 @@
 use crate::extractors::{Extractor, ForewordExtraction};
-use image::ImageFormat;
+use crate::utils::content::truncate_foreword;
+use crate::utils::image::encode_cover_webp;
 use std::fs;
 use tempfile::NamedTempFile;
 use tokio::process::Command;
@@ -15,7 +16,7 @@ impl Extractor for DjvuExtractor {
         let temp_djvu_path = temp_djvu.path().to_string_lossy().to_string();
 
         let output = Command::new("djvutxt")
-            .args(&["--page=1-10", &temp_djvu_path])
+            .args(["--page=1-10", &temp_djvu_path])
             .output()
             .await
             .map_err(|e| format!("Failed to run djvutxt: {}", e))?;
@@ -29,16 +30,10 @@ impl Extractor for DjvuExtractor {
 
         let mut foreword = String::from_utf8(output.stdout)
             .map_err(|e| format!("Failed to parse djvutxt output: {}", e))?;
-        if foreword.len() > Self::MAX_FOREWORD_LENGTH {
-            let mut end = Self::MAX_FOREWORD_LENGTH;
-            while end > 0 && !foreword.is_char_boundary(end) {
-                end -= 1;
-            }
-            foreword.truncate(end);
-        }
+        truncate_foreword(&mut foreword, Self::MAX_FOREWORD_LENGTH);
 
         let num_pages_output = Command::new("djvused")
-            .args(&["-e", "n", &temp_djvu_path])
+            .args(["-e", "n", &temp_djvu_path])
             .output()
             .await
             .map_err(|e| format!("Failed to run djvused: {}", e))?;
@@ -63,7 +58,7 @@ impl Extractor for DjvuExtractor {
         let temp_tiff_path = temp_tiff.path().to_string_lossy().to_string();
 
         let ddjvu_output = Command::new("ddjvu")
-            .args(&["-format=tiff", "-page=1", &temp_djvu_path, &temp_tiff_path])
+            .args(["-format=tiff", "-page=1", &temp_djvu_path, &temp_tiff_path])
             .output()
             .await
             .map_err(|e| format!("Failed to run ddjvu: {}", e))?;
@@ -80,12 +75,7 @@ impl Extractor for DjvuExtractor {
         let img = image::load_from_memory(&tiff_data)
             .map_err(|e| format!("Failed to load TIFF image: {}", e))?;
 
-        let mut webp_buffer = Vec::new();
-        img.write_to(
-            &mut std::io::Cursor::new(&mut webp_buffer),
-            ImageFormat::WebP,
-        )
-        .map_err(|e| format!("Failed to encode WebP: {}", e))?;
+        let webp_buffer = encode_cover_webp(&img)?;
 
         let images = if webp_buffer.is_empty() {
             vec![]

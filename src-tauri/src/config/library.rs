@@ -1,4 +1,5 @@
 use crate::models::{Library, LibrarySettings};
+use crate::utils::settings::{read_json_file_with_default, write_json_file};
 use std::fs;
 use std::path::Path;
 
@@ -16,23 +17,13 @@ pub fn get_libraries() -> Result<Vec<Library>, String> {
 
 pub fn get_library_settings() -> Result<LibrarySettings, String> {
     let settings_path = Path::new("settings").join("library.json");
-    fs::read_to_string(&settings_path)
-        .map_err(|e| {
-            format!(
-                "Failed to read library settings at {}: {}",
-                settings_path.display(),
-                e
-            )
-        })
-        .and_then(|data| {
-            serde_json::from_str(&data).map_err(|e| {
-                format!(
-                    "Failed to parse library settings at {}: {}",
-                    settings_path.display(),
-                    e
-                )
-            })
-        })
+    read_json_file_with_default(
+        &settings_path,
+        LibrarySettings {
+            libraries: vec![],
+            default_library: None,
+        },
+    )
 }
 
 #[tauri::command]
@@ -41,7 +32,7 @@ pub fn create_library(name: String, path: String) -> Result<(), String> {
         return Err("Name and path are required".to_string());
     }
 
-    if !path.starts_with('/') && !path.chars().nth(1).map_or(false, |c| c == ':') {
+    if !path.starts_with('/') && path.chars().nth(1) != Some(':') {
         return Err("Invalid path format".to_string());
     }
 
@@ -85,12 +76,7 @@ pub fn create_library(name: String, path: String) -> Result<(), String> {
         path: path.trim().to_string(),
     });
 
-    if let Some(parent) = settings_path.parent() {
-        fs::create_dir_all(parent).map_err(|e| format!("Failed to create settings dir: {}", e))?;
-    }
-    let data = serde_json::to_string_pretty(&settings)
-        .map_err(|e| format!("Failed to serialize settings: {}", e))?;
-    fs::write(&settings_path, data).map_err(|e| format!("Failed to write settings: {}", e))?;
+    write_json_file(&settings_path, &settings)?;
 
     Ok(())
 }

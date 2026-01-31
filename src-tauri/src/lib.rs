@@ -6,25 +6,21 @@ mod utils;
 
 use crate::config::library::{create_library, get_libraries, get_library_settings};
 use crate::config::llm::{get_llm_settings, import_llm_settings, set_llm_settings};
-use crate::extractors::Extractor;
-use crate::models::{
-    Category, DocumentListResponse, DocumentQuery, ImportError, ImportRequest, ImportResponse,
-    ImportResult, Library, Metadata,
-};
+use crate::models::{ImportError, ImportRequest, ImportResponse, ImportResult, Library, Metadata};
 use crate::services::connection_manager::{
-    close_library as cm_close_library, get_library_path, is_library_open,
-    open_library as cm_open_library,
+    close_library, get_library_path, is_library_open, open_library as cm_open_library,
 };
 use crate::services::database::{
-    delete_document, get_document_basic_info, get_document_cover_base64, get_document_url,
-    get_documents as db_get_documents, get_library_categories as db_get_library_categories,
-    update_document_file_info, update_document_metadata,
+    delete_document, get_basic_info, get_cover as get_cover_blob, get_documents,
+    get_library_categories, get_url, update_file_info, update_metadata,
 };
-use crate::services::import::{process_document_import, process_url_import};
-use crate::services::llm::{extract_metadata_from_text, extract_text_from_images, find_provider};
+use crate::services::import::{process_import, process_url_import};
 use crate::services::storage::{delete_file, file_exists, get_lib_path, move_file};
-use crate::utils::path::get_extension;
+use crate::utils::content::{
+    extract_content, extract_metadata, extract_text_from_images_if_needed, get_extension,
+};
 use crate::utils::text::normalize_metadata;
+use base64::{engine::general_purpose::STANDARD, Engine as _};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -34,7 +30,7 @@ async fn generate_metadata(document_id: String) -> Result<Metadata, String> {
     let library_path = get_library_path()?;
 
     let (filename, url, existing_num_pages, existing_filesize, existing_format, existing_favorite) =
-        get_document_basic_info(&document_id)?;
+        get_basic_info(&document_id)?;
 
     let file_url = get_lib_path(&url)?;
     let file_path = Path::new(&library_path).join(file_url);
@@ -51,49 +47,22 @@ async fn generate_metadata(document_id: String) -> Result<Metadata, String> {
 
     let file_extension = get_extension(&filename);
 
-    let extraction: extractors::ForewordExtraction = match file_extension.as_str() {
-        "pdf" => extractors::pdf::PdfExtractor::extract(&buffer).await,
-        "epub" => extractors::epub::EpubExtractor::extract(&buffer).await,
-        "djvu" => extractors::djvu::DjvuExtractor::extract(&buffer).await,
-        _ => {
-            return Err(format!(
-                "Unsupported file extension: '{}'. Supported extensions: pdf, epub, djvu",
-                file_extension
-            ))
-        }
-    }
-    .map_err(|e| format!("Failed to extract content from file: {}", e))?;
+    let extraction = extract_content(&buffer, &file_extension)
+        .await
+        .map_err(|e| format!("Failed to extract content from file: {}", e))?;
 
     let mut foreword = extraction.foreword;
     let images = extraction.images;
 
     let llm_settings = get_llm_settings()?;
 
-    if images.len() > 0 && foreword.len() < 100 {
-        let image_provider_name = &llm_settings.jobs.imageTextExtraction;
-        if image_provider_name.is_empty() {
-            return Err("Image text extraction provider not configured in LLM settings (llm.json > jobs.imageTextExtraction)".to_string());
-        }
-
-        let image_provider = find_provider(&llm_settings.providers, image_provider_name)
-            .map_err(|e| e.to_string())?;
-
-        foreword = extract_text_from_images(&images, image_provider)
-            .await
-            .map_err(|e| format!("Failed to extract text from images: {}", e))?;
-    }
+    foreword = extract_text_from_images_if_needed(&foreword, &images, &llm_settings)
+        .await
+        .map_err(|e| format!("Failed to extract text from images: {}", e))?;
 
     foreword = foreword.chars().take(5000).collect();
 
-    let metadata_provider_name = &llm_settings.jobs.metadataExtraction;
-    if metadata_provider_name.is_empty() {
-        return Err("Metadata extraction provider not configured in LLM settings (llm.json > jobs.metadataExtraction)".to_string());
-    }
-
-    let metadata_provider = find_provider(&llm_settings.providers, metadata_provider_name)
-        .map_err(|e| e.to_string())?;
-
-    let mut metadata = extract_metadata_from_text(&foreword, metadata_provider).await?;
+    let mut metadata = extract_metadata(&foreword, &llm_settings).await?;
 
     metadata.num_pages = existing_num_pages;
     metadata.filesize = existing_filesize;
@@ -117,7 +86,7 @@ async fn import_documents(request: ImportRequest) -> Result<ImportResponse, Stri
 
     if let Some(file_data) = &request.file_data {
         for file_datum in file_data {
-            match process_document_import(
+            match process_import(
                 &library_path,
                 &file_datum.data,
                 &file_datum.filename,
@@ -187,8 +156,16 @@ fn get_library(library_name: String) -> Result<Library, String> {
 }
 
 #[tauri::command]
-fn get_document_cover(document_id: String) -> Result<String, String> {
-    get_document_cover_base64(&document_id)
+fn get_cover(document_id: String) -> Result<String, String> {
+    let cover_data = get_cover_blob(&document_id)?;
+
+    match cover_data {
+        Some(data) => {
+            let base64 = STANDARD.encode(&data);
+            Ok(format!("data:image/webp;base64,{}", base64))
+        }
+        None => Err("Cover not found".to_string()),
+    }
 }
 
 #[tauri::command]
@@ -229,7 +206,7 @@ fn delete_documents(document_ids: Vec<String>) -> Result<serde_json::Value, Stri
 fn open_document(document_id: String) -> Result<(), String> {
     let library_path = get_library_path()?;
 
-    let url = get_document_url(&document_id)?;
+    let url = get_url(&document_id)?;
 
     let relative_path = get_lib_path(&url)?;
     let file_path = Path::new(&library_path).join(relative_path);
@@ -242,7 +219,7 @@ fn open_document(document_id: String) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
         Command::new("cmd")
-            .args(&["/c", "start", "", &file_path_str])
+            .args(["/c", "start", "", &file_path_str])
             .spawn()
             .map_err(|e| format!("Failed to open file: {}", e))?;
     }
@@ -287,7 +264,7 @@ fn update_document(
         _existing_filesize,
         _existing_format,
         _existing_favorite,
-    ) = get_document_basic_info(&document_id)?;
+    ) = get_basic_info(&document_id)?;
 
     let new_category = normalized_metadata.category.clone();
     let new_title = normalized_metadata.title.clone();
@@ -321,7 +298,7 @@ fn update_document(
             Ok::<_, String>((old_category, old_title, old_doctype))
         })?;
 
-    update_document_metadata(&document_id, &normalized_metadata)?;
+    update_metadata(&document_id, &normalized_metadata)?;
 
     if old_category != new_category
         || old_title != new_title
@@ -336,7 +313,7 @@ fn update_document(
             &new_title,
         )?;
 
-        update_document_file_info(&document_id, &new_filename, &new_url)?;
+        update_file_info(&document_id, &new_filename, &new_url)?;
     }
 
     let doc = crate::models::Document {
@@ -419,7 +396,7 @@ fn move_documents(
                     &title,
                 )?;
 
-                update_document_file_info(&document_id, &new_filename, &new_url)?;
+                update_file_info(&document_id, &new_filename, &new_url)?;
             }
 
             Ok::<(), String>(())
@@ -441,17 +418,6 @@ fn move_documents(
 }
 
 #[tauri::command]
-fn get_documents(query: DocumentQuery) -> Result<DocumentListResponse, String> {
-    let library_path = get_library_path()?;
-    db_get_documents(&query, &library_path)
-}
-
-#[tauri::command]
-fn get_library_categories() -> Result<Vec<Category>, String> {
-    db_get_library_categories()
-}
-
-#[tauri::command]
 fn open_library(library_name: String) -> Result<(), String> {
     let settings = get_library_settings()?;
     let library = settings
@@ -460,16 +426,6 @@ fn open_library(library_name: String) -> Result<(), String> {
         .find(|lib| lib.name == library_name)
         .ok_or_else(|| format!("Library '{}' not found", library_name))?;
     cm_open_library(library_name, library.path)
-}
-
-#[tauri::command]
-fn close_library() -> Result<(), String> {
-    cm_close_library()
-}
-
-#[tauri::command]
-fn is_library_open_cmd() -> Option<String> {
-    is_library_open()
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -492,14 +448,14 @@ pub fn run() {
             import_llm_settings,
             open_library,
             close_library,
-            is_library_open_cmd,
+            is_library_open,
             generate_metadata,
             import_documents,
             get_libraries,
             get_library_categories,
             get_library,
             create_library,
-            get_document_cover,
+            get_cover,
             delete_documents,
             open_document,
             update_document,

@@ -1,5 +1,6 @@
 use crate::extractors::{Extractor, ForewordExtraction};
-use image::ImageFormat;
+use crate::utils::content::truncate_foreword;
+use crate::utils::image::encode_cover_webp;
 use pdfium_render::prelude::*;
 
 pub struct PdfExtractor;
@@ -33,14 +34,7 @@ impl Extractor for PdfExtractor {
                     .map_err(|e| format!("Failed to render page {}: {}", i, e))?
                     .as_image();
 
-                let mut webp_buffer = Vec::new();
-                bitmap
-                    .write_to(
-                        &mut std::io::Cursor::new(&mut webp_buffer),
-                        ImageFormat::WebP,
-                    )
-                    .map_err(|e| format!("Failed to encode WebP: {}", e))?;
-
+                let webp_buffer = encode_cover_webp(&bitmap)?;
                 images.push(webp_buffer);
             }
 
@@ -49,11 +43,7 @@ impl Extractor for PdfExtractor {
                 foreword.push_str(&text.to_string());
                 foreword.push_str("\n\n");
                 if foreword.len() > Self::MAX_FOREWORD_LENGTH {
-                    let mut end = Self::MAX_FOREWORD_LENGTH;
-                    while end > 0 && !foreword.is_char_boundary(end) {
-                        end -= 1;
-                    }
-                    foreword.truncate(end);
+                    truncate_foreword(&mut foreword, Self::MAX_FOREWORD_LENGTH);
                     break;
                 }
             }

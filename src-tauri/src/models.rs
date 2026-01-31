@@ -138,7 +138,7 @@ pub struct FilterCounts {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct DocumentListResponse {
+pub struct DocumentList {
     pub documents: Vec<Document>,
     pub total_count: usize,
     pub page: usize,

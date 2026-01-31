@@ -1,61 +1,40 @@
 use crate::models::{ImportResult, LLMSettings};
-use crate::services::database::{check_document_exists_by_hash, insert_document};
-use crate::services::llm::{extract_metadata_from_text, extract_text_from_images, find_provider};
-use crate::services::storage::{create_category_directory, generate_unique_filename, write_file};
 use crate::services::connection_manager::is_library_open;
+use crate::services::database::{check_exists_by_hash, insert_document};
+use crate::services::storage::{create_category_directory, generate_unique_filename, write_file};
+use crate::utils::content::{
+    extract_content, extract_metadata, extract_text_from_images_if_needed,
+};
 use crate::utils::text::normalize_metadata;
 use nanoid::nanoid;
 use sha256;
 use std::path::Path;
 
-pub async fn process_document_import(
+pub async fn process_import(
     library_path: &str,
     buffer: &[u8],
     _original_filename: &str,
     extension: &str,
     llm_settings: &LLMSettings,
 ) -> Result<ImportResult, String> {
-    use crate::extractors::Extractor;
-
     let hash = sha256::digest(buffer);
 
-    let extraction: crate::extractors::ForewordExtraction = match extension {
-        "pdf" => crate::extractors::pdf::PdfExtractor::extract(buffer).await,
-        "epub" => crate::extractors::epub::EpubExtractor::extract(buffer).await,
-        "djvu" => crate::extractors::djvu::DjvuExtractor::extract(buffer).await,
-        _ => return Err(format!("Unsupported file extension: {}", extension)),
-    }
-    .map_err(|e| format!("Failed to extract content from file: {}", e))?;
+    let extraction = extract_content(buffer, extension)
+        .await
+        .map_err(|e| format!("Failed to extract content from file: {}", e))?;
 
     let mut foreword = extraction.foreword;
     let images = extraction.images;
     let num_pages = extraction.num_pages;
     let cover = images.first().cloned();
 
-    if images.len() > 0 && foreword.len() < 100 {
-        let image_provider_name = &llm_settings.jobs.imageTextExtraction;
-        if !image_provider_name.is_empty() {
-            if let Some(image_provider) =
-                find_provider(&llm_settings.providers, image_provider_name).ok()
-            {
-                foreword = extract_text_from_images(&images, image_provider)
-                    .await
-                    .map_err(|e| format!("Failed to extract text from images: {}", e))?;
-            }
-        }
-    }
+    foreword = extract_text_from_images_if_needed(&foreword, &images, llm_settings)
+        .await
+        .map_err(|e| format!("Failed to extract text from images: {}", e))?;
 
     foreword = foreword.chars().take(5000).collect();
 
-    let metadata_provider_name = &llm_settings.jobs.metadataExtraction;
-    if metadata_provider_name.is_empty() {
-        return Err("Metadata extraction provider not configured".to_string());
-    }
-
-    let metadata_provider = find_provider(&llm_settings.providers, metadata_provider_name)
-        .map_err(|e| format!("Metadata extraction provider error: {}", e))?;
-
-    let mut metadata = extract_metadata_from_text(&foreword, metadata_provider)
+    let mut metadata = extract_metadata(&foreword, llm_settings)
         .await
         .map_err(|e| format!("Failed to extract metadata: {}", e))?;
 
@@ -77,7 +56,7 @@ pub async fn process_document_import(
 
     let new_filename = generate_unique_filename(&category_dir, &metadata.title, extension)?;
 
-    if check_document_exists_by_hash(&hash)? {
+    if check_exists_by_hash(&hash)? {
         return Err("File already exists in library".to_string());
     }
 
@@ -93,14 +72,7 @@ pub async fn process_document_import(
     );
     let id = nanoid!();
 
-    insert_document(
-        &id,
-        &new_filename,
-        &url,
-        &metadata,
-        &hash,
-        cover.as_ref(),
-    )?;
+    insert_document(&id, &new_filename, &url, &metadata, &hash, cover.as_ref())?;
 
     Ok(ImportResult {
         success: true,
@@ -190,7 +162,7 @@ pub async fn process_url_import(
 
     let filename = format!("downloaded.{}", file_extension);
 
-    process_document_import(
+    process_import(
         library_path,
         &buffer,
         &filename,

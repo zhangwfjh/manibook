@@ -1,4 +1,4 @@
-use crate::models::{ChatMessage, ChatRequest, ChatResponse, Metadata, LLMProvider};
+use crate::models::{ChatMessage, ChatRequest, ChatResponse, LLMProvider, Metadata};
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use std::time::Duration;
 
@@ -108,8 +108,8 @@ pub async fn call_openai_api(
 
     chat_response
         .choices
-        .get(0)
-        .and_then(|c| Some(c.message.content.clone()))
+        .first()
+        .map(|c| c.message.content.clone())
         .ok_or_else(|| "LLM API returned empty response".to_string())
 }
 

@@ -19,7 +19,10 @@ fn main() {
     // Check if the PDFium binary exists
     let source_path = Path::new(".").join(source_name);
     if !source_path.exists() {
-        panic!("PDFium binary not found: {}. Make sure to run the download script first.", source_path.display());
+        panic!(
+            "PDFium binary not found: {}. Make sure to run the download script first.",
+            source_path.display()
+        );
     }
 
     println!("cargo:rerun-if-changed={}", source_path.display());

@@ -53,10 +53,10 @@ pub fn move_file(
         counter += 1;
     }
 
-    let relative_path = if current_url.starts_with("lib://") {
-        &current_url[6..]
+    let relative_path = if let Some(stripped) = current_url.strip_prefix("lib://") {
+        stripped
     } else {
-        &current_url
+        current_url
     };
     let old_file_path = Path::new(library_path).join(relative_path);
     let new_file_path = category_dir.join(&new_filename);
@@ -86,13 +86,13 @@ pub fn create_category_directory(
     let folder_path = [
         doctype.to_string(),
         category_parts
-            .get(0)
-            .unwrap_or(&"General".to_string())
-            .clone(),
+            .first()
+            .cloned()
+            .unwrap_or_else(|| "General".to_string()),
         category_parts
             .get(1)
-            .unwrap_or(&"General".to_string())
-            .clone(),
+            .cloned()
+            .unwrap_or_else(|| "General".to_string()),
     ]
     .join("/");
 
@@ -140,8 +140,8 @@ pub fn delete_file(file_path: &Path) -> Result<(), String> {
 }
 
 pub fn get_lib_path(url: &str) -> Result<String, String> {
-    if url.starts_with("lib://") {
-        Ok(url[6..].to_string())
+    if let Some(stripped) = url.strip_prefix("lib://") {
+        Ok(stripped.to_string())
     } else {
         Err(format!(
             "Invalid URL format (must start with 'lib://'): {}",
