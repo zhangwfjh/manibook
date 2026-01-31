@@ -1,4 +1,5 @@
 mod config;
+mod diesel;
 mod extractors;
 mod models;
 mod services;

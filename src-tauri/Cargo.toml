@@ -39,3 +39,5 @@ sha256 = "1.0"
 nanoid = "0.4"
 epub-parser = "0.2.0"
 webp = { version = "0.3", features = ["image"] }
+diesel = { version = "2.1", features = ["sqlite", "chrono", "r2d2"] }
+diesel_migrations = "2.1"

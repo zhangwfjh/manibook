@@ -87,7 +87,6 @@ For local development, run the download script before building. The binaries are
 - `app/` - Next.js frontend (App Router)
 - `components/` - React components
 - `lib/` - Utility functions and shared code
-- `prisma/` - Database schema and migrations
 - `scripts/` - Build and utility scripts
 
 ## Contributing
