@@ -24,7 +24,7 @@ export function DocumentImage({ document }: DocumentImageProps) {
   useEffect(() => {
     const loadCoverUrl = async () => {
       try {
-        const url = await invoke<string>("get_document_cover", {
+        const url = await invoke<string>("get_cover", {
           documentId: document.id,
         });
         setCoverUrl(url);

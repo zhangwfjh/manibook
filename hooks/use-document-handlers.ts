@@ -5,7 +5,7 @@ import { Document } from "@/lib/library";
 interface UseDocumentHandlersProps {
   filterParams: URLSearchParams;
   sortParams: URLSearchParams;
-  loadFilteredData: (filterParams: URLSearchParams | undefined, sortParams: URLSearchParams | undefined, forceRefresh?: boolean) => Promise<void>;
+  loadFilteredData: (filterParams: URLSearchParams | undefined, sortParams: URLSearchParams | undefined) => Promise<void>;
 }
 
 export function useDocumentHandlers({
@@ -33,7 +33,7 @@ export function useDocumentHandlers({
       console.error("Error deleting document:", error);
       toast.error("Failed to delete document");
     }
-    await loadFilteredData(filterParams, sortParams, true);
+    await loadFilteredData(filterParams, sortParams);
   };
 
   const handleDocumentUpdate = async (updatedDoc: Document): Promise<Document | undefined> => {
@@ -42,7 +42,7 @@ export function useDocumentHandlers({
         documentId: updatedDoc.id,
         metadata: updatedDoc.metadata,
       });
-      await loadFilteredData(filterParams, sortParams, true);
+      await loadFilteredData(filterParams, sortParams);
       return result;
     } catch (error) {
       console.error("Error updating document:", error);

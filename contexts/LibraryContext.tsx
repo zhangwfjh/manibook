@@ -23,7 +23,6 @@ interface LibraryContextType {
   loadFilteredData: (
     filterParams: URLSearchParams | undefined,
     sortParams: URLSearchParams | undefined,
-    forceRefresh?: boolean,
   ) => Promise<void>;
   refreshLibraryData: () => Promise<void>;
   filterOptions: Record<string, Record<string, number>> & {

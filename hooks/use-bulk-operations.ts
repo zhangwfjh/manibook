@@ -7,7 +7,7 @@ interface UseBulkOperationsProps {
   documents: Document[];
   filterParams: URLSearchParams;
   sortParams: URLSearchParams;
-  loadFilteredData: (filterParams: URLSearchParams | undefined, sortParams: URLSearchParams | undefined, forceRefresh?: boolean) => Promise<void>;
+  loadFilteredData: (filterParams: URLSearchParams | undefined, sortParams: URLSearchParams | undefined) => Promise<void>;
   setBulkDeleteDialogOpen: (open: boolean) => void;
 }
 
@@ -63,7 +63,7 @@ export function useBulkOperations({
       setBulkDeleteDialogOpen(false);
       setSelectedDocuments(new Set());
       setSelectionMode(false);
-      await loadFilteredData(filterParams, sortParams, true);
+      await loadFilteredData(filterParams, sortParams);
     } catch (error) {
       console.error("Error bulk deleting documents:", error);
       toast.error("Failed to delete documents");
@@ -88,7 +88,7 @@ export function useBulkOperations({
       }
       setSelectedDocuments(new Set());
       setSelectionMode(false);
-      await loadFilteredData(filterParams, sortParams, true);
+      await loadFilteredData(filterParams, sortParams);
     } catch (error) {
       console.error("Error bulk moving documents:", error);
       toast.error("Failed to move documents");
