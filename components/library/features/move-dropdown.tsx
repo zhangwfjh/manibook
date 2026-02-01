@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MoveIcon } from "lucide-react";
-import { DOCTYPE_OPTIONS } from "../types";
+import { DOCTYPE_OPTIONS } from "@/components/library/types";
 
 interface BulkMoveDropdownProps {
   selectedCount: number;

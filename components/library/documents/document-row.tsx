@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { HeartIcon, BookOpenIcon, TrashIcon } from "lucide-react";
 import { formatFileSize } from "@/lib/library";
-import { Metadata } from "./metadata";
+import { DocumentMetadata } from "./metadata";
 import { DocumentRowProps } from "../types";
 import { useLibraryContext } from "@/contexts/LibraryContext";
 
@@ -56,7 +56,7 @@ export function DocumentRow({ document, style }: DocumentRowProps) {
       onClick={handleClick}
     >
       <div className="flex-1 min-w-0">
-        <Metadata metadata={metadata} compact />
+        <DocumentMetadata metadata={metadata} compact />
       </div>
       <div className="w-20 text-sm text-muted-foreground shrink-0">
         {metadata.publicationYear || "-"}

@@ -11,7 +11,7 @@ import {
 import { CalendarIcon } from "lucide-react";
 import { Document } from "@/lib/library";
 import { formatFileSize, getFormatIcon } from "@/lib/library";
-import { Metadata } from "./metadata";
+import { DocumentMetadata } from "./metadata";
 import { DocumentActions } from "./document-actions";
 import { DocumentImage } from "./document-image";
 import { useLibraryContext } from "@/contexts/LibraryContext";
@@ -51,7 +51,7 @@ export const DocumentCard = ({ document }: { document: Document }) => {
       <div className="flex-1 flex flex-col min-w-0">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-2">
-            <Metadata metadata={metadata} />
+            <DocumentMetadata metadata={metadata} />
             <DocumentActions document={document} />
           </div>
           <div className="flex gap-5">

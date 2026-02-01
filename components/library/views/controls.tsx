@@ -21,8 +21,8 @@ import {
 } from "lucide-react";
 import { SettingsDialog } from "@/components/library/dialogs/settings-dialog";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { BulkMoveDropdown } from "./bulk-move-dropdown";
-import { ViewMode, SORT_OPTIONS } from "../types";
+import { BulkMoveDropdown } from "@/components/library/features/move-dropdown";
+import { ViewMode, SORT_OPTIONS } from "@/components/library/types";
 import { useLibraryContext } from "@/contexts/LibraryContext";
 import { useImportContext } from "@/contexts/ImportContext";
 

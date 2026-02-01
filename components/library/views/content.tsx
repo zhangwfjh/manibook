@@ -22,11 +22,10 @@ import { DocumentCard } from "@/components/library/documents/card";
 import { DocumentList } from "@/components/library/documents/list";
 import { DocumentCardSkeleton } from "@/components/library/documents/card-skeleton";
 import { DocumentListSkeleton } from "@/components/library/documents/list-skeleton";
-import { Pagination } from "@/components/library/ui/pagination";
+import { Pagination } from "./pagination";
 import { BookOpenIcon, LibraryIcon } from "lucide-react";
 import { useLibraryContext } from "@/contexts/LibraryContext";
-
-type ViewMode = "card" | "list";
+import { ViewMode } from "@/components/library/types";
 
 interface ContentProps {
   viewMode: ViewMode;

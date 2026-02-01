@@ -11,7 +11,7 @@ interface MetadataProps {
   compact?: boolean;
 }
 
-export function Metadata({
+export function DocumentMetadata({
   metadata,
   showYear = false,
   showDoctype = false,

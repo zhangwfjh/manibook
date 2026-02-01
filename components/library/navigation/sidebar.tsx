@@ -3,8 +3,8 @@
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Shelf } from "@/components/library/core/shelf";
-import { Filter } from "@/components/library/ui/filter";
+import { Shelf } from "./shelf";
+import { Filter } from "@/components/ui/filter";
 import { useLibraryContext } from "@/contexts/LibraryContext";
 
 export function Sidebar() {

@@ -3,9 +3,9 @@
 import { useState, useEffect, useEffectEvent } from "react";
 import { LibraryProvider, useLibraryContext } from "@/contexts/LibraryContext";
 import { ImportProvider } from "@/contexts/ImportContext";
-import { Sidebar } from "@/components/library/layout/sidebar";
-import { Controls } from "@/components/library/layout/controls";
-import { Content } from "@/components/library/core/content";
+import { Sidebar } from "@/components/library/navigation/sidebar";
+import { Controls } from "@/components/library/views/controls";
+import { Content } from "@/components/library/views/content";
 import { DialogManager } from "@/components/library/dialogs/dialog-manager";
 import { ViewMode } from "@/components/library/types";
 
