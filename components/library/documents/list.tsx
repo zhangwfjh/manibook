@@ -30,10 +30,10 @@ export const DocumentList = ({
 }: DocumentListProps) => {
   const {
     handleDocumentClick,
-    handleToggleDocumentSelection,
-    handleDocumentOpen,
-    handleFavoriteToggle,
-    handleDocumentDelete,
+    toggleDocumentSelection,
+    openDocument,
+    toggleFavorite,
+    deleteDocument,
     selectionMode,
     selectedDocuments,
   } = useLibraryContext();
@@ -62,7 +62,7 @@ export const DocumentList = ({
 
   const handleRowClick = (document: Document) => {
     if (selectionMode) {
-      handleToggleDocumentSelection(document.id);
+      toggleDocumentSelection(document.id);
     } else {
       handleDocumentClick(document);
     }
@@ -73,11 +73,11 @@ export const DocumentList = ({
       selectedDocuments?.has(doc.id),
     );
     if (allSelected) {
-      documents.forEach((doc) => handleToggleDocumentSelection(doc.id));
+      documents.forEach((doc) => toggleDocumentSelection(doc.id));
     } else {
       documents.forEach((doc) => {
         if (!selectedDocuments?.has(doc.id)) {
-          handleToggleDocumentSelection(doc.id);
+          toggleDocumentSelection(doc.id);
         }
       });
     }
@@ -192,9 +192,7 @@ export const DocumentList = ({
                 <TableCell>
                   <Checkbox
                     checked={selectedDocuments?.has(document.id) ?? false}
-                    onCheckedChange={() =>
-                      handleToggleDocumentSelection(document.id)
-                    }
+                    onCheckedChange={() => toggleDocumentSelection(document.id)}
                     onClick={(e) => e.stopPropagation()}
                   />
                 </TableCell>
@@ -239,7 +237,7 @@ export const DocumentList = ({
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDocumentOpen(document);
+                        openDocument(document);
                       }}
                     >
                       <BookOpenIcon className="h-4 w-4" />
@@ -249,7 +247,7 @@ export const DocumentList = ({
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleFavoriteToggle(document);
+                        toggleFavorite(document);
                       }}
                       className={
                         document.metadata.favorite
@@ -268,7 +266,7 @@ export const DocumentList = ({
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDocumentDelete(document);
+                        deleteDocument(document);
                       }}
                       className="text-muted-foreground hover:text-red-500"
                     >

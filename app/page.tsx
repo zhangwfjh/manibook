@@ -12,30 +12,28 @@ import { ViewMode } from "@/components/library/types";
 function HomeContent() {
   const [viewMode, setViewMode] = useState<ViewMode>("card");
 
-  const {
-    libraryName,
-    selectedCategory,
-    handleClearSelection,
-    filterParams,
-    sortParams,
-    loadFilteredData,
-  } = useLibraryContext();
+  const { libraryName, selectedCategory, clearSelection, loadFilteredData } =
+    useLibraryContext();
 
   const onLoadData = useEffectEvent(() => {
     if (libraryName) {
-      loadFilteredData(filterParams, sortParams);
+      loadFilteredData();
     }
   });
 
   useEffect(() => {
     onLoadData();
-  }, [filterParams, sortParams, libraryName]);
+  }, [libraryName]);
+
+  const onClearSelection = useEffectEvent(() => {
+    clearSelection();
+  });
 
   useEffect(() => {
     setTimeout(() => {
-      handleClearSelection();
+      onClearSelection();
     }, 0);
-  }, [libraryName, selectedCategory, handleClearSelection]);
+  }, [libraryName, selectedCategory]);
 
   return (
     <div className="min-h-screen bg-linear-to-br from-background via-background to-muted/10">

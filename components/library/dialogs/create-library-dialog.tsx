@@ -22,7 +22,7 @@ interface CreateLibraryDialogProps {
   onNameChange: (name: string) => void;
   path: string;
   onPathChange: (path: string) => void;
-  onSubmit: (params: { name: string; path: string }) => Promise<boolean>;
+  onSubmit: (name: string, path: string) => Promise<boolean>;
   onCancel: () => void;
 }
 
@@ -38,7 +38,7 @@ export function CreateLibraryDialog({
 }: CreateLibraryDialogProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = await onSubmit({ name, path });
+    const success = await onSubmit(name, path);
     if (success) {
       onCancel();
     }

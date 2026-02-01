@@ -41,11 +41,11 @@ export function Controls({
     libraries,
     isSearching,
     selectionMode,
-    handleToggleSelectionMode,
+    toggleSelectionMode,
     selectedDocuments,
-    handleSelectAllDocuments,
-    handleClearSelection,
-    handleBulkMove,
+    selectAllDocuments,
+    clearSelection,
+    bulkMove,
     setBulkDeleteDialogOpen,
   } = useLibraryContext();
 
@@ -69,19 +69,11 @@ export function Controls({
         <div className="flex flex-wrap items-center gap-2">
           {selectionMode ? (
             <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleClearSelection}
-              >
+              <Button variant="outline" size="sm" onClick={clearSelection}>
                 <XIcon className="h-4 w-4 mr-2" />
                 Clear
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSelectAllDocuments}
-              >
+              <Button variant="outline" size="sm" onClick={selectAllDocuments}>
                 <CheckSquare2Icon className="h-4 w-4 mr-2" />
                 Select All
               </Button>
@@ -89,7 +81,7 @@ export function Controls({
                 <>
                   <BulkMoveDropdown
                     selectedCount={selectedDocuments.size}
-                    onBulkMove={handleBulkMove}
+                    onBulkMove={bulkMove}
                   />
                   <Button
                     variant="destructive"
@@ -101,11 +93,7 @@ export function Controls({
                   </Button>
                 </>
               )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleToggleSelectionMode}
-              >
+              <Button variant="ghost" size="sm" onClick={toggleSelectionMode}>
                 Cancel
               </Button>
             </>
@@ -152,11 +140,7 @@ export function Controls({
                 <UploadIcon className="h-4 w-4 mr-2" />
                 Import
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleToggleSelectionMode}
-              >
+              <Button variant="outline" size="sm" onClick={toggleSelectionMode}>
                 <CheckSquare2Icon className="h-4 w-4 mr-2" />
                 Select
               </Button>

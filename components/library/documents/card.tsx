@@ -19,7 +19,7 @@ import { useLibraryContext } from "@/contexts/LibraryContext";
 export const DocumentCard = ({ document }: { document: Document }) => {
   const {
     handleDocumentClick,
-    handleToggleDocumentSelection,
+    toggleDocumentSelection,
     selectionMode,
     selectedDocuments,
   } = useLibraryContext();
@@ -35,7 +35,7 @@ export const DocumentCard = ({ document }: { document: Document }) => {
 
   const handleCardClick = () => {
     if (selectionMode) {
-      handleToggleDocumentSelection(document.id);
+      toggleDocumentSelection(document.id);
     } else {
       handleDocumentClick(document);
     }

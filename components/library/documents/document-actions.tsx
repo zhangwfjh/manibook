@@ -23,18 +23,17 @@ interface DocumentActionsProps {
 }
 
 export function DocumentActions({ document }: DocumentActionsProps) {
-  const { handleDocumentOpen, handleFavoriteToggle, handleDocumentDelete } =
-    useLibraryContext();
+  const { openDocument, toggleFavorite, deleteDocument } = useLibraryContext();
   const { metadata } = document;
 
   const handleOpenClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    handleDocumentOpen(document);
+    openDocument(document);
   };
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    handleFavoriteToggle(document);
+    toggleFavorite(document);
   };
 
   return (
@@ -87,7 +86,7 @@ export function DocumentActions({ document }: DocumentActionsProps) {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={(e) => {
                 e.stopPropagation();
-                handleDocumentDelete(document);
+                deleteDocument(document);
               }}
             >
               Delete

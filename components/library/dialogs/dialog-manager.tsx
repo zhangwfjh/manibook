@@ -30,12 +30,12 @@ export function DialogManager() {
     bulkDeleteDialogOpen,
     setBulkDeleteDialogOpen,
     resetCreateDialog,
-    handleCreateLibrary,
-    refreshLibraryData,
+    createLibrary,
+    refreshData,
     selectedDocuments,
-    handleBulkDelete,
-    handleDocumentOpen,
-    handleDocumentDelete,
+    bulkDelete,
+    openDocument,
+    deleteDocument,
     handleDocumentUpdate,
   } = useLibraryContext();
 
@@ -47,8 +47,8 @@ export function DialogManager() {
         document={selectedDocument}
         open={documentDialogOpen}
         onOpenChange={setDocumentDialogOpen}
-        onOpen={handleDocumentOpen}
-        onDelete={handleDocumentDelete}
+        onOpen={openDocument}
+        onDelete={deleteDocument}
         onUpdate={handleDocumentUpdate}
       />
 
@@ -59,14 +59,14 @@ export function DialogManager() {
         onNameChange={setNewLibraryName}
         path={newLibraryPath}
         onPathChange={setNewLibraryPath}
-        onSubmit={handleCreateLibrary}
+        onSubmit={createLibrary}
         onCancel={resetCreateDialog}
       />
 
       <ImportDialog
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
-        onImportComplete={refreshLibraryData}
+        onImportComplete={refreshData}
       />
 
       <AlertDialog
@@ -87,7 +87,7 @@ export function DialogManager() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={handleBulkDelete}
+              onClick={bulkDelete}
             >
               Delete
             </AlertDialogAction>

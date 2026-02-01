@@ -11,11 +11,11 @@ import { useLibraryContext } from "@/contexts/LibraryContext";
 
 export function DocumentRow({ document, style }: DocumentRowProps) {
   const {
-    handleDocumentOpen,
-    handleFavoriteToggle,
-    handleDocumentDelete,
+    openDocument,
+    toggleFavorite,
+    deleteDocument,
     handleDocumentClick,
-    handleToggleDocumentSelection,
+    toggleDocumentSelection,
     selectionMode,
     selectedDocuments,
   } = useLibraryContext();
@@ -24,7 +24,7 @@ export function DocumentRow({ document, style }: DocumentRowProps) {
 
   const handleClick = () => {
     if (selectionMode) {
-      handleToggleDocumentSelection(document.id);
+      toggleDocumentSelection(document.id);
     } else {
       handleDocumentClick(document);
     }
@@ -32,17 +32,17 @@ export function DocumentRow({ document, style }: DocumentRowProps) {
 
   const handleOpenClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    handleDocumentOpen(document);
+    openDocument(document);
   };
 
   const handleFavorite = (e: React.MouseEvent) => {
     e.stopPropagation();
-    handleFavoriteToggle(document);
+    toggleFavorite(document);
   };
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
-    handleDocumentDelete(document);
+    deleteDocument(document);
   };
 
   const { metadata } = document;
