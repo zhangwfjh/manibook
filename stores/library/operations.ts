@@ -228,7 +228,8 @@ export const useLibraryOperations = create<OperationsState>((set, get) => ({
       }
 
       const { loadFilteredData } = get();
-      await loadFilteredData();
+      const { fetchCategories } = useLibraryDataStore.getState();
+      await Promise.all([loadFilteredData(), fetchCategories()]);
     } catch (error) {
       console.error("Error bulk moving documents:", error);
       toast.error("Failed to move documents");
