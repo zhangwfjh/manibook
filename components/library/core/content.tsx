@@ -25,7 +25,6 @@ import { DocumentListSkeleton } from "@/components/library/documents/list-skelet
 import { Pagination } from "@/components/library/ui/pagination";
 import { BookOpenIcon, LibraryIcon } from "lucide-react";
 import { useLibraryContext } from "@/contexts/LibraryContext";
-import { usePaginationControls } from "@/hooks/use-pagination-controls";
 
 type ViewMode = "card" | "list";
 
@@ -49,9 +48,35 @@ export function Content({ viewMode }: ContentProps) {
     sortParams,
   } = useLibraryContext();
 
-  const { currentPage, totalPages, nextPage, prevPage, goToPage } =
-    usePaginationControls(pagination, loadPage, filterParams, sortParams);
+  const currentPage = pagination?.page || 1;
+  const totalPages = pagination?.totalPages || 1;
   const totalCount = pagination?.totalCount || 0;
+  const hasNextPage = pagination?.hasNextPage || false;
+  const hasPrevPage = pagination?.hasPrevPage || false;
+
+  const combinedParams = new URLSearchParams();
+  if (filterParams) {
+    filterParams.forEach((value, key) => combinedParams.set(key, value));
+  }
+  if (sortParams) {
+    sortParams.forEach((value, key) => combinedParams.set(key, value));
+  }
+
+  const goToPage = (page: number) => {
+    loadPage(page, combinedParams);
+  };
+
+  const nextPage = () => {
+    if (hasNextPage) {
+      goToPage(currentPage + 1);
+    }
+  };
+
+  const prevPage = () => {
+    if (hasPrevPage) {
+      goToPage(currentPage - 1);
+    }
+  };
 
   const paginatedItems = documents;
 

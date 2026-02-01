@@ -1,24 +1,7 @@
 "use client";
 
-import { createContext, useContext, ReactNode, useState } from "react";
-
-export interface ImportItem {
-  id: string;
-  filename: string;
-  status: "importing" | "success" | "failed" | "canceled";
-  abortController?: AbortController;
-  completedAt?: Date;
-  error?: string;
-  path?: string;
-}
-
-export interface ImportBatch {
-  id: string;
-  total: number;
-  completed: number;
-  failed: number;
-  items: ImportItem[];
-}
+import { createContext, useContext, PropsWithChildren } from "react";
+import { useImportStore, ImportItem, ImportBatch } from "@/stores/importStore";
 
 export interface ImportContextType {
   currentBatch: ImportBatch | null;
@@ -36,101 +19,17 @@ export interface ImportContextType {
 
 const ImportContext = createContext<ImportContextType | undefined>(undefined);
 
-interface ImportProviderProps {
-  children: ReactNode;
-}
-
-export function ImportProvider({ children }: ImportProviderProps) {
-  const [currentBatch, setCurrentBatch] = useState<ImportBatch | null>(null);
-  const [importDialogOpen, setImportDialogOpen] = useState(false);
-
-  const addBatch = (items: Omit<ImportItem, "id">[]) => {
-    const batchId = `batch-${Date.now()}`;
-    const importItems: ImportItem[] = items.map((item, index) => ({
-      ...item,
-      id: `${batchId}-item-${index}`,
-    }));
-
-    const newBatch: ImportBatch = {
-      id: batchId,
-      total: importItems.length,
-      completed: 0,
-      failed: 0,
-      items: importItems,
-    };
-
-    setCurrentBatch(newBatch);
-    return batchId;
-  };
-
-  const updateItemStatus = (
-    itemId: string,
-    status: ImportItem["status"],
-    options?: { completedAt?: Date; error?: string },
-  ) => {
-    setCurrentBatch((prevBatch) => {
-      if (!prevBatch) return null;
-
-      const updatedItems = prevBatch.items.map((item) =>
-        item.id === itemId ? { ...item, status, ...options } : item,
-      );
-
-      let completed = 0;
-      let failed = 0;
-      updatedItems.forEach((item) => {
-        if (item.status === "success") completed++;
-        if (item.status === "failed" || item.status === "canceled") failed++;
-      });
-
-      return {
-        ...prevBatch,
-        completed,
-        failed,
-        items: updatedItems,
-      };
-    });
-  };
-
-  const cancelItem = (itemId: string) => {
-    setCurrentBatch((prevBatch) => {
-      if (!prevBatch) return null;
-
-      const updatedItems = prevBatch.items.map((item) => {
-        if (item.id === itemId) {
-          item.abortController?.abort();
-          return { ...item, status: "canceled" as const };
-        }
-        return item;
-      });
-
-      let completed = 0;
-      let failed = 0;
-      updatedItems.forEach((item) => {
-        if (item.status === "success") completed++;
-        if (item.status === "failed" || item.status === "canceled") failed++;
-      });
-
-      return {
-        ...prevBatch,
-        completed,
-        failed,
-        items: updatedItems,
-      };
-    });
-  };
-
-  const clearBatch = () => {
-    setCurrentBatch(null);
-  };
+export function ImportProvider({ children }: PropsWithChildren) {
+  const store = useImportStore();
 
   const value: ImportContextType = {
-    currentBatch,
-    addBatch,
-    updateItemStatus,
-    cancelItem,
-    clearBatch,
-    importDialogOpen,
-    setImportDialogOpen,
+    currentBatch: store.currentBatch,
+    addBatch: store.addBatch,
+    updateItemStatus: store.updateItemStatus,
+    cancelItem: store.cancelItem,
+    clearBatch: store.clearBatch,
+    importDialogOpen: store.importDialogOpen,
+    setImportDialogOpen: store.setImportDialogOpen,
   };
 
   return (
@@ -145,3 +44,7 @@ export function useImportContext(): ImportContextType {
   }
   return context;
 }
+
+// Direct store export for components that want to use Zustand directly
+export { useImportStore };
+export type { ImportItem, ImportBatch };
