@@ -8,7 +8,6 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { Document } from "@/lib/library";
-import { useImageLoading } from "@/hooks/use-image-loading";
 import { invoke } from "@tauri-apps/api/core";
 
 interface DocumentImageProps {
@@ -41,19 +40,6 @@ export function DocumentImage({ document }: DocumentImageProps) {
     loadCoverUrl();
   }, [document]);
 
-  // Lazy load images with intersection observer
-  const { isLoaded, hasError, observeImage, handleLoad, handleError } =
-    useImageLoading();
-
-  const imageRef = (img: HTMLImageElement) => {
-    if (coverUrl) {
-      observeImage(img, coverUrl);
-      if (!isLoaded(coverUrl) && !hasError(coverUrl)) {
-        handleLoad(coverUrl);
-      }
-    }
-  };
-
   if (coverLoading) {
     return (
       <div className="shrink-0">
@@ -69,7 +55,6 @@ export function DocumentImage({ document }: DocumentImageProps) {
           <div className="cursor-pointer">
             <Image
               key={coverUrl}
-              ref={imageRef}
               src={coverUrl}
               alt={`${metadata.title} cover`}
               width={150}
@@ -77,11 +62,6 @@ export function DocumentImage({ document }: DocumentImageProps) {
               className="object-cover rounded border shadow-sm hover:shadow-md transition-opacity duration-200"
               loading="lazy"
               unoptimized
-              onLoad={() => handleLoad(coverUrl)}
-              onError={(e) => {
-                e.currentTarget.style.display = "none";
-                handleError(coverUrl);
-              }}
             />
           </div>
         </HoverCardTrigger>
@@ -99,9 +79,6 @@ export function DocumentImage({ document }: DocumentImageProps) {
             className="object-cover rounded border shadow-lg"
             loading="eager"
             unoptimized
-            onError={(e) => {
-              e.currentTarget.style.display = "none";
-            }}
           />
         </HoverCardContent>
       </HoverCard>
