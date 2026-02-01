@@ -20,9 +20,50 @@ import {
   FileTextIcon,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useImportContext } from "@/contexts/ImportContext";
+import { useImportContext, ImportBatch } from "@/contexts/ImportContext";
 import { ImportDrawer } from "@/components/ui/import-drawer";
 import { invoke } from "@tauri-apps/api/core";
+
+function showImportCompleteToast(
+  batch: ImportBatch,
+  itemType: "file" | "document",
+) {
+  const successCount = batch.items.filter(
+    (item) => item.status === "success",
+  ).length;
+  const failedCount = batch.items.filter(
+    (item) => item.status === "failed",
+  ).length;
+  const canceledCount = batch.items.filter(
+    (item) => item.status === "canceled",
+  ).length;
+
+  const pluralize = (count: number) => (count > 1 ? `${itemType}s` : itemType);
+
+  if (canceledCount > 0) {
+    if (successCount === 0 && failedCount === 0) {
+      toast.info(
+        `Import canceled. ${canceledCount} ${pluralize(canceledCount)} canceled.`,
+      );
+    } else if (failedCount === 0) {
+      toast.info(
+        `${successCount} ${pluralize(successCount)} imported, ${canceledCount} canceled`,
+      );
+    } else {
+      toast.warning(
+        `${successCount} imported, ${failedCount} failed, ${canceledCount} canceled`,
+      );
+    }
+  } else if (failedCount === 0) {
+    toast.success(
+      `Successfully imported ${successCount} ${pluralize(successCount)}!`,
+    );
+  } else if (successCount === 0) {
+    toast.error(`Failed to import ${failedCount} ${pluralize(failedCount)}`);
+  } else {
+    toast.warning(`${successCount} imported, ${failedCount} failed`);
+  }
+}
 
 interface ImportDialogProps {
   open: boolean;
@@ -116,9 +157,6 @@ export function ImportDialog({
       };
     });
 
-    let successCount = 0;
-    let errorCount = 0;
-
     try {
       const fileData = await Promise.all(fileDataPromises);
 
@@ -147,17 +185,14 @@ export function ImportDialog({
           updateItemStatus(itemId, "success", {
             completedAt: new Date(),
           });
-          successCount++;
         } else {
           const errorMsg = fileResult?.error || "Import failed";
           if (errorMsg.toLowerCase().includes("already exists")) {
             updateItemStatus(itemId, "success", {
               completedAt: new Date(),
             });
-            successCount++;
           } else {
             updateItemStatus(itemId, "failed", { error: errorMsg });
-            errorCount++;
           }
         }
       });
@@ -168,7 +203,6 @@ export function ImportDialog({
         updateItemStatus(itemId, "failed", {
           error: error instanceof Error ? error.message : "Import failed",
         });
-        errorCount++;
       });
     } finally {
       setImporting(false);
@@ -183,18 +217,8 @@ export function ImportDialog({
       folderInputRef.current.value = "";
     }
 
-    if (errorCount === 0) {
-      toast.success(
-        `Successfully imported ${successCount} file${
-          successCount > 1 ? "s" : ""
-        }!`,
-      );
-    } else if (successCount === 0) {
-      toast.error(
-        `Failed to import ${errorCount} file${errorCount > 1 ? "s" : ""}`,
-      );
-    } else {
-      toast.warning(`${successCount} imported, ${errorCount} failed`);
+    if (currentBatch) {
+      showImportCompleteToast(currentBatch, "file");
     }
   };
 
@@ -315,21 +339,8 @@ export function ImportDialog({
       onOpenChange(false);
       onImportComplete();
 
-      const successCount = result.results.filter((r) => r.success).length;
-      const errorCount = result.results.filter((r) => !r.success).length;
-
-      if (errorCount === 0) {
-        toast.success(
-          `Successfully imported ${successCount} document${
-            successCount > 1 ? "s" : ""
-          }!`,
-        );
-      } else if (successCount === 0) {
-        toast.error(
-          `Failed to import ${errorCount} document${errorCount > 1 ? "s" : ""}`,
-        );
-      } else {
-        toast.warning(`${successCount} imported, ${errorCount} failed`);
+      if (currentBatch) {
+        showImportCompleteToast(currentBatch, "document");
       }
     } catch (error) {
       console.error("Error importing URLs:", error);
