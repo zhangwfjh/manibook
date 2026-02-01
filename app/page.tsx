@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useEffectEvent } from "react";
 import { LibraryProvider, useLibraryContext } from "@/contexts/LibraryContext";
 import { ImportProvider } from "@/contexts/ImportContext";
 import { Sidebar } from "@/components/library/layout/sidebar";
@@ -21,11 +21,15 @@ function HomeContent() {
     loadFilteredData,
   } = useLibraryContext();
 
-  useEffect(() => {
+  const onLoadData = useEffectEvent(() => {
     if (libraryName) {
       loadFilteredData(filterParams, sortParams);
     }
-  }, [filterParams, sortParams, libraryName, loadFilteredData]);
+  });
+
+  useEffect(() => {
+    onLoadData();
+  }, [filterParams, sortParams, libraryName]);
 
   useEffect(() => {
     setTimeout(() => {

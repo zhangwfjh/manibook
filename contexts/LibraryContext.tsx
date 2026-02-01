@@ -46,8 +46,6 @@ interface LibraryContextType {
   showFavoritesOnly: boolean;
   setShowFavoritesOnly: (show: boolean) => void;
   filterParams: URLSearchParams;
-  hasActiveFilters: boolean;
-  resetFilters: () => void;
   isSearching: boolean;
 
   sortBy: string;
@@ -65,10 +63,13 @@ interface LibraryContextType {
   setNewLibraryName: (name: string) => void;
   newLibraryPath: string;
   setNewLibraryPath: (path: string) => void;
-  handleCreateLibrary: () => Promise<void>;
+  handleCreateLibrary: (params: {
+    name: string;
+    path: string;
+  }) => Promise<boolean>;
   resetCreateDialog: () => void;
 
-  handleOpen: (doc: Document) => void;
+  handleDocumentOpen: (doc: Document) => void;
   handleDocumentDelete: (document: Document) => Promise<void>;
   handleDocumentUpdate: (updatedDoc: Document) => Promise<Document | undefined>;
   handleFavoriteToggle: (document: Document) => Promise<void>;
@@ -118,13 +119,6 @@ export function LibraryProvider({ children }: LibraryProviderProps) {
   const libraryOperations = useLibraryOperations({
     setLibraryName: libraryData.setLibraryName,
     onLibrariesChange: libraryData.refreshLibraries,
-    setCreateLibraryOpen,
-    newLibraryName,
-    setNewLibraryName,
-    newLibraryPath,
-    setNewLibraryPath,
-    resetCreateDialog,
-    setBulkDeleteDialogOpen,
   });
 
   const documentHandlers = useDocumentHandlers({
@@ -182,7 +176,7 @@ export function LibraryProvider({ children }: LibraryProviderProps) {
     handleCreateLibrary: libraryOperations.handleCreateLibrary,
     resetCreateDialog,
     handleDocumentUpdate: handleDocumentUpdateWrapper,
-    handleOpen: documentHandlers.handleOpen,
+    handleDocumentOpen: documentHandlers.handleDocumentOpen,
     handleDocumentDelete: documentHandlers.handleDocumentDelete,
     handleFavoriteToggle: documentHandlers.handleFavoriteToggle,
     ...bulkOperations,

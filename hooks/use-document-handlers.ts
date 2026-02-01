@@ -13,7 +13,7 @@ export function useDocumentHandlers({
   sortParams,
   loadFilteredData,
 }: UseDocumentHandlersProps) {
-  const handleOpen = async (doc: Document) => {
+  const handleDocumentOpen = async (doc: Document) => {
     try {
       await invoke("open_document", {
         documentId: doc.id
@@ -63,7 +63,7 @@ export function useDocumentHandlers({
   };
 
   return {
-    handleOpen,
+    handleDocumentOpen,
     handleDocumentDelete,
     handleDocumentUpdate,
     handleFavoriteToggle,

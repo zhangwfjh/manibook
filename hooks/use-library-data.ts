@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Document, Category, Library } from "@/lib/library";
 import { PaginationInfo } from "@/lib/library/types";
@@ -22,30 +22,44 @@ export function useLibraryData() {
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [filterOptions, setFilterOptions] = useState<Record<string, Record<string, number>>>({});
-  const lastFetchParamsRef = useRef<string>("");
 
-  const pageSize = 50; // Default page size
+  // Track if component is mounted to prevent state updates after unmount
+  const isMountedRef = useRef(true);
+  const pageSize = 50;
 
-  const fetchLibraries = useCallback(async () => {
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const fetchLibraries = async () => {
     try {
       const libs = await invoke<Library[]>("get_libraries");
-      setLibraries(libs);
+      if (isMountedRef.current) {
+        setLibraries(libs);
+      }
     } catch (error) {
       console.error("Error fetching libraries:", error);
     }
-  }, []);
+  };
 
-  const fetchCategories = useCallback(async () => {
+  const fetchCategories = async () => {
     try {
-      const categories = await invoke<Category[]>("get_library_categories");
-      setCategories(categories);
+      const cats = await invoke<Category[]>("get_library_categories");
+      if (isMountedRef.current) {
+        setCategories(cats);
+      }
     } catch (error) {
       console.error("Error fetching categories:", error);
-      setCategories([]);
+      if (isMountedRef.current) {
+        setCategories([]);
+      }
     }
-  }, []);
+  };
 
-  const fetchLibraryData = useCallback(async (page: number = 1, additionalParams?: URLSearchParams) => {
+  const fetchLibraryData = async (page: number = 1, additionalParams?: URLSearchParams) => {
     const params = new URLSearchParams();
     params.set('page', page.toString());
     params.set('limit', pageSize.toString());
@@ -56,17 +70,11 @@ export function useLibraryData() {
       });
     }
 
-    const paramsString = params.toString();
-
-    if (lastFetchParamsRef.current === paramsString) {
-      return;
-    }
-    lastFetchParamsRef.current = paramsString;
-
     try {
-      setLoading(true);
+      if (isMountedRef.current) {
+        setLoading(true);
+      }
 
-      // Build query object
       const query = {
         page: parseInt(params.get('page') || '1'),
         limit: Math.min(parseInt(params.get('limit') || '50'), 200),
@@ -82,47 +90,53 @@ export function useLibraryData() {
       };
 
       const data = await invoke<DocumentsResponse>('get_documents', { query });
-      const documents = data?.documents || [];
-      const totalPages = Math.ceil((data?.total_count || 0) / (data?.limit || query.limit));
-      const pagination = {
-        page: data?.page || query.page,
-        limit: data?.limit || query.limit,
-        totalCount: data?.total_count || 0,
-        totalPages,
-        hasNextPage: !!data?.has_next,
-        hasPrevPage: !!data?.has_prev,
-      };
-      const filterOptionsData = data?.filter_options || {};
 
-      setDocuments(documents);
-      setPagination(pagination);
-      setFilterOptions(filterOptionsData);
+      if (isMountedRef.current) {
+        const documents = data?.documents || [];
+        const totalPages = Math.ceil((data?.total_count || 0) / (data?.limit || query.limit));
+        const pagination = {
+          page: data?.page || query.page,
+          limit: data?.limit || query.limit,
+          totalCount: data?.total_count || 0,
+          totalPages,
+          hasNextPage: !!data?.has_next,
+          hasPrevPage: !!data?.has_prev,
+        };
+        const filterOptionsData = data?.filter_options || {};
+
+        setDocuments(documents);
+        setPagination(pagination);
+        setFilterOptions(filterOptionsData);
+      }
     } catch (error) {
-      console.error("Error fetching library data:", error);
+      if (isMountedRef.current) {
+        console.error("Error fetching library data:", error);
+      }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
-  }, []);
+  };
 
+  // Load libraries on mount
   useEffect(() => {
     fetchLibraries();
-  }, [fetchLibraries]);
+  }, []);
 
+  // Load categories when library changes
   useEffect(() => {
     if (libraryName) {
       fetchCategories();
-      lastFetchParamsRef.current = "";
     }
-  }, [libraryName, fetchCategories]);
+  }, [libraryName]);
 
-  // Load specific page
-  const loadPage = useCallback(async (page: number, filters?: URLSearchParams) => {
+  const loadPage = async (page: number, filters?: URLSearchParams) => {
     setCurrentPage(page);
     await fetchLibraryData(page, filters);
-  }, [fetchLibraryData]);
+  };
 
-  // Load filtered data
-  const loadFilteredData = useCallback(async (filterParams: URLSearchParams | undefined, sortParams: URLSearchParams | undefined) => {
+  const loadFilteredData = async (filterParams: URLSearchParams | undefined, sortParams: URLSearchParams | undefined) => {
     const combinedParams = new URLSearchParams();
     if (filterParams) {
       filterParams.forEach((value, key) => combinedParams.set(key, value));
@@ -132,19 +146,18 @@ export function useLibraryData() {
     }
     setCurrentPage(1);
     await fetchLibraryData(1, combinedParams);
-  }, [fetchLibraryData]);
+  };
 
-  const refreshLibraries = useCallback(async () => {
+  const refreshLibraries = async () => {
     await fetchLibraries();
-  }, [fetchLibraries]);
+  };
 
-  const refreshLibraryData = useCallback(async () => {
-    lastFetchParamsRef.current = "";
+  const refreshLibraryData = async () => {
     await Promise.all([
       fetchLibraryData(currentPage),
       fetchCategories()
     ]);
-  }, [fetchLibraryData, fetchCategories, currentPage]);
+  };
 
   return {
     libraryName,

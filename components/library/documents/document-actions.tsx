@@ -23,13 +23,13 @@ interface DocumentActionsProps {
 }
 
 export function DocumentActions({ document }: DocumentActionsProps) {
-  const { handleOpen, handleFavoriteToggle, handleDocumentDelete } =
+  const { handleDocumentOpen, handleFavoriteToggle, handleDocumentDelete } =
     useLibraryContext();
   const { metadata } = document;
 
   const handleOpenClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    handleOpen(document);
+    handleDocumentOpen(document);
   };
 
   const handleFavoriteClick = (e: React.MouseEvent) => {

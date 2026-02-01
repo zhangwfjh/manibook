@@ -4,51 +4,38 @@ import { invoke } from "@tauri-apps/api/core";
 interface UseLibraryOperationsProps {
   setLibraryName: (library: string) => void;
   onLibrariesChange: () => void;
-  setCreateLibraryOpen: (open: boolean) => void;
-  newLibraryName: string;
-  setNewLibraryName: (name: string) => void;
-  newLibraryPath: string;
-  setNewLibraryPath: (path: string) => void;
-  resetCreateDialog: () => void;
-  setBulkDeleteDialogOpen: (open: boolean) => void;
+}
+
+interface CreateLibraryParams {
+  name: string;
+  path: string;
 }
 
 export function useLibraryOperations({
   setLibraryName,
   onLibrariesChange,
-  setCreateLibraryOpen,
-  newLibraryName,
-  setNewLibraryName,
-  newLibraryPath,
-  setNewLibraryPath,
-  resetCreateDialog,
-  setBulkDeleteDialogOpen,
 }: UseLibraryOperationsProps) {
-
-  const handleCreateLibrary = async () => {
-    if (!newLibraryName || !newLibraryPath) {
+  const handleCreateLibrary = async ({ name, path }: CreateLibraryParams) => {
+    if (!name || !path) {
       toast.error("Please fill in all fields");
-      return;
+      return false;
     }
 
     try {
-      await invoke("create_library", { name: newLibraryName, path: newLibraryPath });
-      await invoke("open_library", { libraryName: newLibraryName });
+      await invoke("create_library", { name, path });
+      await invoke("open_library", { libraryName: name });
       toast.success("Library created successfully");
-      setCreateLibraryOpen(false);
-      setLibraryName(newLibraryName);
-      setNewLibraryName("");
-      setNewLibraryPath("");
+      setLibraryName(name);
       onLibrariesChange();
+      return true;
     } catch (error) {
       console.error("Error creating library:", error);
       toast.error(typeof error === 'string' ? error : "Failed to create library");
+      return false;
     }
   };
 
   return {
     handleCreateLibrary,
-    resetCreateDialog,
-    setBulkDeleteDialogOpen,
   };
 }

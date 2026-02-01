@@ -31,7 +31,7 @@ export const DocumentList = ({
   const {
     handleDocumentClick,
     handleToggleDocumentSelection,
-    handleOpen,
+    handleDocumentOpen,
     handleFavoriteToggle,
     handleDocumentDelete,
     selectionMode,
@@ -239,7 +239,7 @@ export const DocumentList = ({
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleOpen(document);
+                        handleDocumentOpen(document);
                       }}
                     >
                       <BookOpenIcon className="h-4 w-4" />

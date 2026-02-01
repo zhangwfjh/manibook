@@ -11,14 +11,15 @@ export function usePaginationControls(
   const hasNextPage = pagination?.hasNextPage || false;
   const hasPrevPage = pagination?.hasPrevPage || false;
 
+  const combinedParams = new URLSearchParams();
+  if (filterParams) {
+    filterParams.forEach((value, key) => combinedParams.set(key, value));
+  }
+  if (sortParams) {
+    sortParams.forEach((value, key) => combinedParams.set(key, value));
+  }
+
   const goToPage = (page: number) => {
-    const combinedParams = new URLSearchParams();
-    if (filterParams) {
-      filterParams.forEach((value, key) => combinedParams.set(key, value));
-    }
-    if (sortParams) {
-      sortParams.forEach((value, key) => combinedParams.set(key, value));
-    }
     loadPage(page, combinedParams);
   };
 

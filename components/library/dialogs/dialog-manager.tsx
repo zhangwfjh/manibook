@@ -34,7 +34,7 @@ export function DialogManager() {
     refreshLibraryData,
     selectedDocuments,
     handleBulkDelete,
-    handleOpen,
+    handleDocumentOpen,
     handleDocumentDelete,
     handleDocumentUpdate,
   } = useLibraryContext();
@@ -47,7 +47,7 @@ export function DialogManager() {
         document={selectedDocument}
         open={documentDialogOpen}
         onOpenChange={setDocumentDialogOpen}
-        onOpen={handleOpen}
+        onOpen={handleDocumentOpen}
         onDelete={handleDocumentDelete}
         onUpdate={handleDocumentUpdate}
       />

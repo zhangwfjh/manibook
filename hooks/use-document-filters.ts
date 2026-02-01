@@ -1,16 +1,62 @@
-import { useState, useMemo } from "react";
+import { useReducer } from "react";
 import { useDebouncedSearch } from "./use-debounced-search";
 
-export function useDocumentFilters() {
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [selectedKeywords, setSelectedKeywords] = useState<string[]>([]);
-  const [selectedFormats, setSelectedFormats] = useState<string[]>([]);
-  const [selectedAuthors, setSelectedAuthors] = useState<string[]>([]);
-  const [selectedPublishers, setSelectedPublishers] = useState<string[]>([]);
-  const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
-  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+interface FilterState {
+  selectedCategory: string;
+  selectedKeywords: string[];
+  selectedFormats: string[];
+  selectedAuthors: string[];
+  selectedPublishers: string[];
+  selectedLanguages: string[];
+  showFavoritesOnly: boolean;
+}
 
-  // Use debounced search for the search query
+type FilterAction =
+  | { type: "SET_CATEGORY"; payload: string }
+  | { type: "SET_KEYWORDS"; payload: string[] }
+  | { type: "SET_FORMATS"; payload: string[] }
+  | { type: "SET_AUTHORS"; payload: string[] }
+  | { type: "SET_PUBLISHERS"; payload: string[] }
+  | { type: "SET_LANGUAGES"; payload: string[] }
+  | { type: "SET_FAVORITES"; payload: boolean }
+  | { type: "RESET" };
+
+const initialState: FilterState = {
+  selectedCategory: "",
+  selectedKeywords: [],
+  selectedFormats: [],
+  selectedAuthors: [],
+  selectedPublishers: [],
+  selectedLanguages: [],
+  showFavoritesOnly: false,
+};
+
+function filterReducer(state: FilterState, action: FilterAction): FilterState {
+  switch (action.type) {
+    case "SET_CATEGORY":
+      return { ...state, selectedCategory: action.payload };
+    case "SET_KEYWORDS":
+      return { ...state, selectedKeywords: action.payload };
+    case "SET_FORMATS":
+      return { ...state, selectedFormats: action.payload };
+    case "SET_AUTHORS":
+      return { ...state, selectedAuthors: action.payload };
+    case "SET_PUBLISHERS":
+      return { ...state, selectedPublishers: action.payload };
+    case "SET_LANGUAGES":
+      return { ...state, selectedLanguages: action.payload };
+    case "SET_FAVORITES":
+      return { ...state, showFavoritesOnly: action.payload };
+    case "RESET":
+      return initialState;
+    default:
+      return state;
+  }
+}
+
+export function useDocumentFilters() {
+  const [state, dispatch] = useReducer(filterReducer, initialState);
+
   const {
     searchValue: searchQuery,
     debouncedSearchValue: debouncedSearchQuery,
@@ -18,78 +64,87 @@ export function useDocumentFilters() {
     isSearching,
   } = useDebouncedSearch("", 300);
 
-  // Build filter parameters for API calls (using debounced search value)
-  const filterParams = useMemo(() => {
-    const params = new URLSearchParams();
+  const filterParams = new URLSearchParams();
 
-    if (selectedCategory) {
-      params.set('category', selectedCategory);
-    }
+  if (state.selectedCategory) {
+    filterParams.set("category", state.selectedCategory);
+  }
 
-    if (selectedKeywords.length > 0) {
-      params.set('keywords', selectedKeywords.join(','));
-    }
+  if (state.selectedKeywords.length > 0) {
+    filterParams.set("keywords", state.selectedKeywords.join(","));
+  }
 
-    if (selectedFormats.length > 0) {
-      params.set('formats', selectedFormats.join(','));
-    }
+  if (state.selectedFormats.length > 0) {
+    filterParams.set("formats", state.selectedFormats.join(","));
+  }
 
-    if (selectedAuthors.length > 0) {
-      params.set('authors', selectedAuthors.join(','));
-    }
+  if (state.selectedAuthors.length > 0) {
+    filterParams.set("authors", state.selectedAuthors.join(","));
+  }
 
-    if (selectedPublishers.length > 0) {
-      params.set('publishers', selectedPublishers.join(','));
-    }
+  if (state.selectedPublishers.length > 0) {
+    filterParams.set("publishers", state.selectedPublishers.join(","));
+  }
 
-    if (selectedLanguages.length > 0) {
-      params.set('languages', selectedLanguages.join(','));
-    }
+  if (state.selectedLanguages.length > 0) {
+    filterParams.set("languages", state.selectedLanguages.join(","));
+  }
 
-    if (debouncedSearchQuery) {
-      params.set('search', debouncedSearchQuery);
-    }
+  if (debouncedSearchQuery) {
+    filterParams.set("search", debouncedSearchQuery);
+  }
 
-    if (showFavoritesOnly) {
-      params.set('favoritesOnly', 'true');
-    }
-
-    return params;
-  }, [selectedCategory, selectedKeywords, selectedFormats, selectedAuthors, selectedPublishers, selectedLanguages, debouncedSearchQuery, showFavoritesOnly]);
+  if (state.showFavoritesOnly) {
+    filterParams.set("favoritesOnly", "true");
+  }
 
   const resetFilters = () => {
-    setSelectedCategory("");
-    setSelectedKeywords([]);
-    setSelectedFormats([]);
-    setSelectedAuthors([]);
-    setSelectedPublishers([]);
-    setSelectedLanguages([]);
+    dispatch({ type: "RESET" });
     setSearchQuery("");
-    setShowFavoritesOnly(false);
   };
 
-  // Check if any filters are active
-  const hasActiveFilters = useMemo(() => {
-    return !!(selectedCategory || selectedKeywords.length || selectedFormats.length ||
-      selectedAuthors.length || selectedPublishers.length || selectedLanguages.length || searchQuery || showFavoritesOnly);
-  }, [selectedCategory, selectedKeywords, selectedFormats, selectedAuthors, selectedPublishers, selectedLanguages, searchQuery, showFavoritesOnly]);
+  const hasActiveFilters = !!(
+    state.selectedCategory ||
+    state.selectedKeywords.length ||
+    state.selectedFormats.length ||
+    state.selectedAuthors.length ||
+    state.selectedPublishers.length ||
+    state.selectedLanguages.length ||
+    searchQuery ||
+    state.showFavoritesOnly
+  );
+
+  const setSelectedCategory = (category: string) =>
+    dispatch({ type: "SET_CATEGORY", payload: category });
+  const setSelectedKeywords = (keywords: string[]) =>
+    dispatch({ type: "SET_KEYWORDS", payload: keywords });
+  const setSelectedFormats = (formats: string[]) =>
+    dispatch({ type: "SET_FORMATS", payload: formats });
+  const setSelectedAuthors = (authors: string[]) =>
+    dispatch({ type: "SET_AUTHORS", payload: authors });
+  const setSelectedPublishers = (publishers: string[]) =>
+    dispatch({ type: "SET_PUBLISHERS", payload: publishers });
+  const setSelectedLanguages = (languages: string[]) =>
+    dispatch({ type: "SET_LANGUAGES", payload: languages });
+  const setShowFavoritesOnly = (show: boolean) =>
+    dispatch({ type: "SET_FAVORITES", payload: show });
 
   return {
-    selectedCategory,
+    selectedCategory: state.selectedCategory,
     setSelectedCategory,
-    selectedKeywords,
+    selectedKeywords: state.selectedKeywords,
     setSelectedKeywords,
-    selectedFormats,
+    selectedFormats: state.selectedFormats,
     setSelectedFormats,
-    selectedAuthors,
+    selectedAuthors: state.selectedAuthors,
     setSelectedAuthors,
-    selectedPublishers,
+    selectedPublishers: state.selectedPublishers,
     setSelectedPublishers,
-    selectedLanguages,
+    selectedLanguages: state.selectedLanguages,
     setSelectedLanguages,
     searchQuery,
     setSearchQuery,
-    showFavoritesOnly,
+    showFavoritesOnly: state.showFavoritesOnly,
     setShowFavoritesOnly,
     filterParams,
     hasActiveFilters,

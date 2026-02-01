@@ -11,7 +11,7 @@ import { useLibraryContext } from "@/contexts/LibraryContext";
 
 export function DocumentRow({ document, style }: DocumentRowProps) {
   const {
-    handleOpen,
+    handleDocumentOpen,
     handleFavoriteToggle,
     handleDocumentDelete,
     handleDocumentClick,
@@ -32,7 +32,7 @@ export function DocumentRow({ document, style }: DocumentRowProps) {
 
   const handleOpenClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    handleOpen(document);
+    handleDocumentOpen(document);
   };
 
   const handleFavorite = (e: React.MouseEvent) => {
