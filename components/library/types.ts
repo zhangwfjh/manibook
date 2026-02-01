@@ -7,7 +7,7 @@ export type ViewMode = "card" | "list";
 export type SortOption =
   | "title-asc" | "title-desc"
   | "author-asc" | "author-desc"
-  | "year-desc" | "year-asc"
+  | "publicationYear-desc" | "publicationYear-asc"
   | "numPages-asc" | "numPages-desc"
   | "updatedAt-desc" | "updatedAt-asc"
   | "filesize-asc" | "filesize-desc";
@@ -17,8 +17,8 @@ export const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "title-desc", label: "Title Z-A" },
   { value: "author-asc", label: "Author A-Z" },
   { value: "author-desc", label: "Author Z-A" },
-  { value: "year-desc", label: "Publication Year Newest" },
-  { value: "year-asc", label: "Publication Year Oldest" },
+  { value: "publicationYear-desc", label: "Publication Year Newest" },
+  { value: "publicationYear-asc", label: "Publication Year Oldest" },
   { value: "numPages-asc", label: "Pages Fewest" },
   { value: "numPages-desc", label: "Pages Most" },
   { value: "updatedAt-desc", label: "Recently Updated" },

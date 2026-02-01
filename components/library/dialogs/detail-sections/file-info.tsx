@@ -7,8 +7,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Document } from "@/lib/library";
-import { formatFileSize, getFormatIcon } from "@/lib/library";
+import { Document, formatFileSize, getFormatIcon } from "@/lib/library";
 
 interface DialogFileInfoProps {
   document: Document;

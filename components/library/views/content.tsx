@@ -24,8 +24,14 @@ import { DocumentCardSkeleton } from "@/components/library/documents/card-skelet
 import { DocumentListSkeleton } from "@/components/library/documents/list-skeleton";
 import { Pagination } from "./pagination";
 import { BookOpenIcon, LibraryIcon } from "lucide-react";
-import { useLibraryContext } from "@/contexts/LibraryContext";
 import { ViewMode } from "@/components/library/types";
+import {
+  useLibraryDataStore,
+  useLibraryFilterStore,
+  useLibraryOperations,
+  useLibraryUIStore,
+} from "@/stores";
+import { useFilterWithReload } from "@/hooks/library";
 
 interface ContentProps {
   viewMode: ViewMode;
@@ -35,17 +41,15 @@ export function Content({ viewMode }: ContentProps) {
   const {
     libraryName,
     setLibraryName,
-    selectedCategory,
+    libraries,
     documents,
     loading,
     pagination,
-    loadPage,
-    setSelectedCategory,
-    libraries,
-    setCreateLibraryOpen,
-    filterParams,
-    sortParams,
-  } = useLibraryContext();
+  } = useLibraryDataStore();
+  const { selectedCategory, getFilterParams } = useLibraryFilterStore();
+  const { setSelectedCategory } = useFilterWithReload();
+  const { loadPage } = useLibraryOperations();
+  const { sortBy } = useLibraryUIStore();
 
   const currentPage = pagination?.page || 1;
   const totalPages = pagination?.totalPages || 1;
@@ -54,11 +58,12 @@ export function Content({ viewMode }: ContentProps) {
   const hasPrevPage = pagination?.hasPrevPage || false;
 
   const combinedParams = new URLSearchParams();
+  const filterParams = getFilterParams();
   if (filterParams) {
     filterParams.forEach((value, key) => combinedParams.set(key, value));
   }
-  if (sortParams) {
-    sortParams.forEach((value, key) => combinedParams.set(key, value));
+  if (sortBy) {
+    combinedParams.set("sortBy", sortBy);
   }
 
   const goToPage = (page: number) => {
@@ -90,30 +95,6 @@ export function Content({ viewMode }: ContentProps) {
     />
   );
 
-  if (libraries.length === 0) {
-    return (
-      <div className="flex-1 min-w-0">
-        <Empty>
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <LibraryIcon className="h-12 w-12" />
-            </EmptyMedia>
-            <EmptyTitle>Welcome to ManiBook</EmptyTitle>
-            <EmptyDescription>
-              Create your first library to start organizing your document
-              collection with powerful search and filtering capabilities.
-            </EmptyDescription>
-          </EmptyHeader>
-          <div className="flex justify-center">
-            <Button onClick={() => setCreateLibraryOpen(true)}>
-              Create Library
-            </Button>
-          </div>
-        </Empty>
-      </div>
-    );
-  }
-
   if (!libraryName) {
     return (
       <div className="flex-1 min-w-0">
@@ -122,36 +103,34 @@ export function Content({ viewMode }: ContentProps) {
             <EmptyMedia variant="icon">
               <BookOpenIcon className="h-12 w-12" />
             </EmptyMedia>
-            <EmptyTitle>Select a Library</EmptyTitle>
+            <EmptyTitle>Welcome to ManiBook</EmptyTitle>
             <EmptyDescription>
-              You have {libraries.length}{" "}
-              {libraries.length === 1 ? "library" : "libraries"} available.
-              Select one from the list below to view its documents.
+              Create a new library or Select one from the list below.
             </EmptyDescription>
           </EmptyHeader>
           <div className="w-full max-w-md">
-            <div className="space-y-1">
-              {libraries.map((library) => (
-                <button
-                  key={library.name}
-                  onClick={async () => {
-                    await invoke("open_library", { libraryName: library.name });
-                    setLibraryName(library.name);
-                  }}
-                  className="w-full text-left px-4 py-2 rounded-md hover:bg-muted transition-colors text-sm text-foreground hover:text-primary flex items-center gap-2"
-                >
-                  <LibraryIcon className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{library.name}</span>
-                </button>
-              ))}
+            {libraries.map((library) => (
               <button
-                onClick={() => setCreateLibraryOpen(true)}
+                key={library.name}
+                onClick={async () => {
+                  await invoke("open_library", { libraryName: library.name });
+                  setLibraryName(library.name);
+                }}
                 className="w-full text-left px-4 py-2 rounded-md hover:bg-muted transition-colors text-sm text-foreground hover:text-primary flex items-center gap-2"
               >
                 <LibraryIcon className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">Create New Library</span>
+                <span className="font-medium">{library.name}</span>
               </button>
-            </div>
+            ))}
+          </div>
+          <div className="flex justify-center">
+            <Button
+              onClick={() =>
+                useLibraryUIStore.getState().setCreateLibraryOpen(true)
+              }
+            >
+              Create Library
+            </Button>
           </div>
         </Empty>
       </div>

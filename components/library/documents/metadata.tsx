@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
+import { CardTitle } from "@/components/ui/card";
 import { UsersIcon } from "lucide-react";
 import { Metadata as MetadataType } from "@/lib/library";
-import { CardTitle } from "@/components/ui/card";
 
 interface MetadataProps {
   metadata: MetadataType;

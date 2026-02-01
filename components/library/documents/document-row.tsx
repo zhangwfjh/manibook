@@ -7,27 +7,18 @@ import { HeartIcon, BookOpenIcon, TrashIcon } from "lucide-react";
 import { formatFileSize } from "@/lib/library";
 import { DocumentMetadata } from "./metadata";
 import { DocumentRowProps } from "../types";
-import { useLibraryContext } from "@/contexts/LibraryContext";
+import { useLibraryUIStore, useLibraryOperations } from "@/stores/library";
 
 export function DocumentRow({ document, style }: DocumentRowProps) {
-  const {
-    openDocument,
-    toggleFavorite,
-    deleteDocument,
-    handleDocumentClick,
-    toggleDocumentSelection,
-    selectionMode,
-    selectedDocuments,
-  } = useLibraryContext();
+  const { handleDocumentClick, selectionMode, selectedDocuments } =
+    useLibraryUIStore();
+  const { openDocument, toggleFavorite, deleteDocument } =
+    useLibraryOperations();
 
   const selected = selectedDocuments?.has(document.id) ?? false;
 
   const handleClick = () => {
-    if (selectionMode) {
-      toggleDocumentSelection(document.id);
-    } else {
-      handleDocumentClick(document);
-    }
+    handleDocumentClick(document, selectionMode);
   };
 
   const handleOpenClick = (e: React.MouseEvent) => {

@@ -16,14 +16,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { HeartIcon, BookOpenIcon, TrashIcon } from "lucide-react";
 import { Document } from "@/lib/library";
-import { useLibraryContext } from "@/contexts/LibraryContext";
+import { useLibraryOperations } from "@/stores/library";
 
 interface DocumentActionsProps {
   document: Document;
 }
 
 export function DocumentActions({ document }: DocumentActionsProps) {
-  const { openDocument, toggleFavorite, deleteDocument } = useLibraryContext();
+  const { openDocument, toggleFavorite, deleteDocument } =
+    useLibraryOperations();
   const { metadata } = document;
 
   const handleOpenClick = (e: React.MouseEvent) => {

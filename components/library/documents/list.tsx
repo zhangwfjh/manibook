@@ -13,10 +13,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { HeartIcon, BookOpenIcon, TrashIcon } from "lucide-react";
-import { formatFileSize, Document } from "@/lib/library";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { DocumentRow } from "./document-row";
-import { useLibraryContext } from "@/contexts/LibraryContext";
+import { useLibraryUIStore, useLibraryOperations } from "@/stores";
+import { type Document, formatFileSize } from "@/lib/library";
 
 interface DocumentListProps {
   documents: Document[];
@@ -29,14 +29,13 @@ export const DocumentList = ({
   useVirtualization: useVirtualizationProp,
 }: DocumentListProps) => {
   const {
-    handleDocumentClick,
-    toggleDocumentSelection,
-    openDocument,
-    toggleFavorite,
-    deleteDocument,
     selectionMode,
     selectedDocuments,
-  } = useLibraryContext();
+    toggleDocumentSelection,
+    handleDocumentClick,
+  } = useLibraryUIStore();
+  const { openDocument, toggleFavorite, deleteDocument } =
+    useLibraryOperations();
 
   const parentRef = useRef<HTMLDivElement>(null);
 
@@ -61,11 +60,7 @@ export const DocumentList = ({
   const virtualRows = virtualizer.getVirtualItems();
 
   const handleRowClick = (document: Document) => {
-    if (selectionMode) {
-      toggleDocumentSelection(document.id);
-    } else {
-      handleDocumentClick(document);
-    }
+    handleDocumentClick(document, selectionMode);
   };
 
   const handleSelectAll = () => {

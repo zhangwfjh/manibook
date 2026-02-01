@@ -13,8 +13,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useLibraryContext } from "@/contexts/LibraryContext";
-import { useImportContext } from "@/contexts/ImportContext";
+import { useLibraryUIStore, useLibraryOperations } from "@/stores/library";
+import { useImportStore } from "@/stores/importStore";
 
 export function DialogManager() {
   const {
@@ -30,16 +30,18 @@ export function DialogManager() {
     bulkDeleteDialogOpen,
     setBulkDeleteDialogOpen,
     resetCreateDialog,
+    selectedDocuments,
+    handleDocumentUpdate,
+  } = useLibraryUIStore();
+  const {
     createLibrary,
     refreshData,
-    selectedDocuments,
     bulkDelete,
     openDocument,
     deleteDocument,
-    handleDocumentUpdate,
-  } = useLibraryContext();
+  } = useLibraryOperations();
 
-  const { importDialogOpen, setImportDialogOpen } = useImportContext();
+  const { importDialogOpen, setImportDialogOpen } = useImportStore();
 
   return (
     <>
@@ -87,7 +89,7 @@ export function DialogManager() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={bulkDelete}
+              onClick={() => bulkDelete(Array.from(selectedDocuments))}
             >
               Delete
             </AlertDialogAction>

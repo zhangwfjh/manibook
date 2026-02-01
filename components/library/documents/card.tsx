@@ -9,20 +9,15 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { CalendarIcon } from "lucide-react";
-import { Document } from "@/lib/library";
-import { formatFileSize, getFormatIcon } from "@/lib/library";
+import { Document, formatFileSize, getFormatIcon } from "@/lib/library";
 import { DocumentMetadata } from "./metadata";
 import { DocumentActions } from "./document-actions";
 import { DocumentImage } from "./document-image";
-import { useLibraryContext } from "@/contexts/LibraryContext";
+import { useLibraryUIStore } from "@/stores/library";
 
 export const DocumentCard = ({ document }: { document: Document }) => {
-  const {
-    handleDocumentClick,
-    toggleDocumentSelection,
-    selectionMode,
-    selectedDocuments,
-  } = useLibraryContext();
+  const { handleDocumentClick, selectionMode, selectedDocuments } =
+    useLibraryUIStore();
 
   const { metadata } = document;
   const selected = selectedDocuments?.has(document.id) ?? false;
@@ -34,11 +29,7 @@ export const DocumentCard = ({ document }: { document: Document }) => {
   const formatIcon = metadata.format ? getFormatIcon(metadata.format) : null;
 
   const handleCardClick = () => {
-    if (selectionMode) {
-      toggleDocumentSelection(document.id);
-    } else {
-      handleDocumentClick(document);
-    }
+    handleDocumentClick(document, selectionMode);
   };
 
   return (

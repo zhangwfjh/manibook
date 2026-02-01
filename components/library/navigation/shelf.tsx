@@ -4,8 +4,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChevronRightIcon, ChevronDownIcon, FolderIcon } from "lucide-react";
-import { Category } from "@/lib/library";
-import { useLibraryContext } from "@/contexts/LibraryContext";
+import { useLibraryDataStore, useLibraryFilterStore } from "@/stores";
+import { useFilterWithReload } from "@/hooks/library";
+import type { Category } from "@/lib/library";
 
 interface CategoryNodeProps {
   category: Category;
@@ -80,8 +81,9 @@ function CategoryNode({
 }
 
 export function Shelf() {
-  const { categories, selectedCategory, setSelectedCategory } =
-    useLibraryContext();
+  const { categories } = useLibraryDataStore();
+  const { selectedCategory } = useLibraryFilterStore();
+  const { setSelectedCategory } = useFilterWithReload();
 
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 

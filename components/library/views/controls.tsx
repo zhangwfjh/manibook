@@ -23,8 +23,13 @@ import { SettingsDialog } from "@/components/library/dialogs/settings-dialog";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BulkMoveDropdown } from "@/components/library/features/move-dropdown";
 import { ViewMode, SORT_OPTIONS } from "@/components/library/types";
-import { useLibraryContext } from "@/contexts/LibraryContext";
-import { useImportContext } from "@/contexts/ImportContext";
+import {
+  useLibraryDataStore,
+  useLibraryFilterStore,
+  useLibraryUIStore,
+  useLibraryOperations,
+  useImportStore,
+} from "@/stores";
 
 export function Controls({
   viewMode,
@@ -33,23 +38,21 @@ export function Controls({
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
 }) {
+  const { searchQuery, setSearchQuery } = useLibraryFilterStore();
+  const { sortBy, setSortBy } = useLibraryUIStore();
+  const { libraries } = useLibraryDataStore();
+  const { isSearching } = useLibraryFilterStore();
   const {
-    searchQuery,
-    setSearchQuery,
-    sortBy,
-    setSortBy,
-    libraries,
-    isSearching,
     selectionMode,
     toggleSelectionMode,
     selectedDocuments,
     selectAllDocuments,
     clearSelection,
-    bulkMove,
     setBulkDeleteDialogOpen,
-  } = useLibraryContext();
+  } = useLibraryUIStore();
+  const { bulkMove } = useLibraryOperations();
+  const { setImportDialogOpen } = useImportStore();
 
-  const { setImportDialogOpen } = useImportContext();
   return (
     <div className="mb-6 space-y-4">
       <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
@@ -81,7 +84,9 @@ export function Controls({
                 <>
                   <BulkMoveDropdown
                     selectedCount={selectedDocuments.size}
-                    onBulkMove={bulkMove}
+                    onBulkMove={(doctype, category) =>
+                      bulkMove(Array.from(selectedDocuments), doctype, category)
+                    }
                   />
                   <Button
                     variant="destructive"

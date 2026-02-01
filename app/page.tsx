@@ -1,19 +1,29 @@
 "use client";
 
 import { useState, useEffect, useEffectEvent } from "react";
-import { LibraryProvider, useLibraryContext } from "@/contexts/LibraryContext";
-import { ImportProvider } from "@/contexts/ImportContext";
 import { Sidebar } from "@/components/library/navigation/sidebar";
 import { Controls } from "@/components/library/views/controls";
 import { Content } from "@/components/library/views/content";
 import { DialogManager } from "@/components/library/dialogs/dialog-manager";
 import { ViewMode } from "@/components/library/types";
+import {
+  useLibraryDataStore,
+  useLibraryFilterStore,
+  useLibraryOperations,
+  useLibraryUIStore,
+} from "@/stores";
+import { useLibraryInit, useDebouncedSearch } from "@/hooks/library";
 
 function HomeContent() {
   const [viewMode, setViewMode] = useState<ViewMode>("card");
 
-  const { libraryName, selectedCategory, clearSelection, loadFilteredData } =
-    useLibraryContext();
+  useLibraryInit();
+  useDebouncedSearch();
+
+  const { libraryName } = useLibraryDataStore();
+  const { selectedCategory } = useLibraryFilterStore();
+  const { loadFilteredData } = useLibraryOperations();
+  const { clearSelection } = useLibraryUIStore();
 
   const onLoadData = useEffectEvent(() => {
     if (libraryName) {
@@ -68,11 +78,5 @@ function HomeContent() {
 }
 
 export default function Home() {
-  return (
-    <ImportProvider>
-      <LibraryProvider>
-        <HomeContent />
-      </LibraryProvider>
-    </ImportProvider>
-  );
+  return <HomeContent />;
 }

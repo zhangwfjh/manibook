@@ -20,7 +20,7 @@ import {
   FileTextIcon,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useImportContext, ImportBatch } from "@/contexts/ImportContext";
+import { useImportStore, ImportBatch } from "@/stores/importStore";
 import { ImportDrawer } from "@/components/ui/import-drawer";
 import { invoke } from "@tauri-apps/api/core";
 
@@ -81,7 +81,7 @@ export function ImportDialog({
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const { addBatch, updateItemStatus, clearBatch, currentBatch } =
-    useImportContext();
+    useImportStore();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);

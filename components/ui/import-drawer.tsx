@@ -21,7 +21,7 @@ import {
   BanIcon,
 } from "lucide-react";
 import { format } from "date-fns";
-import { useImportContext, ImportItem } from "@/contexts/ImportContext";
+import { useImportStore, type ImportItem } from "@/stores";
 import {
   Item,
   ItemMedia,
@@ -53,7 +53,7 @@ function getStatusIcon(status: ImportItem["status"]) {
 }
 
 function exportImportProgress(
-  batch: { id: string; items: ImportItem[] } | null
+  batch: { id: string; items: ImportItem[] } | null,
 ) {
   if (!batch) return;
 
@@ -67,7 +67,7 @@ function exportImportProgress(
         item.completedAt ? format(item.completedAt, "yyyy-MM-dd HH:mm:ss") : "",
         `"${item.path || ""}"`,
         `"${item.error || ""}"`,
-      ].join(",")
+      ].join(","),
     ),
   ].join("\n");
 
@@ -89,14 +89,14 @@ async function retryFailedItems(
   updateItemStatus: (
     itemId: string,
     status: ImportItem["status"],
-    options?: { completedAt?: Date; error?: string; path?: string }
-  ) => void
+    options?: { completedAt?: Date; error?: string; path?: string },
+  ) => void,
 ) {
   if (!batch) return;
 
   const failedUrls = batch.items.filter(
     (item) =>
-      item.status === "failed" && item.path && item.path.startsWith("http")
+      item.status === "failed" && item.path && item.path.startsWith("http"),
   );
 
   if (failedUrls.length === 0) {
@@ -147,11 +147,8 @@ async function retryFailedItems(
   }
 }
 
-export function ImportDrawer({
-  open,
-  onOpenChange,
-}: ImportDrawerProps) {
-  const { currentBatch, cancelItem, updateItemStatus } = useImportContext();
+export function ImportDrawer({ open, onOpenChange }: ImportDrawerProps) {
+  const { currentBatch, cancelItem, updateItemStatus } = useImportStore();
 
   if (!currentBatch) {
     return null;
@@ -172,7 +169,7 @@ export function ImportDrawer({
               size="sm"
               onClick={() => {
                 if (currentBatch) {
-                  currentBatch.items.forEach((item) => {
+                  currentBatch.items.forEach((item: ImportItem) => {
                     if (item.status === "importing") {
                       cancelItem(item.id);
                     }
@@ -181,7 +178,9 @@ export function ImportDrawer({
               }}
               disabled={
                 !currentBatch ||
-                !currentBatch.items.some((item) => item.status === "importing")
+                !currentBatch.items.some(
+                  (item: ImportItem) => item.status === "importing",
+                )
               }
             >
               <BanIcon className="h-4 w-4 mr-2" />
@@ -190,16 +189,14 @@ export function ImportDrawer({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() =>
-                retryFailedItems(currentBatch, updateItemStatus)
-              }
+              onClick={() => retryFailedItems(currentBatch, updateItemStatus)}
               disabled={
                 !currentBatch ||
                 !currentBatch.items.some(
-                  (item) =>
+                  (item: ImportItem) =>
                     item.status === "failed" &&
                     item.path &&
-                    item.path.startsWith("http")
+                    item.path.startsWith("http"),
                 )
               }
             >
@@ -237,7 +234,7 @@ export function ImportDrawer({
 
             <ScrollArea className="h-64">
               <div className="space-y-2">
-                {items.map((item) => (
+                {items.map((item: ImportItem) => (
                   <Item key={item.id} variant="outline" size="sm">
                     <ItemMedia>{getStatusIcon(item.status)}</ItemMedia>
                     <ItemContent>

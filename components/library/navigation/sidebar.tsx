@@ -5,7 +5,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Shelf } from "./shelf";
 import { Filter } from "@/components/ui/filter";
-import { useLibraryContext } from "@/contexts/LibraryContext";
+import { useLibraryFilterStore, useLibraryDataStore } from "@/stores";
+import { useFilterWithReload } from "@/hooks/library";
 
 export function Sidebar() {
   const {
@@ -15,14 +16,18 @@ export function Sidebar() {
     selectedPublishers,
     selectedLanguages,
     showFavoritesOnly,
-    filterOptions,
+  } = useLibraryFilterStore();
+
+  const { filterOptions } = useLibraryDataStore();
+
+  const {
     setSelectedKeywords,
     setSelectedFormats,
     setSelectedAuthors,
     setSelectedPublishers,
     setSelectedLanguages,
     setShowFavoritesOnly,
-  } = useLibraryContext();
+  } = useFilterWithReload();
 
   return (
     <div className="w-80 shrink-0 space-y-6">
@@ -50,35 +55,35 @@ export function Sidebar() {
         title="Formats"
         selectedItems={selectedFormats}
         onItemsChange={setSelectedFormats}
-        filterOptions={filterOptions.formats}
+        filterOptions={filterOptions?.formats || {}}
       />
 
       <Filter
         title="Keywords"
         selectedItems={selectedKeywords}
         onItemsChange={setSelectedKeywords}
-        filterOptions={filterOptions.keywords}
+        filterOptions={filterOptions?.keywords || {}}
       />
 
       <Filter
         title="Authors"
         selectedItems={selectedAuthors}
         onItemsChange={setSelectedAuthors}
-        filterOptions={filterOptions.authors}
+        filterOptions={filterOptions?.authors || {}}
       />
 
       <Filter
         title="Publishers"
         selectedItems={selectedPublishers}
         onItemsChange={setSelectedPublishers}
-        filterOptions={filterOptions.publishers}
+        filterOptions={filterOptions?.publishers || {}}
       />
 
       <Filter
         title="Languages"
         selectedItems={selectedLanguages}
         onItemsChange={setSelectedLanguages}
-        filterOptions={filterOptions.languages || {}}
+        filterOptions={filterOptions?.languages || {}}
       />
     </div>
   );
