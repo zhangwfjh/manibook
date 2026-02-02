@@ -3,6 +3,11 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { ChevronRightIcon, ChevronDownIcon, FolderIcon } from "lucide-react";
 import { useLibraryDataStore, useLibraryFilterStore } from "@/stores";
 import { useFilterWithReload } from "@/hooks/library";
@@ -31,38 +36,44 @@ function CategoryNode({
   const hasChildren = category.children.length > 0;
 
   return (
-    <div>
-      <Button
-        variant={isSelected ? "secondary" : "ghost"}
-        size="sm"
-        className={`w-full justify-start h-8 px-${level * 4 + 8} text-left whitespace-nowrap`}
-        onClick={() => {
-          onCategorySelect(pathKey);
-          if (hasChildren) {
-            onToggleExpanded(pathKey);
-          }
-        }}
-      >
-        {hasChildren ? (
-          isExpanded ? (
-            <ChevronDownIcon className="h-4 w-4 mr-1 shrink-0" />
-          ) : (
-            <ChevronRightIcon className="h-4 w-4 mr-1 shrink-0" />
-          )
-        ) : (
-          <div className="w-5 mr-1 shrink-0" />
-        )}
-        <FolderIcon className="h-4 w-4 mr-2 shrink-0" />
-        <span className="whitespace-nowrap">{category.name}</span>
-        {category.documents.length > 0 && (
-          <span className="ml-auto text-xs text-muted-foreground whitespace-nowrap">
-            ({category.documents.length})
-          </span>
-        )}
-      </Button>
-
-      {isExpanded && hasChildren && (
-        <div className="ml-4">
+    <Collapsible
+      open={isExpanded}
+      onOpenChange={() => {
+        onToggleExpanded(pathKey);
+      }}
+    >
+      <div className="flex items-center">
+        <CollapsibleTrigger asChild>
+          <Button
+            variant={isSelected ? "secondary" : "ghost"}
+            size="sm"
+            className="w-full justify-start h-8 text-left whitespace-nowrap"
+            style={{ paddingLeft: `${level * 16 + 8}px` }}
+            onClick={() => {
+              onCategorySelect(pathKey);
+            }}
+          >
+            {hasChildren ? (
+              isExpanded ? (
+                <ChevronDownIcon className="h-4 w-4 mr-1 shrink-0" />
+              ) : (
+                <ChevronRightIcon className="h-4 w-4 mr-1 shrink-0" />
+              )
+            ) : (
+              <div className="w-5 mr-1 shrink-0" />
+            )}
+            <FolderIcon className="h-4 w-4 mr-2 shrink-0" />
+            <span className="whitespace-nowrap">{category.name}</span>
+            {category.documents.length > 0 && (
+              <span className="ml-auto text-xs text-muted-foreground whitespace-nowrap">
+                ({category.documents.length})
+              </span>
+            )}
+          </Button>
+        </CollapsibleTrigger>
+      </div>
+      <CollapsibleContent>
+        <div>
           {category.children.map((child, index) => (
             <CategoryNode
               key={index}
@@ -75,8 +86,8 @@ function CategoryNode({
             />
           ))}
         </div>
-      )}
-    </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
 

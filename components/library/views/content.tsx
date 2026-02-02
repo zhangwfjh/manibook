@@ -108,19 +108,20 @@ export function Content({ viewMode }: ContentProps) {
               Create a new library or Select one from the list below.
             </EmptyDescription>
           </EmptyHeader>
-          <div className="w-full max-w-md">
+          <div className="w-full max-w-md space-y-1">
             {libraries.map((library) => (
-              <button
+              <Button
                 key={library.name}
+                variant="ghost"
                 onClick={async () => {
                   await invoke("open_library", { libraryName: library.name });
                   setLibraryName(library.name);
                 }}
-                className="w-full text-left px-4 py-2 rounded-md hover:bg-muted transition-colors text-sm text-foreground hover:text-primary flex items-center gap-2"
+                className="w-full justify-start text-left"
               >
-                <LibraryIcon className="h-4 w-4 text-muted-foreground" />
+                <LibraryIcon className="h-4 w-4 text-muted-foreground mr-2" />
                 <span className="font-medium">{library.name}</span>
-              </button>
+              </Button>
             ))}
           </div>
           <div className="flex justify-center">

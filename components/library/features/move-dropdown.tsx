@@ -9,6 +9,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MoveIcon } from "lucide-react";
@@ -61,19 +68,18 @@ export function BulkMoveDropdown({
             <Label htmlFor="doctype" className="text-sm font-medium">
               Document Type
             </Label>
-            <select
-              id="doctype"
-              value={selectedDoctype}
-              onChange={(e) => setSelectedDoctype(e.target.value)}
-              className="w-full mt-1 px-3 py-2 border border-input bg-background rounded-md text-sm"
-            >
-              <option value="">Select doctype...</option>
-              {doctypes.map((doctype) => (
-                <option key={doctype} value={doctype}>
-                  {doctype}
-                </option>
-              ))}
-            </select>
+            <Select value={selectedDoctype} onValueChange={setSelectedDoctype}>
+              <SelectTrigger id="doctype" className="w-full mt-1">
+                <SelectValue placeholder="Select doctype..." />
+              </SelectTrigger>
+              <SelectContent>
+                {doctypes.map((doctype) => (
+                  <SelectItem key={doctype} value={doctype}>
+                    {doctype}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">

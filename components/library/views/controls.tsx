@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { InputGroup, InputGroupAddon } from "@/components/ui/input-group";
 import {
   LayoutGridIcon,
   ListIcon,
@@ -59,19 +60,20 @@ export function Controls({
       <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
         <div className="flex items-center gap-2 flex-1 max-w-md w-full lg:w-auto">
           <SidebarTrigger className="shrink-0" />
-          <div className="relative flex-1">
-            {isSearching ? (
-              <Loader2Icon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4 animate-spin" />
-            ) : (
-              <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            )}
+          <InputGroup className="flex-1">
+            <InputGroupAddon>
+              {isSearching ? (
+                <Loader2Icon className="animate-spin" />
+              ) : (
+                <SearchIcon />
+              )}
+            </InputGroupAddon>
             <Input
               placeholder="Search by title, author, publisher, keywords, or abstract..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 transition-all duration-200 focus:ring-2 focus:ring-ring focus:ring-offset-2"
             />
-          </div>
+          </InputGroup>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {selectionMode ? (
@@ -127,7 +129,9 @@ export function Controls({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onViewModeChange(viewMode === "card" ? "list" : "card")}
+                onClick={() =>
+                  onViewModeChange(viewMode === "card" ? "list" : "card")
+                }
               >
                 {viewMode === "card" ? (
                   <>

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
+import { InputGroup, InputGroupButton } from "@/components/ui/input-group";
 import {
   Dialog,
   DialogContent,
@@ -445,29 +445,24 @@ export function ImportDialog({
               </Label>
 
               {urls.map((url, index) => (
-                <div key={index} className="flex gap-2">
-                  <div className="flex-1">
+                <div key={index}>
+                  <InputGroup>
                     <Input
                       placeholder="https://example.com/document.pdf"
                       value={url}
                       onChange={(e) => updateUrl(index, e.target.value)}
                       className={urlErrors[index] ? "border-red-500" : ""}
                     />
-                    {urlErrors[index] && (
-                      <p className="text-sm text-red-500 mt-1">
-                        {urlErrors[index]}
-                      </p>
+                    {urls.length > 1 && (
+                      <InputGroupButton onClick={() => removeUrl(index)}>
+                        <XIcon className="h-4 w-4" />
+                      </InputGroupButton>
                     )}
-                  </div>
-                  {urls.length > 1 && (
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => removeUrl(index)}
-                      className="shrink-0"
-                    >
-                      <XIcon className="h-4 w-4" />
-                    </Button>
+                  </InputGroup>
+                  {urlErrors[index] && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {urlErrors[index]}
+                    </p>
                   )}
                 </div>
               ))}
