@@ -1,4 +1,70 @@
 use serde::{Deserialize, Serialize};
+use serde_rusqlite::from_row;
+
+/// Raw database row representation for automatic deserialization
+#[allow(non_snake_case)]
+#[derive(Deserialize)]
+pub struct DbDocument {
+    pub id: String,
+    pub filename: String,
+    pub url: String,
+    pub doctype: String,
+    pub title: String,
+    pub authors: String,
+    pub publicationYear: Option<i32>,
+    pub publisher: Option<String>,
+    pub category: String,
+    pub language: String,
+    pub keywords: String,
+    pub r#abstract: Option<String>,
+    pub favorite: i64,
+    pub numPages: i32,
+    pub filesize: i64,
+    pub format: String,
+    pub metadata: Option<String>,
+    pub updatedAt: String,
+}
+
+impl DbDocument {
+    pub fn from_row(row: &rusqlite::Row) -> Result<Self, String> {
+        from_row(row).map_err(|e| format!("Failed to deserialize row: {}", e))
+    }
+
+    pub fn into_document(self) -> Document {
+        let path = if let Some(stripped) = self.url.strip_prefix("lib://") {
+            stripped.to_string()
+        } else {
+            self.url.clone()
+        };
+
+        Document {
+            id: self.id,
+            path,
+            filename: self.filename,
+            url: self.url,
+            metadata: Metadata {
+                doctype: self.doctype,
+                title: self.title,
+                authors: serde_json::from_str(&self.authors).unwrap_or_default(),
+                publication_year: self.publicationYear,
+                publisher: self.publisher,
+                category: self.category,
+                language: self.language,
+                keywords: serde_json::from_str(&self.keywords).unwrap_or_default(),
+                r#abstract: self.r#abstract.unwrap_or_default(),
+                favorite: self.favorite != 0,
+                num_pages: self.numPages,
+                filesize: self.filesize,
+                format: self.format,
+                metadata: self
+                    .metadata
+                    .and_then(|m| serde_json::from_str::<serde_json::Value>(&m).ok()),
+                updated_at: self.updatedAt,
+            },
+            category_path: vec![],
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize, Clone)]
 #[allow(non_snake_case)]

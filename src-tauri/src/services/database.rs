@@ -1,9 +1,11 @@
-use crate::models::{Category, Document, DocumentList, DocumentQuery, FilterCounts, Metadata};
+use crate::models::{
+    Category, DbDocument, Document, DocumentList, DocumentQuery, FilterCounts, Metadata,
+};
 use crate::services::connection_manager::with_connection;
 use crate::utils::database::handle_query_result;
 use lazy_static::lazy_static;
 use lru::LruCache;
-use rusqlite::{params, params_from_iter};
+use rusqlite::{params, params_from_iter, OpenFlags};
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Mutex;
@@ -16,7 +18,11 @@ lazy_static! {
 
 pub(crate) fn open_database(library_path: &str) -> Result<rusqlite::Connection, String> {
     let db_path = Path::new(library_path).join("db.sqlite");
-    rusqlite::Connection::open(&db_path)
+    let flags = OpenFlags::SQLITE_OPEN_READ_WRITE
+        | OpenFlags::SQLITE_OPEN_CREATE
+        | OpenFlags::SQLITE_OPEN_FULL_MUTEX;
+
+    rusqlite::Connection::open_with_flags(&db_path, flags)
         .map_err(|e| format!("Failed to open database at {}: {}", db_path.display(), e))
 }
 
@@ -312,47 +318,14 @@ pub fn get_documents(query: DocumentQuery) -> Result<DocumentList, String> {
         let mut stmt = conn
             .prepare(&sql)
             .map_err(|e| format!("Failed to prepare query: {}", e))?;
-        let documents_iter = stmt
-            .query_map(params_from_iter(params_with_pagination.iter()), |row| {
-                Ok(Document {
-                    id: row.get(0)?,
-                    path: {
-                        let url: String = row.get(2)?;
-                        if let Some(stripped) = url.strip_prefix("lib://") {
-                            stripped.to_string()
-                        } else {
-                            url
-                        }
-                    },
-                    filename: row.get(1)?,
-                    url: row.get(2)?,
-                    metadata: Metadata {
-                        doctype: row.get(3)?,
-                        title: row.get(4)?,
-                        authors: serde_json::from_str(&row.get::<_, String>(5)?)
-                            .unwrap_or_default(),
-                        publication_year: row.get(6)?,
-                        publisher: row.get(7)?,
-                        category: row.get(8)?,
-                        language: row.get(9)?,
-                        keywords: serde_json::from_str(&row.get::<_, String>(10)?)
-                            .unwrap_or_default(),
-                        r#abstract: row.get(11)?,
-                        favorite: row.get::<_, i64>(12)? != 0,
-                        num_pages: row.get(13)?,
-                        filesize: row.get(14)?,
-                        format: row.get(15)?,
-                        metadata: row
-                            .get::<_, Option<String>>(16)?
-                            .and_then(|m| serde_json::from_str(&m).ok()),
-                        updated_at: row.get::<_, String>(17)?,
-                    },
-                    category_path: vec![],
-                })
-            })
-            .map_err(|e| format!("Failed to execute query: {}", e))?;
 
-        let documents: Vec<Document> = documents_iter
+        let documents: Vec<Document> = stmt
+            .query_map(params_from_iter(params_with_pagination.iter()), |row| {
+                DbDocument::from_row(row)
+                    .map(|db_doc| db_doc.into_document())
+                    .map_err(|e| rusqlite::Error::InvalidParameterName(e))
+            })
+            .map_err(|e| format!("Failed to execute query: {}", e))?
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| format!("Failed to collect results: {}", e))?;
 

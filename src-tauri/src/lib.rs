@@ -1,5 +1,4 @@
 mod config;
-mod diesel;
 mod extractors;
 mod models;
 mod services;
@@ -78,7 +77,10 @@ async fn generate_metadata(app: AppHandle, document_id: String) -> Result<Metada
 }
 
 #[tauri::command]
-async fn import_documents(app: AppHandle, request: ImportRequest) -> Result<ImportResponse, String> {
+async fn import_documents(
+    app: AppHandle,
+    request: ImportRequest,
+) -> Result<ImportResponse, String> {
     let library_path = get_library_path()?;
 
     let llm_settings = get_llm_settings(app)?;
