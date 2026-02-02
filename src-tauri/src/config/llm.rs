@@ -8,7 +8,7 @@ use tauri::{AppHandle, Manager};
 pub fn get_llm_settings(app: AppHandle) -> Result<LLMSettings, String> {
     let config_dir = app
         .path()
-        .app_config_dir()
+        .app_data_dir()
         .map_err(|e| format!("Failed to get app config dir: {}", e))?;
     let settings_path = config_dir.join("llm.json");
     read_json_file_with_default(
@@ -44,7 +44,7 @@ pub fn set_llm_settings(app: AppHandle, settings: LLMSettings) -> Result<(), Str
 
     let config_dir = app
         .path()
-        .app_config_dir()
+        .app_data_dir()
         .map_err(|e| format!("Failed to get app config dir: {}", e))?;
     let settings_path = config_dir.join("llm.json");
     write_json_file(&settings_path, &settings)
