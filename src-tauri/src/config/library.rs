@@ -118,13 +118,28 @@ fn create_database(db_path: &Path) -> Result<(), String> {
             "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             "numPages" INTEGER NOT NULL DEFAULT 0,
             "filesize" INTEGER NOT NULL DEFAULT 0,
-            "format" TEXT NOT NULL DEFAULT 'unknown',
-            "cover" BLOB
+            "format" TEXT NOT NULL DEFAULT 'unknown'
         )
         "#,
         [],
     )
     .map_err(|e| format!("Failed to create documents table: {}", e))?;
+
+    let indexes = [
+        "CREATE INDEX idx_hash ON documents(hash)",
+        "CREATE INDEX idx_doctype_category ON documents(doctype, category)",
+        "CREATE INDEX idx_favorite ON documents(favorite)",
+        "CREATE INDEX idx_filename ON documents(filename)",
+        "CREATE INDEX idx_format ON documents(format)",
+        "CREATE INDEX idx_publisher ON documents(publisher)",
+        "CREATE INDEX idx_language ON documents(language)",
+        "CREATE INDEX idx_title ON documents(title)",
+    ];
+
+    for sql in &indexes {
+        conn.execute(sql, [])
+            .map_err(|e| format!("Failed to create index: {}", e))?;
+    }
 
     conn.execute(
         r#"

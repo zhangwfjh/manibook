@@ -1,7 +1,8 @@
 use crate::models::document::{
     Category, DbDocument, Document, DocumentList, DocumentQuery, FilterCounts, Metadata,
 };
-use crate::services::connection_manager::with_connection;
+use crate::services::connection_manager::{get_library_path, with_connection};
+use crate::services::cover;
 use crate::utils::database::handle_query_result;
 use lazy_static::lazy_static;
 use lru::LruCache;
@@ -54,11 +55,10 @@ pub fn insert_document(
     url: &str,
     metadata: &Metadata,
     hash: &str,
-    cover: Option<&Vec<u8>>,
 ) -> Result<(), String> {
     with_connection(|conn| {
         conn.execute(
-            "INSERT INTO documents (id, filename, url, doctype, title, authors, publicationYear, publisher, category, language, keywords, abstract, favorite, metadata, hash, numPages, filesize, format, cover) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO documents (id, filename, url, doctype, title, authors, publicationYear, publisher, category, language, keywords, abstract, favorite, metadata, hash, numPages, filesize, format) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             params![
                 id,
                 filename,
@@ -78,7 +78,6 @@ pub fn insert_document(
                 &metadata.num_pages,
                 &metadata.filesize,
                 &metadata.format,
-                cover,
             ],
         )
         .map_err(|e| format!("Failed to insert document into database: {}", e))?;
@@ -188,16 +187,8 @@ pub fn get_url(document_id: &str) -> Result<String, String> {
 }
 
 pub fn get_cover(document_id: &str) -> Result<Option<Vec<u8>>, String> {
-    with_connection(|conn| {
-        let mut stmt = conn
-            .prepare("SELECT cover FROM documents WHERE id = ?")
-            .map_err(|e| format!("Failed to prepare query: {}", e))?;
-
-        let cover_result: Result<Option<Vec<u8>>, rusqlite::Error> =
-            stmt.query_row(params![document_id], |row| row.get::<_, Option<Vec<u8>>>(0));
-
-        handle_query_result(cover_result, "Document not found")
-    })
+    let library_path = get_library_path()?;
+    cover::get_cover(&library_path, document_id)
 }
 
 pub fn get_documents(query: DocumentQuery) -> Result<DocumentList, String> {

@@ -1,7 +1,14 @@
 use crate::models::document::Metadata;
 use crate::models::llm::{ChatMessage, ChatRequest, ChatResponse, LLMProvider};
 use base64::{engine::general_purpose::STANDARD, Engine as _};
+use lazy_static::lazy_static;
+use regex::Regex;
 use std::time::Duration;
+
+lazy_static! {
+    static ref JSON_CODE_BLOCK: Regex = Regex::new(r"```json\n([\s\S]*?)\n```").unwrap();
+    static ref CODE_BLOCK_ALT: Regex = Regex::new(r"```\n([\s\S]*?)\n```").unwrap();
+}
 
 const OCR_PROMPT: &str = "Extract all legible text from the document. Prioritize:\n\
     1. Titles and headings\n\
@@ -115,10 +122,9 @@ pub async fn call_openai_api(
 }
 
 pub fn parse_metadata_response(response: &str) -> Result<Metadata, String> {
-    let json_string = if let Some(captures) = regex::Regex::new(r"```json\n([\s\S]*?)\n```")
-        .unwrap()
-        .captures(response)
-    {
+    let json_string = if let Some(captures) = JSON_CODE_BLOCK.captures(response) {
+        captures.get(1).map(|m| m.as_str()).unwrap_or(response)
+    } else if let Some(captures) = CODE_BLOCK_ALT.captures(response) {
         captures.get(1).map(|m| m.as_str()).unwrap_or(response)
     } else {
         response

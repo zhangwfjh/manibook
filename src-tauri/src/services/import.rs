@@ -1,6 +1,7 @@
 use crate::models::document::ImportResult;
 use crate::models::llm::LLMSettings;
 use crate::services::connection_manager::is_library_open;
+use crate::services::cover;
 use crate::services::database::{check_exists_by_hash, insert_document};
 use crate::services::storage::{create_category_directory, generate_unique_filename, write_file};
 use crate::utils::content::{
@@ -73,7 +74,10 @@ pub async fn process_import(
     );
     let id = nanoid!();
 
-    insert_document(&id, &new_filename, &url, &metadata, &hash, cover.as_ref())?;
+    insert_document(&id, &new_filename, &url, &metadata, &hash)?;
+    if let Some(cover_data) = cover {
+        cover::save_cover(library_path, &id, &cover_data)?;
+    }
 
     Ok(ImportResult {
         success: true,
