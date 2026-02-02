@@ -1,5 +1,6 @@
 use crate::extractors::{Extractor, ForewordExtraction};
-use crate::models::{LLMSettings, Metadata};
+use crate::models::document::Metadata;
+use crate::models::llm::LLMSettings;
 use crate::services::llm::{extract_metadata_from_text, extract_text_from_images, find_provider};
 
 pub fn get_extension(filename: &str) -> String {

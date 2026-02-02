@@ -1,4 +1,4 @@
-use crate::models::Metadata;
+use crate::models::document::Metadata;
 
 pub fn to_proper_title_case(s: &str) -> String {
     if s.is_empty() {

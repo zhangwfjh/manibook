@@ -1,4 +1,4 @@
-use crate::models::{
+use crate::models::document::{
     Category, DbDocument, Document, DocumentList, DocumentQuery, FilterCounts, Metadata,
 };
 use crate::services::connection_manager::with_connection;
@@ -200,7 +200,6 @@ pub fn get_cover(document_id: &str) -> Result<Option<Vec<u8>>, String> {
     })
 }
 
-#[tauri::command]
 pub fn get_documents(query: DocumentQuery) -> Result<DocumentList, String> {
     with_connection(|conn| {
         let mut where_clauses = Vec::new();
@@ -477,7 +476,6 @@ fn compute_filter_counts(
     Ok(filter_options)
 }
 
-#[tauri::command]
 pub fn get_library_categories() -> Result<Vec<Category>, String> {
     with_connection(|conn| {
         let mut stmt = conn

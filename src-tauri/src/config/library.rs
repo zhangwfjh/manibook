@@ -1,10 +1,9 @@
-use crate::models::{Library, LibrarySettings};
+use crate::models::library::{Library, LibrarySettings};
 use crate::utils::settings::{read_json_file_with_default, write_json_file};
 use std::fs;
 use std::path::Path;
 use tauri::{AppHandle, Manager};
 
-#[tauri::command]
 pub fn get_libraries(app: AppHandle) -> Result<Vec<Library>, String> {
     let config_dir = app
         .path()
@@ -35,7 +34,6 @@ pub fn get_library_settings(app: &AppHandle) -> Result<LibrarySettings, String> 
     )
 }
 
-#[tauri::command]
 pub fn create_library(app: AppHandle, name: String, path: String) -> Result<(), String> {
     if name.trim().is_empty() || path.trim().is_empty() {
         return Err("Name and path are required".to_string());

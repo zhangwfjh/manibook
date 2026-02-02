@@ -33,7 +33,6 @@ pub fn open_library(library_name: String, library_path: String) -> Result<(), St
     Ok(())
 }
 
-#[tauri::command]
 pub fn close_library() -> Result<(), String> {
     let mut state = GLOBAL_STATE
         .lock()
@@ -42,7 +41,6 @@ pub fn close_library() -> Result<(), String> {
     Ok(())
 }
 
-#[tauri::command]
 pub fn is_library_open() -> Option<String> {
     GLOBAL_STATE.lock().ok()?.current_library.clone()
 }

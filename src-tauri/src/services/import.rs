@@ -1,4 +1,5 @@
-use crate::models::{ImportResult, LLMSettings};
+use crate::models::document::ImportResult;
+use crate::models::llm::LLMSettings;
 use crate::services::connection_manager::is_library_open;
 use crate::services::database::{check_exists_by_hash, insert_document};
 use crate::services::storage::{create_category_directory, generate_unique_filename, write_file};

@@ -1,10 +1,9 @@
-use crate::models::{Jobs, LLMSettings};
+use crate::models::llm::{Jobs, LLMSettings};
 use crate::utils::settings::{read_json_file_with_default, write_json_file};
 use std::fs;
 use std::path::Path;
 use tauri::{AppHandle, Manager};
 
-#[tauri::command]
 pub fn get_llm_settings(app: AppHandle) -> Result<LLMSettings, String> {
     let config_dir = app
         .path()
@@ -23,7 +22,6 @@ pub fn get_llm_settings(app: AppHandle) -> Result<LLMSettings, String> {
     )
 }
 
-#[tauri::command]
 pub fn set_llm_settings(app: AppHandle, settings: LLMSettings) -> Result<(), String> {
     if !settings.jobs.metadataExtraction.is_empty()
         && !settings
@@ -50,7 +48,6 @@ pub fn set_llm_settings(app: AppHandle, settings: LLMSettings) -> Result<(), Str
     write_json_file(&settings_path, &settings)
 }
 
-#[tauri::command]
 pub fn import_llm_settings(app: AppHandle, file_path: String) -> Result<(), String> {
     let path = Path::new(&file_path);
     if !path.exists() {

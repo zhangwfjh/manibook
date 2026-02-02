@@ -1,4 +1,5 @@
-use crate::models::{ChatMessage, ChatRequest, ChatResponse, LLMProvider, Metadata};
+use crate::models::document::Metadata;
+use crate::models::llm::{ChatMessage, ChatRequest, ChatResponse, LLMProvider};
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use std::time::Duration;
 
