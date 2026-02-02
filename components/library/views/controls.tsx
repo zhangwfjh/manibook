@@ -2,6 +2,7 @@
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
   Select,
   SelectContent,
@@ -56,18 +57,21 @@ export function Controls({
   return (
     <div className="mb-6 space-y-4">
       <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
-        <div className="relative flex-1 max-w-md w-full lg:w-auto">
-          {isSearching ? (
-            <Loader2Icon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4 animate-spin" />
-          ) : (
-            <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-          )}
-          <Input
-            placeholder="Search by title, author, publisher, keywords, or abstract..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 transition-all duration-200 focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          />
+        <div className="flex items-center gap-2 flex-1 max-w-md w-full lg:w-auto">
+          <SidebarTrigger className="shrink-0" />
+          <div className="relative flex-1">
+            {isSearching ? (
+              <Loader2Icon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4 animate-spin" />
+            ) : (
+              <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            )}
+            <Input
+              placeholder="Search by title, author, publisher, keywords, or abstract..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 transition-all duration-200 focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            />
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {selectionMode ? (
@@ -121,20 +125,21 @@ export function Controls({
                 </SelectContent>
               </Select>
               <Button
-                variant={viewMode === "card" ? "default" : "outline"}
+                variant="outline"
                 size="sm"
-                onClick={() => onViewModeChange("card")}
+                onClick={() => onViewModeChange(viewMode === "card" ? "list" : "card")}
               >
-                <LayoutGridIcon className="h-4 w-4 mr-2" />
-                Cards
-              </Button>
-              <Button
-                variant={viewMode === "list" ? "default" : "outline"}
-                size="sm"
-                onClick={() => onViewModeChange("list")}
-              >
-                <ListIcon className="h-4 w-4 mr-2" />
-                List
+                {viewMode === "card" ? (
+                  <>
+                    <ListIcon className="h-4 w-4 mr-2" />
+                    List
+                  </>
+                ) : (
+                  <>
+                    <LayoutGridIcon className="h-4 w-4 mr-2" />
+                    Cards
+                  </>
+                )}
               </Button>
               <Button
                 variant="outline"

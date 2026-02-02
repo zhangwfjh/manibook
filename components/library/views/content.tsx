@@ -197,7 +197,7 @@ export function Content({ viewMode }: ContentProps) {
 
       {loading ? (
         viewMode === "card" ? (
-          <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-6">
             {Array.from({ length: 8 }).map((_, index) => (
               <DocumentCardSkeleton key={index} />
             ))}
@@ -220,7 +220,7 @@ export function Content({ viewMode }: ContentProps) {
         </Empty>
       ) : viewMode === "card" ? (
         <>
-          <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-6">
             {paginatedItems.map((document) => (
               <DocumentCard key={document.id} document={document} />
             ))}

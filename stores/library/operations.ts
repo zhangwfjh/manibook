@@ -38,9 +38,14 @@ const pageSize = 50;
 
 export const useLibraryOperations = create<OperationsState>((set, get) => ({
   fetchDocuments: async (page = 1, additionalParams) => {
-    const { setDocuments, setLoading, setPagination, setFilterOptions, setCurrentPage } =
+    const { setDocuments, setLoading, setPagination, setFilterOptions, setCurrentPage, libraryName } =
       useLibraryDataStore.getState();
     const { setIsSearching } = useLibraryFilterStore.getState();
+
+    if (!libraryName) {
+      toast.error("Please open or create a library first");
+      return;
+    }
 
     const params = new URLSearchParams();
     params.set("page", page.toString());

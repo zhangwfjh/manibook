@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { ChevronRightIcon, ChevronDownIcon, FolderIcon } from "lucide-react";
 import { useLibraryDataStore, useLibraryFilterStore } from "@/stores";
 import { useFilterWithReload } from "@/hooks/library";
@@ -35,7 +35,7 @@ function CategoryNode({
       <Button
         variant={isSelected ? "secondary" : "ghost"}
         size="sm"
-        className={`w-full justify-start h-8 px-${level * 4 + 8} text-left`}
+        className={`w-full justify-start h-8 px-${level * 4 + 8} text-left whitespace-nowrap`}
         onClick={() => {
           onCategorySelect(pathKey);
           if (hasChildren) {
@@ -45,17 +45,17 @@ function CategoryNode({
       >
         {hasChildren ? (
           isExpanded ? (
-            <ChevronDownIcon className="h-4 w-4 mr-1" />
+            <ChevronDownIcon className="h-4 w-4 mr-1 shrink-0" />
           ) : (
-            <ChevronRightIcon className="h-4 w-4 mr-1" />
+            <ChevronRightIcon className="h-4 w-4 mr-1 shrink-0" />
           )
         ) : (
-          <div className="w-5 mr-1" />
+          <div className="w-5 mr-1 shrink-0" />
         )}
-        <FolderIcon className="h-4 w-4 mr-2" />
-        <span className="truncate">{category.name}</span>
+        <FolderIcon className="h-4 w-4 mr-2 shrink-0" />
+        <span className="whitespace-nowrap">{category.name}</span>
         {category.documents.length > 0 && (
-          <span className="ml-auto text-xs text-muted-foreground">
+          <span className="ml-auto text-xs text-muted-foreground whitespace-nowrap">
             ({category.documents.length})
           </span>
         )}
@@ -104,8 +104,8 @@ export function Shelf() {
       <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
         Shelves
       </h3>
-      <ScrollArea className="h-96">
-        <div className="space-y-1">
+      <ScrollArea className="h-96 whitespace-nowrap">
+        <div className="space-y-1 min-w-0">
           {categories.map((category, index) => (
             <CategoryNode
               key={index}
@@ -118,6 +118,7 @@ export function Shelf() {
             />
           ))}
         </div>
+        <ScrollBar orientation="horizontal" />
       </ScrollArea>
     </div>
   );
