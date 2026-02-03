@@ -1,4 +1,3 @@
-use crate::extractors::{Extractor, ForewordExtraction};
 use crate::models::document::Metadata;
 use crate::models::llm::LLMSettings;
 use crate::services::llm::{extract_metadata_from_text, extract_text_from_images, find_provider};
@@ -18,18 +17,6 @@ pub fn truncate_foreword(foreword: &mut String, max_length: usize) {
             end -= 1;
         }
         foreword.truncate(end);
-    }
-}
-
-pub async fn extract_content(buffer: &[u8], extension: &str) -> Result<ForewordExtraction, String> {
-    match extension {
-        "pdf" => crate::extractors::pdf::PdfExtractor::extract(buffer).await,
-        "epub" => crate::extractors::epub::EpubExtractor::extract(buffer).await,
-        "djvu" => crate::extractors::djvu::DjvuExtractor::extract(buffer).await,
-        _ => Err(format!(
-            "Unsupported file extension: '{}'. Supported extensions: pdf, epub, djvu",
-            extension
-        )),
     }
 }
 

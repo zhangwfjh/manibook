@@ -1,58 +1,112 @@
-use crate::extractors::{Extractor, ForewordExtraction};
-use crate::utils::content::truncate_foreword;
+use crate::extractors::Extractor;
 use crate::utils::image::encode_cover_webp;
 use pdfium_render::prelude::*;
 
+const RENDER_TARGET_WIDTH: i32 = 800;
+const RENDER_MAX_HEIGHT: i32 = 1200;
+
 pub struct PdfExtractor;
 
+impl PdfExtractor {
+    fn get_render_config() -> PdfRenderConfig {
+        PdfRenderConfig::new()
+            .set_target_width(RENDER_TARGET_WIDTH)
+            .set_maximum_height(RENDER_MAX_HEIGHT)
+    }
+
+    fn parse_range(from: Option<i32>, length: Option<i32>, max: i32) -> (usize, usize) {
+        let from = from.unwrap_or(1).max(1);
+        let length = length.unwrap_or(max);
+        let start_idx = (from - 1).max(0) as usize;
+        let end_idx = (start_idx as i32 + length).min(max) as usize;
+        (start_idx, end_idx)
+    }
+
+    fn get_page_text(page: &PdfPage) -> Option<String> {
+        page.text().ok().map(|text| text.to_string())
+    }
+
+    fn render_page(page: &PdfPage, config: &PdfRenderConfig) -> Option<Vec<u8>> {
+        page.render_with_config(config)
+            .ok()
+            .and_then(|bitmap| encode_cover_webp(&bitmap.as_image()).ok())
+    }
+}
+
 impl Extractor for PdfExtractor {
-    async fn extract(buffer: &[u8]) -> Result<ForewordExtraction, String> {
+    async fn extract_text(
+        buffer: &[u8],
+        from: Option<i32>,
+        length: Option<i32>,
+    ) -> Result<String, String> {
         let pdfium = Pdfium::default();
 
         let document = pdfium
             .load_pdf_from_byte_slice(buffer, None)
             .map_err(|e| format!("Failed to load PDF: {}", e))?;
 
-        let num_pages = document.pages().len();
+        let page_count = document.pages().len() as i32;
+        let (start_idx, end_idx) = Self::parse_range(from, length, page_count);
 
-        let mut foreword = String::new();
-        let mut images: Vec<Vec<u8>> = Vec::new();
-
-        let render_config = PdfRenderConfig::new()
-            .set_target_width(800)
-            .set_maximum_height(1200);
-
-        for i in 0..num_pages {
+        let mut text = String::new();
+        for i in start_idx..end_idx {
             let page = document
                 .pages()
-                .get(i)
+                .get(i as u16)
                 .map_err(|e| format!("Failed to get page {}: {}", i, e))?;
 
-            if i < 5 {
-                let bitmap = page
-                    .render_with_config(&render_config)
-                    .map_err(|e| format!("Failed to render page {}: {}", i, e))?
-                    .as_image();
-
-                let webp_buffer = encode_cover_webp(&bitmap)?;
-                images.push(webp_buffer);
-            }
-
-            let page_text = page.text();
-            if let Ok(text) = page_text {
-                foreword.push_str(&text.to_string());
-                foreword.push_str("\n\n");
-                if foreword.len() > Self::MAX_FOREWORD_LENGTH {
-                    truncate_foreword(&mut foreword, Self::MAX_FOREWORD_LENGTH);
-                    break;
-                }
+            if let Some(page_content) = Self::get_page_text(&page) {
+                text.push_str(&page_content);
+                text.push_str("\n\n");
             }
         }
 
-        Ok(ForewordExtraction {
-            foreword,
-            images,
-            num_pages: num_pages.into(),
-        })
+        Ok(text)
+    }
+
+    async fn extract_images(
+        buffer: &[u8],
+        from: Option<i32>,
+        length: Option<i32>,
+    ) -> Result<Vec<Vec<u8>>, String> {
+        let pdfium = Pdfium::default();
+
+        let document = pdfium
+            .load_pdf_from_byte_slice(buffer, None)
+            .map_err(|e| format!("Failed to load PDF: {}", e))?;
+
+        let page_count = document.pages().len() as i32;
+        let (start_idx, end_idx) = Self::parse_range(from, length, page_count);
+        let render_config = Self::get_render_config();
+
+        let mut images: Vec<Vec<u8>> = Vec::new();
+        for i in start_idx..end_idx {
+            let page = document
+                .pages()
+                .get(i as u16)
+                .map_err(|e| format!("Failed to get page {}: {}", i, e))?;
+
+            if let Some(webp_buffer) = Self::render_page(&page, &render_config) {
+                images.push(webp_buffer);
+            }
+        }
+
+        Ok(images)
+    }
+
+    async fn extract_metadata(buffer: &[u8]) -> Result<serde_json::Value, String> {
+        let pdfium = Pdfium::default();
+        let document = pdfium
+            .load_pdf_from_byte_slice(buffer, None)
+            .map_err(|e| format!("Failed to load PDF: {}", e))?;
+
+        let page_count = document.pages().len() as i32;
+        let mut metadata = serde_json::Map::new();
+        metadata.insert(
+            "page_count".to_string(),
+            serde_json::Value::Number(serde_json::Number::from(page_count)),
+        );
+
+        Ok(serde_json::Value::Object(metadata))
     }
 }

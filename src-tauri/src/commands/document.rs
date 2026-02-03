@@ -1,4 +1,5 @@
 use crate::config::llm::get_llm_settings;
+use crate::extractors::{djvu::DjvuExtractor, epub::EpubExtractor, pdf::PdfExtractor, Extractor};
 use crate::models::document::{
     Category, Document, DocumentList, DocumentQuery, ImportError, ImportRequest, ImportResponse,
     ImportResult, Metadata,
@@ -15,7 +16,7 @@ use crate::services::database::{
 use crate::services::import::{process_import, process_url_import};
 use crate::services::storage::{delete_file, file_exists, get_lib_path, move_file};
 use crate::utils::content::{
-    extract_content, extract_metadata, extract_text_from_images_if_needed, get_extension,
+    extract_metadata, extract_text_from_images_if_needed, get_extension, truncate_foreword,
 };
 use crate::utils::text::normalize_metadata;
 use base64::{engine::general_purpose::STANDARD, Engine as _};
@@ -46,20 +47,29 @@ pub async fn generate_metadata(app: AppHandle, document_id: String) -> Result<Me
 
     let file_extension = get_extension(&filename);
 
-    let extraction = extract_content(&buffer, &file_extension)
-        .await
-        .map_err(|e| format!("Failed to extract content from file: {}", e))?;
+    let foreword: String = match file_extension.as_str() {
+        "pdf" => PdfExtractor::extract_text(&buffer, Some(1), Some(10)).await,
+        "epub" => EpubExtractor::extract_text(&buffer, Some(1), Some(10)).await,
+        "djvu" => DjvuExtractor::extract_text(&buffer, Some(1), Some(10)).await,
+        _ => Err(format!("Unsupported file extension: '{}'", file_extension)),
+    }
+    .map_err(|e| format!("Failed to extract foreword: {}", e))?;
 
-    let mut foreword = extraction.foreword;
-    let images = extraction.images;
+    let images: Vec<Vec<u8>> = match file_extension.as_str() {
+        "pdf" => PdfExtractor::extract_images(&buffer, Some(1), Some(1)).await,
+        "epub" => EpubExtractor::extract_images(&buffer, Some(1), Some(1)).await,
+        "djvu" => DjvuExtractor::extract_images(&buffer, Some(1), Some(1)).await,
+        _ => Err(format!("Unsupported file extension: '{}'", file_extension)),
+    }
+    .map_err(|e| format!("Failed to extract images: {}", e))?;
 
     let llm_settings = get_llm_settings(app)?;
 
-    foreword = extract_text_from_images_if_needed(&foreword, &images, &llm_settings)
+    let mut foreword = extract_text_from_images_if_needed(&foreword, &images, &llm_settings)
         .await
         .map_err(|e| format!("Failed to extract text from images: {}", e))?;
 
-    foreword = foreword.chars().take(5000).collect();
+    truncate_foreword(&mut foreword, 5000);
 
     let mut metadata = extract_metadata(&foreword, &llm_settings).await?;
 
@@ -80,7 +90,6 @@ pub async fn import_documents(
     request: ImportRequest,
 ) -> Result<ImportResponse, String> {
     let library_path = get_library_path()?;
-
     let llm_settings = get_llm_settings(app)?;
 
     let mut results = Vec::new();
@@ -91,7 +100,6 @@ pub async fn import_documents(
             match process_import(
                 &library_path,
                 &file_datum.data,
-                &file_datum.filename,
                 &get_extension(&file_datum.filename),
                 &llm_settings,
             )

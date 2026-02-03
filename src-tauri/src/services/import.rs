@@ -1,12 +1,11 @@
+use crate::extractors::{djvu::DjvuExtractor, epub::EpubExtractor, pdf::PdfExtractor, Extractor};
 use crate::models::document::ImportResult;
 use crate::models::llm::LLMSettings;
 use crate::services::connection_manager::is_library_open;
 use crate::services::cover;
 use crate::services::database::{check_exists_by_hash, insert_document};
 use crate::services::storage::{create_category_directory, generate_unique_filename, write_file};
-use crate::utils::content::{
-    extract_content, extract_metadata, extract_text_from_images_if_needed,
-};
+use crate::utils::content::{extract_metadata, extract_text_from_images_if_needed};
 use crate::utils::text::normalize_metadata;
 use nanoid::nanoid;
 use sha256;
@@ -15,26 +14,47 @@ use std::path::Path;
 pub async fn process_import(
     library_path: &str,
     buffer: &[u8],
-    _original_filename: &str,
     extension: &str,
     llm_settings: &LLMSettings,
 ) -> Result<ImportResult, String> {
     let hash = sha256::digest(buffer);
 
-    let extraction = extract_content(buffer, extension)
-        .await
-        .map_err(|e| format!("Failed to extract content from file: {}", e))?;
+    let foreword: String = match extension {
+        "pdf" => PdfExtractor::extract_text(buffer, Some(1), Some(10)).await,
+        "epub" => EpubExtractor::extract_text(buffer, Some(1), Some(10)).await,
+        "djvu" => DjvuExtractor::extract_text(buffer, Some(1), Some(10)).await,
+        _ => Err(format!("Unsupported file extension: '{}'", extension)),
+    }
+    .map_err(|e| format!("Failed to extract foreword: {}", e))?;
 
-    let mut foreword = extraction.foreword;
-    let images = extraction.images;
-    let num_pages = extraction.num_pages;
+    let images: Vec<Vec<u8>> = match extension {
+        "pdf" => PdfExtractor::extract_images(buffer, Some(1), Some(3)).await,
+        "epub" => EpubExtractor::extract_images(buffer, Some(1), Some(3)).await,
+        "djvu" => DjvuExtractor::extract_images(buffer, Some(1), Some(3)).await,
+        _ => Err(format!("Unsupported file extension: '{}'", extension)),
+    }
+    .map_err(|e| format!("Failed to extract cover image: {}", e))?;
+
+    let metadata_json = match extension {
+        "pdf" => PdfExtractor::extract_metadata(buffer).await,
+        "epub" => EpubExtractor::extract_metadata(buffer).await,
+        "djvu" => DjvuExtractor::extract_metadata(buffer).await,
+        _ => Err(format!("Unsupported file extension: '{}'", extension)),
+    }
+    .map_err(|e| format!("Failed to extract metadata: {}", e))?;
+
+    let num_pages = metadata_json
+        .get("page_count")
+        .and_then(|v| v.as_i64())
+        .unwrap_or(0) as i32;
+
     let cover = images.first().cloned();
 
-    foreword = extract_text_from_images_if_needed(&foreword, &images, llm_settings)
+    let mut foreword = extract_text_from_images_if_needed(&foreword, &images, llm_settings)
         .await
         .map_err(|e| format!("Failed to extract text from images: {}", e))?;
 
-    foreword = foreword.chars().take(5000).collect();
+    foreword = foreword.chars().take(5000).collect::<String>();
 
     let mut metadata = extract_metadata(&foreword, llm_settings)
         .await
@@ -75,8 +95,8 @@ pub async fn process_import(
     let id = nanoid!();
 
     insert_document(&id, &new_filename, &url, &metadata, &hash)?;
-    if let Some(cover_data) = cover {
-        cover::save_cover(library_path, &id, &cover_data)?;
+    if let Some(ref cover_data) = cover {
+        cover::save_cover(library_path, &id, cover_data.as_slice())?;
     }
 
     Ok(ImportResult {
@@ -165,14 +185,5 @@ pub async fn process_url_import(
         .map_err(|e| format!("Failed to read response body: {}", e))?
         .to_vec();
 
-    let filename = format!("downloaded.{}", file_extension);
-
-    process_import(
-        library_path,
-        &buffer,
-        &filename,
-        &file_extension,
-        llm_settings,
-    )
-    .await
+    process_import(library_path, &buffer, &file_extension, llm_settings).await
 }
