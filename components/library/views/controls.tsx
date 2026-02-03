@@ -1,6 +1,5 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
@@ -10,7 +9,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { InputGroup, InputGroupAddon } from "@/components/ui/input-group";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import {
   LayoutGridIcon,
   ListIcon,
@@ -59,8 +62,13 @@ export function Controls({
     <div className="mb-6 space-y-4">
       <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
         <div className="flex items-center gap-2 flex-1 max-w-md w-full lg:w-auto">
-          <SidebarTrigger className="shrink-0" />
-          <InputGroup className="flex-1">
+          <SidebarTrigger className="shrink-0 hover:bg-muted/80 transition-colors duration-200" />
+          <InputGroup className="flex-1 relative">
+            <InputGroupInput
+              placeholder="Search by title, author, publisher, keywords, or abstract...  "
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
             <InputGroupAddon>
               {isSearching ? (
                 <Loader2Icon className="animate-spin" />
@@ -68,16 +76,16 @@ export function Controls({
                 <SearchIcon />
               )}
             </InputGroupAddon>
-            <Input
-              placeholder="Search by title, author, publisher, keywords, or abstract..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
           </InputGroup>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {selectionMode ? (
-            <>
+            <div className="flex flex-wrap items-center gap-2 animate-in slide-in-from-top-2 duration-300">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-md border border-primary/20">
+                <span className="text-sm font-medium text-primary">
+                  {selectedDocuments.size} selected
+                </span>
+              </div>
               <Button variant="outline" size="sm" onClick={clearSelection}>
                 <XIcon className="h-4 w-4 mr-2" />
                 Clear
@@ -89,7 +97,6 @@ export function Controls({
               {selectedDocuments.size > 0 && (
                 <>
                   <BulkMoveDropdown
-                    selectedCount={selectedDocuments.size}
                     onBulkMove={(doctype, category) =>
                       bulkMove(Array.from(selectedDocuments), doctype, category)
                     }
@@ -98,69 +105,84 @@ export function Controls({
                     variant="destructive"
                     size="sm"
                     onClick={() => setBulkDeleteDialogOpen(true)}
+                    className="shadow-sm hover:shadow-md transition-all"
                   >
                     <TrashIcon className="h-4 w-4 mr-2" />
-                    Delete ({selectedDocuments.size})
+                    Delete
                   </Button>
                 </>
               )}
-              <Button variant="ghost" size="sm" onClick={toggleSelectionMode}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleSelectionMode}
+                className="hover:bg-muted/80 transition-colors"
+              >
                 Cancel
               </Button>
-            </>
+            </div>
           ) : (
-            <>
-              <Select
-                value={sortBy}
-                defaultValue="updatedAt-desc"
-                onValueChange={setSortBy}
-              >
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Sort by..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {SORT_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="flex flex-wrap items-center gap-2 animate-in fade-in duration-300">
+              <div className="flex items-center gap-1.5 pr-2 border-r border-border/50">
+                <Select
+                  value={sortBy}
+                  defaultValue="updatedAt-desc"
+                  onValueChange={setSortBy}
+                >
+                  <SelectTrigger className="w-44 h-8 hover:bg-muted/80 transition-colors">
+                    <SelectValue placeholder="Sort by..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SORT_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="flex items-center bg-muted/50 rounded-md p-0.5">
+                  <Button
+                    variant={viewMode === "card" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => onViewModeChange("card")}
+                  >
+                    <LayoutGridIcon className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant={viewMode === "list" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => onViewModeChange("list")}
+                  >
+                    <ListIcon className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
               <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  onViewModeChange(viewMode === "card" ? "list" : "card")
-                }
-              >
-                {viewMode === "card" ? (
-                  <>
-                    <ListIcon className="h-4 w-4 mr-2" />
-                    List
-                  </>
-                ) : (
-                  <>
-                    <LayoutGridIcon className="h-4 w-4 mr-2" />
-                    Cards
-                  </>
-                )}
-              </Button>
-              <Button
-                variant="outline"
+                variant="default"
                 size="sm"
                 onClick={() => setImportDialogOpen(true)}
                 disabled={libraries.length === 0}
+                className="shadow-sm hover:shadow-md transition-all duration-200"
               >
                 <UploadIcon className="h-4 w-4 mr-2" />
                 Import
               </Button>
-              <Button variant="outline" size="sm" onClick={toggleSelectionMode}>
-                <CheckSquare2Icon className="h-4 w-4 mr-2" />
-                Select
-              </Button>
-              <SettingsDialog />
-              <ThemeToggle />
-            </>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={toggleSelectionMode}
+                  className="hover:bg-muted/80 transition-colors"
+                >
+                  <CheckSquare2Icon className="h-4 w-4 mr-2" />
+                  Select
+                </Button>
+              </div>
+              <div className="flex items-center gap-1 pl-2 border-l border-border/50">
+                <SettingsDialog />
+                <ThemeToggle />
+              </div>
+            </div>
           )}
         </div>
       </div>

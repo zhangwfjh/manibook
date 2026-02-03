@@ -22,14 +22,10 @@ import { MoveIcon } from "lucide-react";
 import { DOCTYPE_OPTIONS } from "@/components/library/types";
 
 interface BulkMoveDropdownProps {
-  selectedCount: number;
   onBulkMove: (doctype: string, category: string) => void;
 }
 
-export function BulkMoveDropdown({
-  selectedCount,
-  onBulkMove,
-}: BulkMoveDropdownProps) {
+export function BulkMoveDropdown({ onBulkMove }: BulkMoveDropdownProps) {
   const [selectedDoctype, setSelectedDoctype] = useState("");
   const [selectedMainCategory, setSelectedMainCategory] = useState("");
   const [selectedSubCategory, setSelectedSubCategory] = useState("");
@@ -56,7 +52,7 @@ export function BulkMoveDropdown({
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm">
           <MoveIcon className="h-4 w-4 mr-2" />
-          Move ({selectedCount})
+          Move
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-80 p-4">
