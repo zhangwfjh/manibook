@@ -1,3 +1,7 @@
+use crate::extractors::{djvu::DjvuExtractor, epub::EpubExtractor, pdf::PdfExtractor, Extractor};
+use crate::services::database::get_basic_info;
+use crate::services::storage::get_lib_path;
+use crate::utils::content::get_extension;
 use lazy_static::lazy_static;
 use lru::LruCache;
 use std::fs;
@@ -15,7 +19,7 @@ pub fn get_cover_path(library_path: &str, document_id: &str) -> std::path::PathB
         .join(format!("{}.webp", document_id))
 }
 
-pub fn get_cover(library_path: &str, document_id: &str) -> Result<Option<Vec<u8>>, String> {
+pub async fn get_cover(library_path: &str, document_id: &str) -> Result<Option<Vec<u8>>, String> {
     {
         let mut cache = COVER_CACHE
             .lock()
@@ -27,7 +31,33 @@ pub fn get_cover(library_path: &str, document_id: &str) -> Result<Option<Vec<u8>
 
     let cover_path = get_cover_path(library_path, document_id);
     if !cover_path.exists() {
-        return Ok(None);
+        let (filename, url, _, _, _, _) = get_basic_info(document_id)?;
+        let relative_path = get_lib_path(&url)?;
+        let file_path = Path::new(library_path).join(relative_path);
+        if !file_path.exists() {
+            return Err(format!(
+                "Document file not found at: {}",
+                file_path.display()
+            ));
+        }
+
+        let buffer = fs::read(&file_path)
+            .map_err(|e| format!("Failed to read file {}: {}", file_path.display(), e))?;
+
+        let file_extension = get_extension(&filename);
+        let images: Vec<Vec<u8>> = match file_extension.as_str() {
+            "pdf" => PdfExtractor::extract_images(&buffer, Some(1), Some(1)).await,
+            "epub" => EpubExtractor::extract_images(&buffer, Some(1), Some(1)).await,
+            "djvu" => DjvuExtractor::extract_images(&buffer, Some(1), Some(1)).await,
+            _ => Err(format!("Unsupported file extension: '{}'", file_extension)),
+        }
+        .map_err(|e| format!("Failed to extract cover image: {}", e))?;
+
+        if let Some(cover) = images.first() {
+            save_cover(library_path, document_id, cover)?;
+        } else {
+            return Ok(None);
+        }
     }
 
     let data = fs::read(&cover_path)

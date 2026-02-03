@@ -1,5 +1,4 @@
 use crate::config::llm::get_llm_settings;
-use crate::extractors::{djvu::DjvuExtractor, epub::EpubExtractor, pdf::PdfExtractor, Extractor};
 use crate::models::document::{
     Category, Document, DocumentList, DocumentQuery, ImportError, ImportRequest, ImportResponse,
     ImportResult, Metadata,
@@ -8,16 +7,14 @@ use crate::services::connection_manager::{
     close_library as service_close_library, get_library_path,
     is_library_open as service_is_library_open,
 };
+use crate::services::cover;
 use crate::services::database::{
-    delete_document, get_basic_info, get_cover as get_cover_blob,
-    get_documents as db_get_documents, get_library_categories as db_get_library_categories,
-    update_file_info, update_metadata,
+    delete_document, get_basic_info, get_documents as db_get_documents,
+    get_library_categories as db_get_library_categories, update_file_info, update_metadata,
 };
 use crate::services::import::{process_import, process_url_import};
 use crate::services::storage::{delete_file, file_exists, get_lib_path, move_file};
-use crate::utils::content::{
-    extract_metadata, extract_text_from_images_if_needed, get_extension, truncate_foreword,
-};
+use crate::utils::content::get_extension;
 use crate::utils::text::normalize_metadata;
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use std::fs;
@@ -46,32 +43,15 @@ pub async fn generate_metadata(app: AppHandle, document_id: String) -> Result<Me
         .map_err(|e| format!("Failed to read file {}: {}", file_path.display(), e))?;
 
     let file_extension = get_extension(&filename);
-
-    let foreword: String = match file_extension.as_str() {
-        "pdf" => PdfExtractor::extract_text(&buffer, Some(1), Some(10)).await,
-        "epub" => EpubExtractor::extract_text(&buffer, Some(1), Some(10)).await,
-        "djvu" => DjvuExtractor::extract_text(&buffer, Some(1), Some(10)).await,
-        _ => Err(format!("Unsupported file extension: '{}'", file_extension)),
-    }
-    .map_err(|e| format!("Failed to extract foreword: {}", e))?;
-
-    let images: Vec<Vec<u8>> = match file_extension.as_str() {
-        "pdf" => PdfExtractor::extract_images(&buffer, Some(1), Some(1)).await,
-        "epub" => EpubExtractor::extract_images(&buffer, Some(1), Some(1)).await,
-        "djvu" => DjvuExtractor::extract_images(&buffer, Some(1), Some(1)).await,
-        _ => Err(format!("Unsupported file extension: '{}'", file_extension)),
-    }
-    .map_err(|e| format!("Failed to extract images: {}", e))?;
-
     let llm_settings = get_llm_settings(app)?;
 
-    let mut foreword = extract_text_from_images_if_needed(&foreword, &images, &llm_settings)
-        .await
-        .map_err(|e| format!("Failed to extract text from images: {}", e))?;
-
-    truncate_foreword(&mut foreword, 5000);
-
-    let mut metadata = extract_metadata(&foreword, &llm_settings).await?;
+    let mut metadata = crate::utils::content::extract_document_content(
+        &buffer,
+        &file_extension,
+        Some((1, 10)),
+        &llm_settings,
+    )
+    .await?;
 
     metadata.num_pages = existing_num_pages;
     metadata.filesize = existing_filesize;
@@ -156,9 +136,9 @@ pub async fn import_documents(
 }
 
 #[tauri::command]
-pub fn get_cover(document_id: String) -> Result<String, String> {
-    let cover_data = get_cover_blob(&document_id)?;
-
+pub async fn get_cover(document_id: String) -> Result<String, String> {
+    let library_path = get_library_path()?;
+    let cover_data = cover::get_cover(&library_path, &document_id).await?;
     match cover_data {
         Some(data) => {
             let base64 = STANDARD.encode(&data);

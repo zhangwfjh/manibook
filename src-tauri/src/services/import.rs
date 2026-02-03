@@ -5,7 +5,6 @@ use crate::services::connection_manager::is_library_open;
 use crate::services::cover;
 use crate::services::database::{check_exists_by_hash, insert_document};
 use crate::services::storage::{create_category_directory, generate_unique_filename, write_file};
-use crate::utils::content::{extract_metadata, extract_text_from_images_if_needed};
 use crate::utils::text::normalize_metadata;
 use nanoid::nanoid;
 use sha256;
@@ -19,48 +18,24 @@ pub async fn process_import(
 ) -> Result<ImportResult, String> {
     let hash = sha256::digest(buffer);
 
-    let foreword: String = match extension {
-        "pdf" => PdfExtractor::extract_text(buffer, Some(1), Some(10)).await,
-        "epub" => EpubExtractor::extract_text(buffer, Some(1), Some(10)).await,
-        "djvu" => DjvuExtractor::extract_text(buffer, Some(1), Some(10)).await,
-        _ => Err(format!("Unsupported file extension: '{}'", extension)),
-    }
-    .map_err(|e| format!("Failed to extract foreword: {}", e))?;
-
     let images: Vec<Vec<u8>> = match extension {
-        "pdf" => PdfExtractor::extract_images(buffer, Some(1), Some(3)).await,
-        "epub" => EpubExtractor::extract_images(buffer, Some(1), Some(3)).await,
-        "djvu" => DjvuExtractor::extract_images(buffer, Some(1), Some(3)).await,
+        "pdf" => PdfExtractor::extract_images(buffer, Some(1), Some(1)).await,
+        "epub" => EpubExtractor::extract_images(buffer, Some(1), Some(1)).await,
+        "djvu" => DjvuExtractor::extract_images(buffer, Some(1), Some(1)).await,
         _ => Err(format!("Unsupported file extension: '{}'", extension)),
     }
     .map_err(|e| format!("Failed to extract cover image: {}", e))?;
 
-    let metadata_json = match extension {
-        "pdf" => PdfExtractor::extract_metadata(buffer).await,
-        "epub" => EpubExtractor::extract_metadata(buffer).await,
-        "djvu" => DjvuExtractor::extract_metadata(buffer).await,
-        _ => Err(format!("Unsupported file extension: '{}'", extension)),
-    }
-    .map_err(|e| format!("Failed to extract metadata: {}", e))?;
-
-    let num_pages = metadata_json
-        .get("page_count")
-        .and_then(|v| v.as_i64())
-        .unwrap_or(0) as i32;
-
     let cover = images.first().cloned();
 
-    let mut foreword = extract_text_from_images_if_needed(&foreword, &images, llm_settings)
-        .await
-        .map_err(|e| format!("Failed to extract text from images: {}", e))?;
+    let mut metadata = crate::utils::content::extract_document_content(
+        buffer,
+        extension,
+        Some((1, 10)),
+        llm_settings,
+    )
+    .await?;
 
-    foreword = foreword.chars().take(5000).collect::<String>();
-
-    let mut metadata = extract_metadata(&foreword, llm_settings)
-        .await
-        .map_err(|e| format!("Failed to extract metadata: {}", e))?;
-
-    metadata.num_pages = num_pages;
     metadata.filesize = buffer.len() as i64;
     metadata.format = extension.to_string();
     metadata.favorite = false;

@@ -1,8 +1,7 @@
 use crate::models::document::{
     Category, DbDocument, Document, DocumentList, DocumentQuery, FilterCounts, Metadata,
 };
-use crate::services::connection_manager::{get_library_path, with_connection};
-use crate::services::cover;
+use crate::services::connection_manager::with_connection;
 use crate::utils::database::handle_query_result;
 use lazy_static::lazy_static;
 use lru::LruCache;
@@ -184,11 +183,6 @@ pub fn get_url(document_id: &str) -> Result<String, String> {
 
         handle_query_result(url_result, "Document not found")
     })
-}
-
-pub fn get_cover(document_id: &str) -> Result<Option<Vec<u8>>, String> {
-    let library_path = get_library_path()?;
-    cover::get_cover(&library_path, document_id)
 }
 
 pub fn get_documents(query: DocumentQuery) -> Result<DocumentList, String> {
