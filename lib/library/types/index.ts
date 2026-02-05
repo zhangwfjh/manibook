@@ -33,7 +33,7 @@ export interface Category {
 
 export interface Library {
   name: string;
-  path: string; // Full path to library directory
+  path: string;
 }
 
 export interface PaginationInfo {
@@ -44,5 +44,3 @@ export interface PaginationInfo {
   hasNextPage: boolean;
   hasPrevPage: boolean;
 }
-
-export type ViewMode = "card" | "list";

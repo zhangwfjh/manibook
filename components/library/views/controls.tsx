@@ -15,8 +15,6 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import {
-  LayoutGridIcon,
-  ListIcon,
   SearchIcon,
   UploadIcon,
   Loader2Icon,
@@ -27,7 +25,7 @@ import {
 import { SettingsDialog } from "@/components/library/dialogs/settings-dialog";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BulkMoveDropdown } from "@/components/library/features/move-dropdown";
-import { ViewMode, SORT_OPTIONS } from "@/components/library/types";
+import { SORT_OPTIONS } from "@/components/library/types";
 import {
   useLibraryDataStore,
   useLibraryFilterStore,
@@ -36,13 +34,7 @@ import {
   useImportStore,
 } from "@/stores";
 
-export function Controls({
-  viewMode,
-  onViewModeChange,
-}: {
-  viewMode: ViewMode;
-  onViewModeChange: (mode: ViewMode) => void;
-}) {
+export function Controls() {
   const { searchQuery, setSearchQuery } = useLibraryFilterStore();
   const { sortBy, setSortBy } = useLibraryUIStore();
   const { libraries } = useLibraryDataStore();
@@ -140,22 +132,6 @@ export function Controls({
                     ))}
                   </SelectContent>
                 </Select>
-                <div className="flex items-center bg-muted/50 rounded-md p-0.5">
-                  <Button
-                    variant={viewMode === "card" ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => onViewModeChange("card")}
-                  >
-                    <LayoutGridIcon className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant={viewMode === "list" ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => onViewModeChange("list")}
-                  >
-                    <ListIcon className="h-4 w-4" />
-                  </Button>
-                </div>
               </div>
               <Button
                 variant="default"

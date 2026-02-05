@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useEffectEvent } from "react";
+import { useEffect, useEffectEvent } from "react";
 import {
   SidebarProvider,
   Sidebar,
@@ -11,7 +11,6 @@ import { LibrarySidebar } from "@/components/library/navigation/sidebar";
 import { Controls } from "@/components/library/views/controls";
 import { Content } from "@/components/library/views/content";
 import { DialogManager } from "@/components/library/dialogs/dialog-manager";
-import { ViewMode } from "@/components/library/types";
 import {
   useLibraryDataStore,
   useLibraryFilterStore,
@@ -21,8 +20,6 @@ import {
 import { useLibraryInit, useDebouncedSearch } from "@/hooks/library";
 
 function HomeContent() {
-  const [viewMode, setViewMode] = useState<ViewMode>("card");
-
   useLibraryInit();
   useDebouncedSearch();
 
@@ -59,9 +56,9 @@ function HomeContent() {
           <SidebarRail />
         </Sidebar>
         <SidebarInset className="flex-1">
-          <div className="container mx-auto px-6 py-8">
-            <Controls viewMode={viewMode} onViewModeChange={setViewMode} />
-            <Content viewMode={viewMode} />
+          <div className="w-full px-6 py-8">
+            <Controls />
+            <Content />
             <DialogManager />
           </div>
         </SidebarInset>

@@ -1,9 +1,3 @@
-// Shared types for library components
-
-import { Document } from "@/lib/library";
-
-export type ViewMode = "card" | "list";
-
 export type SortOption =
   | "title-asc" | "title-desc"
   | "author-asc" | "author-desc"
@@ -28,14 +22,3 @@ export const SORT_OPTIONS: { value: SortOption; label: string }[] = [
 ];
 
 export const DOCTYPE_OPTIONS = ["Book", "Paper", "Report", "Manual", "Others"];
-
-export interface DocumentSelectionProps {
-  selectionMode?: boolean;
-  selectedDocuments?: Set<string>;
-  onToggleSelection?: (documentId: string) => void;
-}
-
-export interface DocumentRowProps {
-  document: Document;
-  style?: React.CSSProperties;
-}

@@ -19,12 +19,9 @@ import {
 } from "@/components/ui/empty";
 import { Button } from "@/components/ui/button";
 import { DocumentCard } from "@/components/library/documents/card";
-import { DocumentList } from "@/components/library/documents/list";
 import { DocumentCardSkeleton } from "@/components/library/documents/card-skeleton";
-import { DocumentListSkeleton } from "@/components/library/documents/list-skeleton";
 import { Pagination } from "./pagination";
 import { BookOpenIcon, LibraryIcon } from "lucide-react";
-import { ViewMode } from "@/components/library/types";
 import {
   useLibraryDataStore,
   useLibraryFilterStore,
@@ -33,11 +30,7 @@ import {
 } from "@/stores";
 import { useFilterWithReload } from "@/hooks/library";
 
-interface ContentProps {
-  viewMode: ViewMode;
-}
-
-export function Content({ viewMode }: ContentProps) {
+export function Content() {
   const {
     libraryName,
     setLibraryName,
@@ -197,15 +190,11 @@ export function Content({ viewMode }: ContentProps) {
       </div>
 
       {loading ? (
-        viewMode === "card" ? (
-          <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-6">
-            {Array.from({ length: 8 }).map((_, index) => (
-              <DocumentCardSkeleton key={index} />
-            ))}
-          </div>
-        ) : (
-          <DocumentListSkeleton rows={10} />
-        )
+        <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-6">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <DocumentCardSkeleton key={index} />
+          ))}
+        </div>
       ) : documents.length === 0 ? (
         <Empty>
           <EmptyHeader>
@@ -219,7 +208,7 @@ export function Content({ viewMode }: ContentProps) {
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
-      ) : viewMode === "card" ? (
+      ) : (
         <>
           <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-6">
             {paginatedItems.map((document) => (
@@ -229,13 +218,8 @@ export function Content({ viewMode }: ContentProps) {
 
           {paginationComponent}
         </>
-      ) : (
-        <>
-          <DocumentList documents={paginatedItems} />
-
-          {paginationComponent}
-        </>
       )}
     </div>
   );
 }
+
