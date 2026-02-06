@@ -7,15 +7,29 @@ use tauri::AppHandle;
 
 #[tauri::command]
 pub fn get_llm_settings(app: AppHandle) -> Result<LLMSettings, String> {
-    config_get_llm_settings(app)
+    log::debug!("Fetching LLM settings");
+
+    let settings = config_get_llm_settings(app)?;
+    let provider_count = settings.providers.len();
+    log::debug!("Loaded LLM settings with {} providers", provider_count);
+    Ok(settings)
 }
 
 #[tauri::command]
 pub fn set_llm_settings(app: AppHandle, settings: LLMSettings) -> Result<(), String> {
-    config_set_llm_settings(app, settings)
+    let provider_count = settings.providers.len();
+    log::info!("Saving LLM settings with {} providers", provider_count);
+
+    config_set_llm_settings(app, settings)?;
+    log::info!("Successfully saved LLM settings");
+    Ok(())
 }
 
 #[tauri::command]
 pub fn import_llm_settings(app: AppHandle, file_path: String) -> Result<(), String> {
-    config_import_llm_settings(app, file_path)
+    log::info!("Importing LLM settings from: {}", file_path);
+
+    config_import_llm_settings(app, file_path.clone())?;
+    log::info!("Successfully imported LLM settings from: {}", file_path);
+    Ok(())
 }

@@ -18,12 +18,16 @@ lazy_static! {
 
 pub(crate) fn open_database(library_path: &str) -> Result<rusqlite::Connection, String> {
     let db_path = Path::new(library_path).join("db.sqlite");
+    log::debug!("Opening database at: {}", db_path.display());
+
     let flags = OpenFlags::SQLITE_OPEN_READ_WRITE
         | OpenFlags::SQLITE_OPEN_CREATE
         | OpenFlags::SQLITE_OPEN_FULL_MUTEX;
 
-    rusqlite::Connection::open_with_flags(&db_path, flags)
-        .map_err(|e| format!("Failed to open database at {}: {}", db_path.display(), e))
+    rusqlite::Connection::open_with_flags(&db_path, flags).map_err(|e| {
+        log::error!("Failed to open database at {}: {}", db_path.display(), e);
+        format!("Failed to open database at {}: {}", db_path.display(), e)
+    })
 }
 
 pub fn get_basic_info(
@@ -55,6 +59,12 @@ pub fn insert_document(
     metadata: &Metadata,
     hash: &str,
 ) -> Result<(), String> {
+    log::debug!(
+        "Inserting document into database: id={}, title='{}'",
+        id,
+        metadata.title
+    );
+
     with_connection(|conn| {
         conn.execute(
             "INSERT INTO documents (id, filename, url, doctype, title, authors, publicationYear, publisher, category, language, keywords, abstract, favorite, metadata, hash, numPages, filesize, format) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -79,8 +89,12 @@ pub fn insert_document(
                 &metadata.format,
             ],
         )
-        .map_err(|e| format!("Failed to insert document into database: {}", e))?;
+        .map_err(|e| {
+            log::error!("Failed to insert document {}: {}", id, e);
+            format!("Failed to insert document into database: {}", e)
+        })?;
 
+        log::debug!("Successfully inserted document: {}", id);
         Ok(())
     })
 }
@@ -155,6 +169,8 @@ pub fn check_exists_by_hash(hash: &str) -> Result<bool, String> {
 }
 
 pub fn delete_document(document_id: &str) -> Result<String, String> {
+    log::debug!("Deleting document from database: {}", document_id);
+
     with_connection(|conn| {
         let mut stmt = conn
             .prepare("SELECT url FROM documents WHERE id = ?")
@@ -166,8 +182,15 @@ pub fn delete_document(document_id: &str) -> Result<String, String> {
         let url = handle_query_result(url_result, "Document not found")?;
 
         conn.execute("DELETE FROM documents WHERE id = ?", params![document_id])
-            .map_err(|e| format!("Failed to delete document from database: {}", e))?;
+            .map_err(|e| {
+                log::error!("Failed to delete document {}: {}", document_id, e);
+                format!("Failed to delete document from database: {}", e)
+            })?;
 
+        log::debug!(
+            "Successfully deleted document from database: {}",
+            document_id
+        );
         Ok(url)
     })
 }
@@ -186,6 +209,13 @@ pub fn get_url(document_id: &str) -> Result<String, String> {
 }
 
 pub fn get_documents(query: DocumentQuery) -> Result<DocumentList, String> {
+    log::debug!(
+        "Querying documents with filters: category={:?}, keywords={:?}, page={}",
+        query.category,
+        query.keywords,
+        query.page
+    );
+
     with_connection(|conn| {
         let mut where_clauses = Vec::new();
         let mut params: Vec<String> = Vec::new();
@@ -338,6 +368,12 @@ pub fn get_documents(query: DocumentQuery) -> Result<DocumentList, String> {
         let total_pages = total_count.div_ceil(limit);
         let has_next = query.page < total_pages;
         let has_prev = query.page > 1;
+
+        log::debug!(
+            "Query returned {} documents (total: {})",
+            documents.len(),
+            total_count
+        );
 
         Ok(DocumentList {
             documents,

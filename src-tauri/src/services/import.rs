@@ -16,6 +16,12 @@ pub async fn process_import(
     extension: &str,
     llm_settings: &LLMSettings,
 ) -> Result<ImportResult, String> {
+    log::info!(
+        "Starting import process for .{} file ({} bytes)",
+        extension,
+        buffer.len()
+    );
+
     let hash = sha256::digest(buffer);
 
     let images: Vec<Vec<u8>> = match extension {
@@ -27,6 +33,7 @@ pub async fn process_import(
     .map_err(|e| format!("Failed to extract cover image: {}", e))?;
 
     let cover = images.first().cloned();
+    log::debug!("Extracted {} images for cover", images.len());
 
     let mut metadata = crate::utils::content::extract_document_content(
         buffer,
@@ -44,6 +51,7 @@ pub async fn process_import(
     metadata = normalize_metadata(metadata);
 
     if is_library_open().is_none() {
+        log::error!("Import failed: No library open");
         return Err("No library open. Call open_library() first.".to_string());
     }
 
@@ -54,6 +62,10 @@ pub async fn process_import(
     let new_filename = generate_unique_filename(&category_dir, &metadata.title, extension)?;
 
     if check_exists_by_hash(&hash)? {
+        log::warn!(
+            "Import failed: File with hash {} already exists in library",
+            &hash[..16]
+        );
         return Err("File already exists in library".to_string());
     }
 
@@ -74,6 +86,13 @@ pub async fn process_import(
         cover::save_cover(library_path, &id, cover_data.as_slice())?;
     }
 
+    log::info!(
+        "Successfully imported document: id={}, filename='{}', title='{}'",
+        id,
+        new_filename,
+        metadata.title
+    );
+
     Ok(ImportResult {
         success: true,
         filename: Some(new_filename),
@@ -87,6 +106,8 @@ pub async fn process_url_import(
     url: &str,
     llm_settings: &LLMSettings,
 ) -> Result<ImportResult, String> {
+    log::info!("Starting URL import from: {}", url);
+
     reqwest::Url::parse(url).map_err(|e| format!("Invalid URL format: {}", e))?;
 
     let client = reqwest::Client::new();
@@ -99,24 +120,31 @@ pub async fn process_url_import(
         .timeout(std::time::Duration::from_secs(60))
         .send()
         .await
-        .map_err(|e| format!("Failed to download file: {}", e))?;
+        .map_err(|e| {
+            log::error!("Failed to download file from {}: {}", url, e);
+            format!("Failed to download file: {}", e)
+        })?;
 
     if !response.status().is_success() {
-        return Err(format!(
+        let err_msg = format!(
             "HTTP {}: {}",
             response.status(),
             response
                 .status()
                 .canonical_reason()
                 .unwrap_or("Unknown error")
-        ));
+        );
+        log::error!("URL import failed: {}", err_msg);
+        return Err(err_msg);
     }
 
     let content_length = response.content_length();
     if let Some(len) = content_length {
         if len > 100 * 1024 * 1024 {
+            log::warn!("URL import failed: File too large ({} bytes)", len);
             return Err("File too large (max 100MB)".to_string());
         }
+        log::debug!("Downloading file ({} bytes)", len);
     }
 
     let content_type = response
@@ -148,11 +176,17 @@ pub async fn process_url_import(
 
     let allowed_extensions = ["pdf", "epub", "djvu"];
     if !allowed_extensions.contains(&file_extension.as_str()) {
+        log::warn!(
+            "URL import failed: Unsupported file type '{}'",
+            file_extension
+        );
         return Err(format!(
             "Unsupported file type '{}'. Only PDF, EPUB, and DJVU are supported",
             file_extension
         ));
     }
+
+    log::debug!("Detected file extension: {}", file_extension);
 
     let buffer = response
         .bytes()

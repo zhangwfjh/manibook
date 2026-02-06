@@ -11,6 +11,13 @@ pub fn move_file(
     new_category: &str,
     title: &str,
 ) -> Result<(String, String), String> {
+    log::debug!(
+        "Moving file: current='{}', new_doctype='{}', new_category='{}'",
+        current_filename,
+        new_doctype,
+        new_category
+    );
+
     let file_extension = Path::new(current_filename)
         .extension()
         .and_then(|ext| ext.to_str())
@@ -26,7 +33,14 @@ pub fn move_file(
         category_parts[..2.min(category_parts.len())].join("/")
     );
     let category_dir = Path::new(library_path).join(&folder_path);
-    fs::create_dir_all(&category_dir).map_err(|e| format!("Failed to create directory: {}", e))?;
+    fs::create_dir_all(&category_dir).map_err(|e| {
+        log::error!(
+            "Failed to create directory {}: {}",
+            category_dir.display(),
+            e
+        );
+        format!("Failed to create directory: {}", e)
+    })?;
 
     let safe_title = title.replace(
         &['/', '\\', '?', '%', '*', ':', '|', '"', '<', '>'][..],
@@ -61,6 +75,12 @@ pub fn move_file(
     let old_file_path = Path::new(library_path).join(relative_path);
     let new_file_path = category_dir.join(&new_filename);
     fs::rename(&old_file_path, &new_file_path).map_err(|e| {
+        log::error!(
+            "Failed to move file from '{}' to '{}': {}",
+            old_file_path.display(),
+            new_file_path.display(),
+            e
+        );
         format!(
             "Failed to move file from '{:?}' to '{:?}': {}",
             old_file_path, new_file_path, e
@@ -69,6 +89,7 @@ pub fn move_file(
 
     let new_url = format!("lib://{}/{}", folder_path, new_filename);
 
+    log::debug!("Successfully moved file to: {}", new_file_path.display());
     Ok((new_filename, new_url))
 }
 
@@ -126,8 +147,10 @@ pub fn generate_unique_filename(
 }
 
 pub fn write_file(file_path: &Path, buffer: &[u8]) -> Result<(), String> {
-    fs::write(file_path, buffer)
-        .map_err(|e| format!("Failed to write file {}: {}", file_path.display(), e))
+    fs::write(file_path, buffer).map_err(|e| {
+        log::error!("Failed to write file {}: {}", file_path.display(), e);
+        format!("Failed to write file {}: {}", file_path.display(), e)
+    })
 }
 
 pub fn file_exists(file_path: &Path) -> bool {
@@ -135,8 +158,11 @@ pub fn file_exists(file_path: &Path) -> bool {
 }
 
 pub fn delete_file(file_path: &Path) -> Result<(), String> {
-    fs::remove_file(file_path)
-        .map_err(|e| format!("Failed to delete file {}: {}", file_path.display(), e))
+    log::debug!("Deleting file: {}", file_path.display());
+    fs::remove_file(file_path).map_err(|e| {
+        log::error!("Failed to delete file {}: {}", file_path.display(), e);
+        format!("Failed to delete file {}: {}", file_path.display(), e)
+    })
 }
 
 pub fn get_lib_path(url: &str) -> Result<String, String> {

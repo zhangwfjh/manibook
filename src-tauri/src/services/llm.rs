@@ -58,6 +58,12 @@ pub async fn call_openai_api(
     provider: &LLMProvider,
     response_format: Option<&str>,
 ) -> Result<String, String> {
+    log::debug!(
+        "Calling LLM API: {} with model {}",
+        provider.baseURL,
+        provider.model
+    );
+
     let client = reqwest::Client::new();
     let url = format!(
         "{}/chat/completions",
@@ -86,7 +92,7 @@ pub async fn call_openai_api(
         .send()
         .await
         .map_err(|e| {
-            if e.is_timeout() {
+            let err_msg = if e.is_timeout() {
                 "LLM API request timed out after 30 seconds".to_string()
             } else if e.is_connect() {
                 format!("Failed to connect to LLM API: {}", e)
@@ -94,7 +100,9 @@ pub async fn call_openai_api(
                 format!("Failed to send request to LLM API: {}", e)
             } else {
                 format!("LLM API request failed: {}", e)
-            }
+            };
+            log::error!("{}", err_msg);
+            err_msg
         })?;
 
     if !response.status().is_success() {
@@ -103,25 +111,33 @@ pub async fn call_openai_api(
             .text()
             .await
             .unwrap_or_else(|_| "Unknown error".to_string());
+        log::error!("LLM API error: status={}, body={}", status, error_text);
         return Err(format!(
             "LLM API returned error {} (status): {}",
             status, error_text
         ));
     }
 
-    let chat_response: ChatResponse = response
-        .json()
-        .await
-        .map_err(|e| format!("Failed to parse LLM response: {}", e))?;
+    log::debug!("LLM API request successful");
+
+    let chat_response: ChatResponse = response.json().await.map_err(|e| {
+        log::error!("Failed to parse LLM response: {}", e);
+        format!("Failed to parse LLM response: {}", e)
+    })?;
 
     chat_response
         .choices
         .first()
         .map(|c| c.message.content.clone())
-        .ok_or_else(|| "LLM API returned empty response".to_string())
+        .ok_or_else(|| {
+            log::error!("LLM API returned empty response");
+            "LLM API returned empty response".to_string()
+        })
 }
 
 pub fn parse_metadata_response(response: &str) -> Result<Metadata, String> {
+    log::debug!("Parsing metadata response ({} chars)", response.len());
+
     let json_string = if let Some(captures) = JSON_CODE_BLOCK.captures(response) {
         captures.get(1).map(|m| m.as_str()).unwrap_or(response)
     } else if let Some(captures) = CODE_BLOCK_ALT.captures(response) {
@@ -130,8 +146,10 @@ pub fn parse_metadata_response(response: &str) -> Result<Metadata, String> {
         response
     };
 
-    let mut metadata: serde_json::Value = serde_json::from_str(json_string)
-        .map_err(|e| format!("Failed to parse metadata JSON: {}", e))?;
+    let mut metadata: serde_json::Value = serde_json::from_str(json_string).map_err(|e| {
+        log::error!("Failed to parse metadata JSON: {}", e);
+        format!("Failed to parse metadata JSON: {}", e)
+    })?;
 
     if let Some(category) = metadata.get_mut("category") {
         if let Some(arr) = category.as_array() {
@@ -233,6 +251,13 @@ pub fn parse_metadata_response(response: &str) -> Result<Metadata, String> {
         .to_string();
     let extra_metadata = metadata.get("metadata").cloned();
 
+    log::debug!(
+        "Successfully parsed metadata: title='{}', doctype='{}', category='{}'",
+        title.clone(),
+        doctype.clone(),
+        category.clone()
+    );
+
     let meta = Metadata {
         doctype,
         title,
@@ -261,6 +286,8 @@ pub async fn extract_text_from_images(
     if images.is_empty() {
         return Ok(String::new());
     }
+
+    log::debug!("Extracting text from {} images", images.len());
 
     let base64_images: Vec<String> = images
         .iter()
@@ -291,13 +318,27 @@ pub async fn extract_text_from_images(
         },
     ];
 
-    call_openai_api(messages, provider, None).await
+    match call_openai_api(messages, provider, None).await {
+        Ok(result) => {
+            log::debug!(
+                "Successfully extracted text from images ({} chars)",
+                result.len()
+            );
+            Ok(result)
+        }
+        Err(e) => {
+            log::error!("Failed to extract text from images: {}", e);
+            Err(e)
+        }
+    }
 }
 
 pub async fn extract_metadata_from_text(
     text: &str,
     provider: &LLMProvider,
 ) -> Result<Metadata, String> {
+    log::debug!("Extracting metadata from text ({} chars)", text.len());
+
     let truncated_text = text.chars().take(5000).collect::<String>();
 
     let messages = vec![
@@ -313,14 +354,17 @@ pub async fn extract_metadata_from_text(
 
     let mut metadata: Option<Metadata> = None;
     for retry in 0..3 {
+        log::debug!("Metadata extraction attempt {}/3", retry + 1);
+
         match call_openai_api(messages.clone(), provider, Some("json_object")).await {
             Ok(response) => match parse_metadata_response(&response) {
                 Ok(parsed) => {
                     metadata = Some(parsed);
+                    log::info!("Successfully extracted metadata on attempt {}", retry + 1);
                     break;
                 }
                 Err(e) => {
-                    eprintln!(
+                    log::warn!(
                         "Failed to parse metadata response (attempt {}/3): {}",
                         retry + 1,
                         e
@@ -328,12 +372,13 @@ pub async fn extract_metadata_from_text(
                 }
             },
             Err(e) => {
-                eprintln!("LLM API call failed (attempt {}/3): {}", retry + 1, e);
+                log::warn!("LLM API call failed (attempt {}/3): {}", retry + 1, e);
             }
         }
     }
 
     metadata.ok_or_else(|| {
+        log::error!("Failed to extract metadata after 3 attempts");
         "Failed to extract metadata after 3 attempts. Check LLM provider configuration and try again.".to_string()
     })
 }

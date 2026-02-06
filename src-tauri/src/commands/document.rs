@@ -24,6 +24,8 @@ use tauri::AppHandle;
 
 #[tauri::command]
 pub async fn generate_metadata(app: AppHandle, document_id: String) -> Result<Metadata, String> {
+    log::info!("Starting metadata generation for document: {}", document_id);
+
     let library_path = get_library_path()?;
 
     let (filename, url, existing_num_pages, existing_filesize, existing_format, existing_favorite) =
@@ -33,14 +35,21 @@ pub async fn generate_metadata(app: AppHandle, document_id: String) -> Result<Me
     let file_path = Path::new(&library_path).join(file_url);
 
     if !file_exists(&file_path) {
+        log::error!("Document file not found at: {}", file_path.display());
         return Err(format!(
             "Document file not found at: {}",
             file_path.display()
         ));
     }
 
-    let buffer = fs::read(&file_path)
-        .map_err(|e| format!("Failed to read file {}: {}", file_path.display(), e))?;
+    log::debug!(
+        "Reading file for metadata extraction: {}",
+        file_path.display()
+    );
+    let buffer = fs::read(&file_path).map_err(|e| {
+        log::error!("Failed to read file {}: {}", file_path.display(), e);
+        format!("Failed to read file {}: {}", file_path.display(), e)
+    })?;
 
     let file_extension = get_extension(&filename);
     let llm_settings = get_llm_settings(app)?;
@@ -61,6 +70,10 @@ pub async fn generate_metadata(app: AppHandle, document_id: String) -> Result<Me
 
     metadata = normalize_metadata(metadata);
 
+    log::info!(
+        "Successfully generated metadata for document: {}",
+        document_id
+    );
     Ok(metadata)
 }
 
@@ -69,11 +82,17 @@ pub async fn import_documents(
     app: AppHandle,
     request: ImportRequest,
 ) -> Result<ImportResponse, String> {
+    log::info!("Starting document import process");
+
     let library_path = get_library_path()?;
     let llm_settings = get_llm_settings(app)?;
 
     let mut results = Vec::new();
     let mut errors = Vec::new();
+
+    let file_count = request.file_data.as_ref().map(|v| v.len()).unwrap_or(0);
+    let url_count = request.urls.as_ref().map(|v| v.len()).unwrap_or(0);
+    log::info!("Importing {} files and {} URLs", file_count, url_count);
 
     if let Some(file_data) = &request.file_data {
         for file_datum in file_data {
@@ -87,6 +106,7 @@ pub async fn import_documents(
             {
                 Ok(result) => results.push(result),
                 Err(e) => {
+                    log::warn!("Failed to import file '{}': {}", file_datum.filename, e);
                     results.push(ImportResult {
                         success: false,
                         filename: Some(file_datum.filename.clone()),
@@ -107,6 +127,7 @@ pub async fn import_documents(
             match process_url_import(&library_path, url, &llm_settings).await {
                 Ok(result) => results.push(result),
                 Err(e) => {
+                    log::warn!("Failed to import URL '{}': {}", url, e);
                     results.push(ImportResult {
                         success: false,
                         filename: None,
@@ -126,6 +147,13 @@ pub async fn import_documents(
     let error_count = results.iter().filter(|r| !r.success).count();
     let total_processed = results.len();
 
+    log::info!(
+        "Import completed: {} successful, {} failed out of {} total",
+        success_count,
+        error_count,
+        total_processed
+    );
+
     Ok(ImportResponse {
         results,
         errors,
@@ -137,25 +165,38 @@ pub async fn import_documents(
 
 #[tauri::command]
 pub async fn get_cover(document_id: String) -> Result<String, String> {
+    log::debug!("Fetching cover for document: {}", document_id);
+
     let library_path = get_library_path()?;
     let cover_data = cover::get_cover(&library_path, &document_id).await?;
     match cover_data {
         Some(data) => {
-            let base64 = STANDARD.encode(&data);
-            Ok(format!("data:image/webp;base64,{}", base64))
+            log::debug!(
+                "Cover found for document: {} ({} bytes)",
+                document_id,
+                data.len()
+            );
+            let base64_data = STANDARD.encode(&data);
+            Ok(format!("data:image/webp;base64,{}", base64_data))
         }
-        None => Err("Cover not found".to_string()),
+        None => {
+            log::debug!("Cover not found for document: {}", document_id);
+            Err("Cover not found".to_string())
+        }
     }
 }
 
 #[tauri::command]
 pub fn delete_documents(document_ids: Vec<String>) -> Result<serde_json::Value, String> {
+    log::info!("Starting bulk delete for {} documents", document_ids.len());
+
     let library_path = get_library_path()?;
 
     let mut errors: Vec<serde_json::Value> = vec![];
     let mut success_count = 0;
 
     for document_id in document_ids.clone() {
+        log::debug!("Deleting document: {}", document_id);
         match (|| {
             let url = delete_document(&document_id)?;
 
@@ -167,13 +208,25 @@ pub fn delete_documents(document_ids: Vec<String>) -> Result<serde_json::Value, 
 
             Ok::<(), String>(())
         })() {
-            Ok(_) => success_count += 1,
-            Err(e) => errors.push(serde_json::json!({
-                "id": document_id,
-                "error": e
-            })),
+            Ok(_) => {
+                log::debug!("Successfully deleted document: {}", document_id);
+                success_count += 1;
+            }
+            Err(e) => {
+                log::error!("Failed to delete document {}: {}", document_id, e);
+                errors.push(serde_json::json!({
+                    "id": document_id,
+                    "error": e
+                }));
+            }
         }
     }
+
+    log::info!(
+        "Bulk delete completed: {} succeeded, {} failed",
+        success_count,
+        errors.len()
+    );
 
     Ok(serde_json::json!({
         "success": true,
@@ -184,6 +237,8 @@ pub fn delete_documents(document_ids: Vec<String>) -> Result<serde_json::Value, 
 
 #[tauri::command]
 pub fn open_document(document_id: String) -> Result<(), String> {
+    log::info!("Opening document: {}", document_id);
+
     let library_path = get_library_path()?;
 
     let url = crate::services::database::get_url(&document_id)?;
@@ -191,9 +246,15 @@ pub fn open_document(document_id: String) -> Result<(), String> {
     let relative_path = get_lib_path(&url)?;
     let file_path = Path::new(&library_path).join(relative_path);
     if !file_exists(&file_path) {
+        log::error!(
+            "File not found for document {}: {}",
+            document_id,
+            file_path.display()
+        );
         return Err("File not found".to_string());
     }
 
+    log::debug!("Opening file with system default: {}", file_path.display());
     let file_path_str = file_path.to_string_lossy();
 
     #[cfg(target_os = "windows")]
@@ -222,14 +283,18 @@ pub fn open_document(document_id: String) -> Result<(), String> {
 
     #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
     {
+        log::error!("Unsupported platform for opening document");
         return Err("Unsupported platform".to_string());
     }
 
+    log::info!("Successfully opened document: {}", document_id);
     Ok(())
 }
 
 #[tauri::command]
 pub fn update_document(document_id: String, metadata: Metadata) -> Result<Document, String> {
+    log::info!("Updating document: {}", document_id);
+
     let library_path = get_library_path()?;
 
     let normalized_metadata = normalize_metadata(metadata);
@@ -301,6 +366,8 @@ pub fn update_document(document_id: String, metadata: Metadata) -> Result<Docume
         metadata: normalized_metadata,
         category_path: vec![],
     };
+
+    log::info!("Successfully updated document: {}", doc.id);
     Ok(doc)
 }
 
@@ -310,9 +377,15 @@ pub fn move_documents(
     doctype: Option<String>,
     category: Option<String>,
 ) -> Result<serde_json::Value, String> {
+    log::info!(
+        "Starting move operation for {} documents",
+        document_ids.len()
+    );
+
     let has_doctype = doctype.as_ref().map(|s| !s.is_empty()).unwrap_or(false);
     let has_category = category.as_ref().map(|s| !s.is_empty()).unwrap_or(false);
     if !has_doctype && !has_category {
+        log::warn!("Move operation failed: no doctype or category provided");
         return Err("At least one of doctype or category must be provided".to_string());
     }
 
@@ -322,6 +395,7 @@ pub fn move_documents(
     let mut success_count = 0;
 
     for document_id in document_ids {
+        log::debug!("Moving document: {}", document_id);
         match (|| {
             let (existing_filename, existing_url, old_category, old_doctype, title) =
                 crate::services::connection_manager::with_connection(|conn| {
@@ -378,13 +452,25 @@ pub fn move_documents(
 
             Ok::<(), String>(())
         })() {
-            Ok(_) => success_count += 1,
-            Err(e) => errors.push(serde_json::json!({
-                "id": document_id,
-                "error": e
-            })),
+            Ok(_) => {
+                log::debug!("Successfully moved document: {}", document_id);
+                success_count += 1;
+            }
+            Err(e) => {
+                log::error!("Failed to move document {}: {}", document_id, e);
+                errors.push(serde_json::json!({
+                    "id": document_id,
+                    "error": e
+                }));
+            }
         }
     }
+
+    log::info!(
+        "Move operation completed: {} succeeded, {} failed",
+        success_count,
+        errors.len()
+    );
 
     Ok(serde_json::json!({
         "success": errors.is_empty(),
@@ -396,20 +482,42 @@ pub fn move_documents(
 
 #[tauri::command]
 pub fn get_documents(query: DocumentQuery) -> Result<DocumentList, String> {
-    db_get_documents(query)
+    log::debug!(
+        "Fetching documents with query: category={:?}, search={:?}, page={}",
+        query.category,
+        query.search_query,
+        query.page
+    );
+
+    let result = db_get_documents(query)?;
+    log::debug!("Retrieved {} documents", result.documents.len());
+    Ok(result)
 }
 
 #[tauri::command]
 pub fn get_library_categories() -> Result<Vec<Category>, String> {
-    db_get_library_categories()
+    log::debug!("Fetching library categories");
+
+    let result = db_get_library_categories()?;
+    log::debug!("Retrieved {} categories", result.len());
+    Ok(result)
 }
 
 #[tauri::command]
 pub fn close_library() -> Result<(), String> {
-    service_close_library()
+    log::info!("Closing library");
+
+    service_close_library()?;
+    log::info!("Library closed successfully");
+    Ok(())
 }
 
 #[tauri::command]
 pub fn is_library_open() -> Option<String> {
-    service_is_library_open()
+    let result = service_is_library_open();
+    log::debug!(
+        "Library open check: {}",
+        if result.is_some() { "yes" } else { "no" }
+    );
+    result
 }
