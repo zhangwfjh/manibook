@@ -30,7 +30,6 @@ pub async fn get_cover(library_path: &str, document_id: &str) -> Result<Option<V
     }
 
     let cover_path = get_cover_path(library_path, document_id);
-    
     if cover_path.exists() {
         let data = fs::read(&cover_path)
             .map_err(|e| format!("Failed to read cover {}: {}", document_id, e))?;

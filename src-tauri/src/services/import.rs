@@ -22,7 +22,19 @@ pub async fn process_import(
         buffer.len()
     );
 
+    if is_library_open().is_none() {
+        log::error!("Import failed: No library open");
+        return Err("No library open. Call open_library() first.".to_string());
+    }
+
     let hash = sha256::digest(buffer);
+    if check_exists_by_hash(&hash)? {
+        log::warn!(
+            "Import failed: File with hash {} already exists in library",
+            &hash[..16]
+        );
+        return Err("File already exists in library".to_string());
+    }
 
     let images: Vec<Vec<u8>> = match extension {
         "pdf" => PdfExtractor::extract_images(buffer, Some(1), Some(1)).await,
@@ -50,24 +62,11 @@ pub async fn process_import(
 
     metadata = normalize_metadata(metadata);
 
-    if is_library_open().is_none() {
-        log::error!("Import failed: No library open");
-        return Err("No library open. Call open_library() first.".to_string());
-    }
-
     let folder_path =
         create_category_directory(library_path, &metadata.doctype, &metadata.category)?;
     let category_dir = Path::new(library_path).join(&folder_path);
 
     let new_filename = generate_unique_filename(&category_dir, &metadata.title, extension)?;
-
-    if check_exists_by_hash(&hash)? {
-        log::warn!(
-            "Import failed: File with hash {} already exists in library",
-            &hash[..16]
-        );
-        return Err("File already exists in library".to_string());
-    }
 
     let final_file_path = category_dir.join(&new_filename);
     write_file(&final_file_path, buffer)?;
