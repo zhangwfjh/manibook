@@ -1093,9 +1093,9 @@ dependencies = [
 
 [[package]]
 name = "epub-parser"
-version = "0.3.1"
+version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d48c200214b65e0d64932062945a580fc395e66c75d1455a3f8309ad662d25a3"
+checksum = "0a51ae9abba740fb6a76344b740671a50df4e796c56ea0c7c9e0e8e2b438c66f"
 dependencies = [
  "ordered_hash_map",
  "quick-xml 0.36.2",

@@ -6,8 +6,10 @@ pub const COVER_WEBP_QUALITY: f32 = 75.0;
 
 pub fn encode_cover_webp(image: &image::DynamicImage) -> Result<Vec<u8>, String> {
     let resized_image = resize_image(image, COVER_MAX_WIDTH, COVER_MAX_HEIGHT);
-    let encoder = webp::Encoder::from_image(&resized_image)
-        .map_err(|e| format!("Failed to create WebP encoder: {}", e))?;
+    let rgb_image = resized_image.to_rgb8();
+    let (width, height) = rgb_image.dimensions();
+
+    let encoder = webp::Encoder::from_rgb(rgb_image.as_raw(), width, height);
     let webp_data = encoder.encode(COVER_WEBP_QUALITY);
     Ok(webp_data.to_vec())
 }

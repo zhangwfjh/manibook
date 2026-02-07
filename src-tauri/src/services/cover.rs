@@ -30,47 +30,57 @@ pub async fn get_cover(library_path: &str, document_id: &str) -> Result<Option<V
     }
 
     let cover_path = get_cover_path(library_path, document_id);
-    if !cover_path.exists() {
-        let (filename, url, _, _, _, _) = get_basic_info(document_id)?;
-        let relative_path = get_lib_path(&url)?;
-        let file_path = Path::new(library_path).join(relative_path);
-        if !file_path.exists() {
-            return Err(format!(
-                "Document file not found at: {}",
-                file_path.display()
-            ));
+    
+    if cover_path.exists() {
+        let data = fs::read(&cover_path)
+            .map_err(|e| format!("Failed to read cover {}: {}", document_id, e))?;
+
+        {
+            let mut cache = COVER_CACHE
+                .lock()
+                .map_err(|e| format!("Cache lock error: {}", e))?;
+            cache.put(document_id.to_string(), data.clone());
         }
 
-        let buffer = fs::read(&file_path)
-            .map_err(|e| format!("Failed to read file {}: {}", file_path.display(), e))?;
-
-        let file_extension = get_extension(&filename);
-        let images: Vec<Vec<u8>> = match file_extension.as_str() {
-            "pdf" => PdfExtractor::extract_images(&buffer, Some(1), Some(1)).await,
-            "epub" => EpubExtractor::extract_images(&buffer, Some(1), Some(1)).await,
-            "djvu" => DjvuExtractor::extract_images(&buffer, Some(1), Some(1)).await,
-            _ => Err(format!("Unsupported file extension: '{}'", file_extension)),
-        }
-        .map_err(|e| format!("Failed to extract cover image: {}", e))?;
-
-        if let Some(cover) = images.first() {
-            save_cover(library_path, document_id, cover)?;
-        } else {
-            return Ok(None);
-        }
+        return Ok(Some(data));
     }
 
-    let data = fs::read(&cover_path)
-        .map_err(|e| format!("Failed to read cover {}: {}", document_id, e))?;
-
-    {
-        let mut cache = COVER_CACHE
-            .lock()
-            .map_err(|e| format!("Cache lock error: {}", e))?;
-        cache.put(document_id.to_string(), data.clone());
+    let (filename, url, _, _, _, _) = get_basic_info(document_id)?;
+    let relative_path = get_lib_path(&url)?;
+    let file_path = Path::new(library_path).join(relative_path);
+    if !file_path.exists() {
+        return Err(format!(
+            "Document file not found at: {}",
+            file_path.display()
+        ));
     }
 
-    Ok(Some(data))
+    let buffer = fs::read(&file_path)
+        .map_err(|e| format!("Failed to read file {}: {}", file_path.display(), e))?;
+
+    let file_extension = get_extension(&filename);
+    let images: Vec<Vec<u8>> = match file_extension.as_str() {
+        "pdf" => PdfExtractor::extract_images(&buffer, Some(1), Some(1)).await,
+        "epub" => EpubExtractor::extract_images(&buffer, Some(1), Some(1)).await,
+        "djvu" => DjvuExtractor::extract_images(&buffer, Some(1), Some(1)).await,
+        _ => Err(format!("Unsupported file extension: '{}'", file_extension)),
+    }
+    .map_err(|e| format!("Failed to extract cover image: {}", e))?;
+
+    if let Some(cover) = images.first() {
+        log::info!(
+            "Successfully extracted cover ({} bytes), saving to cache",
+            cover.len()
+        );
+        save_cover(library_path, document_id, cover)?;
+        Ok(Some(cover.clone()))
+    } else {
+        log::warn!(
+            "No cover image could be extracted from {} file",
+            file_extension
+        );
+        Ok(None)
+    }
 }
 
 pub fn save_cover(library_path: &str, document_id: &str, data: &[u8]) -> Result<(), String> {
@@ -84,13 +94,6 @@ pub fn save_cover(library_path: &str, document_id: &str, data: &[u8]) -> Result<
     let cover_path = covers_dir.join(format!("{}.webp", document_id));
     fs::write(&cover_path, data)
         .map_err(|e| format!("Failed to write cover {}: {}", document_id, e))?;
-
-    {
-        let mut cache = COVER_CACHE
-            .lock()
-            .map_err(|e| format!("Cache lock error: {}", e))?;
-        cache.put(document_id.to_string(), data.to_vec());
-    }
 
     Ok(())
 }
