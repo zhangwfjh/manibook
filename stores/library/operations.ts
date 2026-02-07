@@ -7,6 +7,7 @@ import type { Document } from "@/lib/library";
 import { useLibraryDataStore } from "./dataStore";
 import { useLibraryFilterStore } from "./filterStore";
 import { useLibraryUIStore } from "./uiStore";
+import { initialFilters } from "./types";
 
 
 interface DocumentsResponse {
@@ -30,6 +31,7 @@ interface OperationsState {
   updateDocument: (updatedDoc: Document) => Promise<Document | undefined>;
   toggleFavorite: (document: Document) => Promise<Document | undefined>;
   createLibrary: (name: string, path: string) => Promise<boolean>;
+  closeLibrary: () => Promise<void>;
   bulkDelete: (documentIds: string[]) => Promise<void>;
   bulkMove: (documentIds: string[], doctype: string, category: string) => Promise<void>;
 }
@@ -197,6 +199,18 @@ export const useLibraryOperations = create<OperationsState>((set, get) => ({
       toast.error(typeof error === "string" ? error : "Failed to create library");
       return false;
     }
+  },
+
+  closeLibrary: async () => {
+    useLibraryDataStore.setState({
+      libraryName: "",
+      documents: [],
+      categories: [],
+      pagination: null,
+      currentPage: 1,
+      filterOptions: {}
+    });
+    useLibraryFilterStore.setState(initialFilters);
   },
 
   bulkDelete: async (documentIds) => {

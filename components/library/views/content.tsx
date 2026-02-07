@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { DocumentCard } from "@/components/library/documents/card";
 import { DocumentCardSkeleton } from "@/components/library/documents/card-skeleton";
 import { Pagination } from "./pagination";
-import { BookOpenIcon, LibraryIcon } from "lucide-react";
+import { BookOpenIcon, LibraryIcon, XIcon } from "lucide-react";
 import {
   useLibraryDataStore,
   useLibraryFilterStore,
@@ -41,7 +41,7 @@ export function Content() {
   } = useLibraryDataStore();
   const { selectedCategory, getFilterParams } = useLibraryFilterStore();
   const { setSelectedCategory } = useFilterWithReload();
-  const { loadPage } = useLibraryOperations();
+  const { loadPage, closeLibrary } = useLibraryOperations();
   const { sortBy } = useLibraryUIStore();
 
   const currentPage = pagination?.page || 1;
@@ -137,16 +137,27 @@ export function Content() {
           <BreadcrumbList>
             <BreadcrumbItem>Location:</BreadcrumbItem>
             <BreadcrumbItem>
-              <BreadcrumbLink
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setSelectedCategory("");
-                }}
-                className="transition-colors hover:text-foreground"
-              >
-                {libraryName}
-              </BreadcrumbLink>
+              <div className="flex items-center gap-1">
+                <BreadcrumbLink
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setSelectedCategory("");
+                  }}
+                  className="transition-colors hover:text-foreground"
+                >
+                  {libraryName}
+                </BreadcrumbLink>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-5 w-5 p-0 hover:bg-destructive/10 hover:text-destructive"
+                  onClick={closeLibrary}
+                  title="Close library"
+                >
+                  <XIcon className="h-3 w-3" />
+                </Button>
+              </div>
             </BreadcrumbItem>
             {selectedCategory &&
               selectedCategory.split(" > ").map((part, index, array) => (
