@@ -67,11 +67,7 @@ pub fn move_file(
         counter += 1;
     }
 
-    let relative_path = if let Some(stripped) = current_url.strip_prefix("lib://") {
-        stripped
-    } else {
-        current_url
-    };
+    let relative_path = current_url;
     let old_file_path = Path::new(library_path).join(relative_path);
     let new_file_path = category_dir.join(&new_filename);
     fs::rename(&old_file_path, &new_file_path).map_err(|e| {
@@ -87,7 +83,7 @@ pub fn move_file(
         )
     })?;
 
-    let new_url = format!("lib://{}/{}", folder_path, new_filename);
+    let new_url = format!("{}/{}", folder_path, new_filename);
 
     log::debug!("Successfully moved file to: {}", new_file_path.display());
     Ok((new_filename, new_url))
@@ -166,12 +162,5 @@ pub fn delete_file(file_path: &Path) -> Result<(), String> {
 }
 
 pub fn get_lib_path(url: &str) -> Result<String, String> {
-    if let Some(stripped) = url.strip_prefix("lib://") {
-        Ok(stripped.to_string())
-    } else {
-        Err(format!(
-            "Invalid URL format (must start with 'lib://'): {}",
-            url
-        ))
-    }
+    Ok(url.to_string())
 }

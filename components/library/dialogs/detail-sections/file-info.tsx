@@ -34,7 +34,7 @@ export function FileInfo({ document }: DialogFileInfoProps) {
               <TableCell className="w-1/6 min-w-24 font-medium">
                 File path
               </TableCell>
-              <TableCell className="max-w-0">{document.path}</TableCell>
+              <TableCell className="max-w-0">{document.url}</TableCell>
             </TableRow>
             <TableRow>
               <TableCell className="w-1/6 min-w-24 font-medium">

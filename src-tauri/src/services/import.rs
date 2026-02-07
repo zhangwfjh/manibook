@@ -72,13 +72,10 @@ pub async fn process_import(
     let final_file_path = category_dir.join(&new_filename);
     write_file(&final_file_path, buffer)?;
 
-    let url = format!(
-        "lib://{}",
-        Path::new(&folder_path)
-            .join(&new_filename)
-            .to_string_lossy()
-            .replace('\\', "/")
-    );
+    let url = Path::new(&folder_path)
+        .join(&new_filename)
+        .to_string_lossy()
+        .replace('\\', "/");
     let id = nanoid!();
 
     insert_document(&id, &new_filename, &url, &metadata, &hash)?;

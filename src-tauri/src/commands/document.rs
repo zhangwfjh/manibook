@@ -360,7 +360,6 @@ pub fn update_document(document_id: String, metadata: Metadata) -> Result<Docume
 
     let doc = Document {
         id: document_id,
-        path: String::new(),
         filename: String::new(),
         url: String::new(),
         metadata: normalized_metadata,

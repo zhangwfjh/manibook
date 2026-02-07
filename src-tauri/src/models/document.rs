@@ -31,15 +31,8 @@ impl DbDocument {
     }
 
     pub fn into_document(self) -> Document {
-        let path = if let Some(stripped) = self.url.strip_prefix("lib://") {
-            stripped.to_string()
-        } else {
-            self.url.clone()
-        };
-
         Document {
             id: self.id,
-            path,
             filename: self.filename,
             url: self.url,
             metadata: Metadata {
@@ -92,7 +85,6 @@ pub struct Metadata {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Document {
     pub id: String,
-    pub path: String,
     pub filename: String,
     pub url: String,
     pub metadata: Metadata,

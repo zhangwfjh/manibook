@@ -19,8 +19,8 @@ export interface Metadata {
 
 export interface Document {
   id: string;
-  path: string;
   filename: string;
+  url: string;
   metadata: Metadata;
 }
 
