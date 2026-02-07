@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, KeyboardEvent } from "react";
 import {
   Pagination as UIPagination,
   PaginationContent,
@@ -9,6 +10,7 @@ import {
   PaginationPrevious,
   PaginationEllipsis,
 } from "@/components/ui/pagination";
+import { Input } from "@/components/ui/input";
 
 interface PaginationControlsProps {
   currentPage: number;
@@ -27,10 +29,28 @@ export function Pagination({
   onGoToPage,
   className = "",
 }: PaginationControlsProps) {
+  const [pageInput, setPageInput] = useState<string>("");
+
   if (totalPages <= 1) return null;
 
   const hasNextPage = currentPage < totalPages;
   const hasPrevPage = currentPage > 1;
+
+  const handleJumpToPage = () => {
+    const pageNum = parseInt(pageInput, 10);
+    if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= totalPages && pageNum !== currentPage) {
+      onGoToPage(pageNum);
+      setPageInput("");
+    } else {
+      setPageInput("");
+    }
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleJumpToPage();
+    }
+  };
 
   const renderPageItems = () => {
     const items = [];
@@ -114,6 +134,23 @@ export function Pagination({
           </PaginationItem>
 
           {renderPageItems()}
+
+          <PaginationItem className="ml-2 flex items-center gap-1">
+            <Input
+              type="number"
+              min={1}
+              max={totalPages}
+              value={pageInput}
+              onChange={(e) => setPageInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={currentPage.toString()}
+              className="w-16 h-8 text-center text-sm"
+              aria-label={`Go to page (1-${totalPages})`}
+            />
+            <span className="text-sm text-muted-foreground whitespace-nowrap">
+              / {totalPages}
+            </span>
+          </PaginationItem>
 
           <PaginationItem>
             <PaginationNext

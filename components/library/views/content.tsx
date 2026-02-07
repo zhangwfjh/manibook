@@ -50,17 +50,16 @@ export function Content() {
   const hasNextPage = pagination?.hasNextPage || false;
   const hasPrevPage = pagination?.hasPrevPage || false;
 
-  const combinedParams = new URLSearchParams();
-  const filterParams = getFilterParams();
-  if (filterParams) {
-    filterParams.forEach((value, key) => combinedParams.set(key, value));
-  }
-  if (sortBy) {
-    combinedParams.set("sortBy", sortBy);
-  }
-
   const goToPage = (page: number) => {
-    loadPage(page, combinedParams);
+    const filterParams = getFilterParams();
+    const params = new URLSearchParams();
+    if (filterParams) {
+      filterParams.forEach((value, key) => params.set(key, value));
+    }
+    if (sortBy) {
+      params.set("sortBy", sortBy);
+    }
+    loadPage(page, params);
   };
 
   const nextPage = () => {
@@ -222,4 +221,3 @@ export function Content() {
     </div>
   );
 }
-
