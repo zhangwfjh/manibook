@@ -13,7 +13,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
-            let log_dir = app.path().app_data_dir().unwrap().join("logs");
+            let log_dir = app.path().app_local_data_dir().unwrap().join("logs");
             std::fs::create_dir_all(&log_dir).unwrap_or_else(|_| {
                 eprintln!("Failed to create log directory at {:?}", log_dir);
             });

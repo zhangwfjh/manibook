@@ -7,8 +7,9 @@ use tauri::{AppHandle, Manager};
 pub fn get_libraries(app: AppHandle) -> Result<Vec<Library>, String> {
     let config_dir = app
         .path()
-        .app_data_dir()
-        .map_err(|e| format!("Failed to get app config dir: {}", e))?;
+        .app_local_data_dir()
+        .map_err(|e| format!("Failed to get app config dir: {}", e))?
+        .join("config");
     let settings_path = config_dir.join("library.json");
     match fs::read_to_string(&settings_path) {
         Ok(data) => match serde_json::from_str::<LibrarySettings>(&data) {
@@ -22,8 +23,9 @@ pub fn get_libraries(app: AppHandle) -> Result<Vec<Library>, String> {
 pub fn get_library_settings(app: &AppHandle) -> Result<LibrarySettings, String> {
     let config_dir = app
         .path()
-        .app_data_dir()
-        .map_err(|e| format!("Failed to get app config dir: {}", e))?;
+        .app_local_data_dir()
+        .map_err(|e| format!("Failed to get app config dir: {}", e))?
+        .join("config");
     let settings_path = config_dir.join("library.json");
     read_json_file_with_default(
         &settings_path,
@@ -45,8 +47,9 @@ pub fn create_library(app: AppHandle, name: String, path: String) -> Result<(), 
 
     let config_dir = app
         .path()
-        .app_data_dir()
-        .map_err(|e| format!("Failed to get app config dir: {}", e))?;
+        .app_local_data_dir()
+        .map_err(|e| format!("Failed to get app config dir: {}", e))?
+        .join("config");
     let settings_path = config_dir.join("library.json");
     let mut settings: LibrarySettings = match fs::read_to_string(&settings_path) {
         Ok(data) => {

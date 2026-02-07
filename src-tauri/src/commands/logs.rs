@@ -20,7 +20,7 @@ pub struct LogsInfo {
 pub async fn get_logs_info(app: AppHandle) -> Result<LogsInfo, String> {
     let log_dir = app
         .path()
-        .app_data_dir()
+        .app_local_data_dir()
         .map_err(|e| format!("Failed to get app data dir: {}", e))?
         .join("logs");
 
@@ -70,7 +70,7 @@ pub async fn export_logs(app: AppHandle, target_path: String) -> Result<(), Stri
 
     let log_dir = app
         .path()
-        .app_data_dir()
+        .app_local_data_dir()
         .map_err(|e| format!("Failed to get app data dir: {}", e))?
         .join("logs");
 
