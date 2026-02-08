@@ -269,11 +269,10 @@ pub fn parse_metadata_response(response: &str) -> Result<Metadata, String> {
         keywords,
         r#abstract,
         favorite: false,
-        num_pages: 0,
+        page_count: 0,
         filesize: 0,
-        format: "".to_string(),
+        filetype: "".to_string(),
         metadata: extra_metadata,
-        updated_at: chrono::Utc::now().to_rfc3339(),
     };
 
     Ok(meta)

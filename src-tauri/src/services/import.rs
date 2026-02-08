@@ -56,9 +56,8 @@ pub async fn process_import(
     .await?;
 
     metadata.filesize = buffer.len() as i64;
-    metadata.format = extension.to_string();
+    metadata.filetype = extension.to_string();
     metadata.favorite = false;
-    metadata.updated_at = chrono::Utc::now().to_rfc3339();
 
     metadata = normalize_metadata(metadata);
 

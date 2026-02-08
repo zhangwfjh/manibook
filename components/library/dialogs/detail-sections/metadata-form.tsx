@@ -123,10 +123,10 @@ export function MetadataForm({
           <Input
             id="publicationYear"
             type="number"
-            value={editedMetadata.publicationYear || "?"}
+            value={editedMetadata.publication_year || "?"}
             onChange={(e) =>
               handleFieldChange(
-                "publicationYear",
+                "publication_year",
                 e.target.value ? parseInt(e.target.value) : undefined,
               )
             }
@@ -176,9 +176,9 @@ export function MetadataForm({
           </Label>
           <Input
             id="pages"
-            value={editedMetadata.numPages || ""}
+            value={editedMetadata.page_count || ""}
             onChange={(e) =>
-              handleFieldChange("numPages", parseInt(e.target.value) || 0)
+              handleFieldChange("page_count", parseInt(e.target.value) || 0)
             }
             className="mt-1"
             placeholder="100"

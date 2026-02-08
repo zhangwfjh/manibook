@@ -148,18 +148,17 @@ export function DocumentDetailDialog({
           doctype: metadata.doctype,
           title: metadata.title,
           authors: metadata.authors,
-          publicationYear: metadata.publicationYear,
+          publication_year: metadata.publication_year,
           publisher: metadata.publisher,
           category: metadata.category,
           language: metadata.language,
           keywords: metadata.keywords,
           abstract: metadata.abstract,
           favorite: metadata.favorite,
-          numPages: metadata.numPages,
+          page_count: metadata.page_count,
           filesize: metadata.filesize,
-          format: metadata.format,
+          filetype: metadata.filetype,
           metadata: metadata.metadata,
-          updatedAt: new Date(),
         });
       }
     } catch (error) {

@@ -48,7 +48,7 @@ export function DocumentMetadata({
       </div>
       {showYear && (
         <div className="text-sm text-muted-foreground shrink-0">
-          {metadata.publicationYear || "-"}
+          {metadata.publication_year || "-"}
         </div>
       )}
       {showDoctype && (

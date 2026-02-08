@@ -46,7 +46,7 @@ export function MetadataView({ metadata }: DialogMetadataViewProps) {
           </Label>
           <div className="flex items-center gap-2 mt-1">
             <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-            <span>{metadata.publicationYear || "Unknown"}</span>
+            <span>{metadata.publication_year || "Unknown"}</span>
           </div>
         </div>
 
@@ -73,10 +73,10 @@ export function MetadataView({ metadata }: DialogMetadataViewProps) {
           <Label className="text-sm font-medium text-muted-foreground">
             PAGES
           </Label>
-          {metadata.numPages && (
+          {metadata.page_count && (
             <div className="flex items-center gap-2 mt-1">
               <FileTextIcon className="h-4 w-4 text-muted-foreground" />
-              <span>{metadata.numPages}</span>
+              <span>{metadata.page_count}</span>
             </div>
           )}
         </div>

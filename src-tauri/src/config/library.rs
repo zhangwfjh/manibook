@@ -107,20 +107,19 @@ fn create_database(db_path: &Path) -> Result<(), String> {
             "doctype" TEXT NOT NULL,
             "title" TEXT NOT NULL,
             "authors" TEXT NOT NULL,
-            "publicationYear" INTEGER,
+            "publication_year" INTEGER,
             "publisher" TEXT,
             "category" TEXT NOT NULL,
             "language" TEXT,
             "keywords" TEXT NOT NULL,
-            "abstract" TEXT,
+            "summary" TEXT,
             "favorite" INTEGER NOT NULL DEFAULT 0,
             "metadata" TEXT,
             "hash" TEXT UNIQUE,
-            "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            "numPages" INTEGER NOT NULL DEFAULT 0,
-            "filesize" INTEGER NOT NULL DEFAULT 0,
-            "format" TEXT NOT NULL DEFAULT 'unknown'
+            "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "page_count" INTEGER NOT NULL DEFAULT 0,
+            "file_size" INTEGER NOT NULL DEFAULT 0,
+            "file_type" TEXT NOT NULL DEFAULT 'unknown'
         )
         "#,
         [],
@@ -131,7 +130,7 @@ fn create_database(db_path: &Path) -> Result<(), String> {
         "CREATE INDEX idx_hash ON documents(hash)",
         "CREATE INDEX idx_doctype_category ON documents(doctype, category)",
         "CREATE INDEX idx_favorite ON documents(favorite)",
-        "CREATE INDEX idx_format ON documents(format)",
+        "CREATE INDEX idx_file_type ON documents(file_type)",
         "CREATE INDEX idx_publisher ON documents(publisher)",
         "CREATE INDEX idx_language ON documents(language)",
         "CREATE INDEX idx_title ON documents(title)",
@@ -141,19 +140,6 @@ fn create_database(db_path: &Path) -> Result<(), String> {
         conn.execute(sql, [])
             .map_err(|e| format!("Failed to create index: {}", e))?;
     }
-
-    conn.execute(
-        r#"
-        CREATE TRIGGER update_documents_updated_at
-        AFTER UPDATE ON documents
-        FOR EACH ROW
-        BEGIN
-            UPDATE documents SET updatedAt = CURRENT_TIMESTAMP WHERE id = NEW.id;
-        END
-        "#,
-        [],
-    )
-    .map_err(|e| format!("Failed to create update trigger: {}", e))?;
 
     Ok(())
 }

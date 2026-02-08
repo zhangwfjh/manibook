@@ -118,7 +118,7 @@ export function Controls() {
               <div className="flex items-center gap-1.5 pr-2 border-r border-border/50">
                 <Select
                   value={sortBy}
-                  defaultValue="updatedAt-desc"
+                  defaultValue="created_at-desc"
                   onValueChange={setSortBy}
                 >
                   <SelectTrigger className="w-44 h-8 hover:bg-muted/80 transition-colors">

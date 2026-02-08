@@ -33,7 +33,7 @@ pub(crate) fn open_database(library_path: &str) -> Result<rusqlite::Connection, 
 pub fn get_basic_info(document_id: &str) -> Result<(String, i32, i64, String, i32), String> {
     with_connection(|conn| {
         let mut stmt = conn
-            .prepare("SELECT url, numPages, filesize, format, favorite FROM documents WHERE id = ?")
+            .prepare("SELECT url, page_count, file_size, file_type, favorite FROM documents WHERE id = ?")
             .map_err(|e| format!("Failed to prepare document query: {}", e))?;
 
         stmt.query_row(params![document_id], |row| {
@@ -58,7 +58,7 @@ pub fn insert_document(id: &str, url: &str, metadata: &Metadata, hash: &str) -> 
 
     with_connection(|conn| {
         conn.execute(
-            "INSERT INTO documents (id, url, doctype, title, authors, publicationYear, publisher, category, language, keywords, abstract, favorite, metadata, hash, numPages, filesize, format) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO documents (id, url, doctype, title, authors, publication_year, publisher, category, language, keywords, summary, favorite, metadata, hash, page_count, file_size, file_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             params![
                 id,
                 url,
@@ -74,9 +74,9 @@ pub fn insert_document(id: &str, url: &str, metadata: &Metadata, hash: &str) -> 
                 &metadata.favorite,
                 serde_json::to_string(&metadata.metadata).unwrap_or_default(),
                 hash,
-                &metadata.num_pages,
+                &metadata.page_count,
                 &metadata.filesize,
-                &metadata.format,
+                &metadata.filetype,
             ],
         )
         .map_err(|e| {
@@ -91,22 +91,19 @@ pub fn insert_document(id: &str, url: &str, metadata: &Metadata, hash: &str) -> 
 
 pub fn update_metadata(document_id: &str, metadata: &Metadata) -> Result<(), String> {
     with_connection(|conn| {
-        let now = chrono::Utc::now().to_rfc3339();
-
         let sql = r#"
             UPDATE documents SET
                 title = ?,
                 authors = ?,
-                publicationYear = ?,
+                publication_year = ?,
                 publisher = ?,
                 category = ?,
                 language = ?,
                 keywords = ?,
-                abstract = ?,
+                summary = ?,
                 doctype = ?,
                 favorite = ?,
-                metadata = ?,
-                updatedAt = ?
+                metadata = ?
             WHERE id = ?
         "#;
 
@@ -125,7 +122,6 @@ pub fn update_metadata(document_id: &str, metadata: &Metadata) -> Result<(), Str
                 .metadata
                 .as_ref()
                 .map(|m| serde_json::to_string(m).unwrap()),
-            now,
             document_id
         ];
 
@@ -238,7 +234,7 @@ pub fn get_documents(query: DocumentQuery) -> Result<DocumentList, String> {
 
         if !query.formats.is_empty() {
             let placeholders: Vec<&str> = query.formats.iter().map(|_| "?").collect();
-            where_clauses.push(format!("format IN ({})", placeholders.join(", ")));
+            where_clauses.push(format!("file_type IN ({})", placeholders.join(", ")));
             params.extend(query.formats.iter().map(|f| f.to_lowercase()));
         }
 
@@ -276,7 +272,7 @@ pub fn get_documents(query: DocumentQuery) -> Result<DocumentList, String> {
                 "authors LIKE ?",
                 "keywords LIKE ?",
                 "publisher LIKE ?",
-                "abstract LIKE ?",
+                "summary LIKE ?",
             ];
             where_clauses.push(format!("({})", search_conditions.join(" OR ")));
             for _ in 0..5 {
@@ -293,26 +289,26 @@ pub fn get_documents(query: DocumentQuery) -> Result<DocumentList, String> {
         let (sort_field, sort_order) = query
             .sort_by
             .split_once('-')
-            .unwrap_or(("createdAt", "desc"));
+            .unwrap_or(("created_at", "desc"));
         let order_by = match sort_field {
             "title" => "title",
             "author" => "authors",
             "publisher" => "publisher",
-            "publicationYear" => "publicationYear",
+            "publication_year" => "publication_year",
             "language" => "language",
             "doctype" => "doctype",
-            "numPages" => "numPages",
+            "page_count" => "page_count",
             "favorite" => "favorite",
-            "updatedAt" => "updatedAt",
-            "filesize" => "filesize",
-            _ => "createdAt",
+            "createdAt" => "created_at",
+            "filesize" => "file_size",
+            _ => "created_at",
         };
 
         let limit = query.limit.min(200);
         let offset = (query.page.saturating_sub(1)) * limit;
 
         let sql = format!(
-        "SELECT id, url, doctype, title, authors, publicationYear, publisher, category, language, keywords, abstract, favorite, numPages, filesize, format, metadata, updatedAt FROM documents {} ORDER BY {} {} LIMIT ? OFFSET ?",
+        "SELECT id, url, doctype, title, authors, publication_year, publisher, category, language, keywords, summary, favorite, page_count, file_size, file_type, metadata FROM documents {} ORDER BY {} {} LIMIT ? OFFSET ?",
         where_clause, order_by, sort_order
     );
         let mut params_with_pagination = params.clone();
@@ -391,7 +387,7 @@ fn compute_filter_counts(
     };
 
     let sql = format!(
-        "SELECT format, COUNT(*) FROM documents {} GROUP BY format",
+        "SELECT file_type, COUNT(*) FROM documents {} GROUP BY file_type",
         where_clause
     );
     let mut stmt = conn
@@ -403,8 +399,11 @@ fn compute_filter_counts(
         })
         .map_err(|e| format!("Failed to execute formats query: {}", e))?;
     for result in format_iter {
-        let (format, count) = result.map_err(|e| format!("Failed to get format result: {}", e))?;
-        filter_options.formats.insert(format.to_uppercase(), count);
+        let (file_type, count) =
+            result.map_err(|e| format!("Failed to get format result: {}", e))?;
+        filter_options
+            .formats
+            .insert(file_type.to_uppercase(), count);
     }
 
     let sql = if where_clause.is_empty() {

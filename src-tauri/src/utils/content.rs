@@ -102,7 +102,7 @@ pub async fn extract_document_content(
     }
     .map_err(|e| format!("Failed to extract metadata: {}", e))?;
 
-    let num_pages = metadata_json
+    let page_count = metadata_json
         .get("page_count")
         .and_then(|v| v.as_i64())
         .unwrap_or(0) as i32;
@@ -118,7 +118,7 @@ pub async fn extract_document_content(
         .await
         .map_err(|e| format!("Failed to extract metadata: {}", e))?;
 
-    metadata.num_pages = num_pages;
+    metadata.page_count = page_count;
 
     Ok(metadata)
 }

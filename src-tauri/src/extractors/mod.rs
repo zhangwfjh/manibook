@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 pub struct ForewordExtraction {
     pub foreword: String,
     pub images: Vec<Vec<u8>>,
-    pub num_pages: i32,
+    pub page_count: i32,
 }
 
 pub trait Extractor {

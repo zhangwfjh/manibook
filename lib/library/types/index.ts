@@ -2,18 +2,17 @@ export interface Metadata {
   doctype: string;
   title: string;
   authors: string[];
-  publicationYear?: number;
+  publication_year?: number;
   publisher?: string;
   category: string;
   language: string;
   keywords: string[];
   abstract: string;
   favorite: boolean;
-  numPages: number;
+  page_count: number;
   filesize: number;
-  format: string;
+  filetype: string;
   metadata?: Record<string, unknown>;
-  updatedAt?: Date;
   [key: string]: unknown;
 }
 

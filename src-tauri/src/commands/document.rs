@@ -28,7 +28,7 @@ pub async fn generate_metadata(app: AppHandle, document_id: String) -> Result<Me
 
     let library_path = get_library_path()?;
 
-    let (url, existing_num_pages, existing_filesize, existing_format, existing_favorite) =
+    let (url, existing_page_count, existing_filesize, existing_filetype, existing_favorite) =
         get_basic_info(&document_id)?;
 
     let file_url = get_lib_path(&url)?;
@@ -62,11 +62,10 @@ pub async fn generate_metadata(app: AppHandle, document_id: String) -> Result<Me
     )
     .await?;
 
-    metadata.num_pages = existing_num_pages;
+    metadata.page_count = existing_page_count;
     metadata.filesize = existing_filesize;
-    metadata.format = existing_format;
+    metadata.filetype = existing_filetype;
     metadata.favorite = existing_favorite != 0;
-    metadata.updated_at = chrono::Utc::now().to_rfc3339();
 
     metadata = normalize_metadata(metadata);
 
@@ -299,9 +298,9 @@ pub fn update_document(document_id: String, metadata: Metadata) -> Result<Docume
 
     let (
         existing_url,
-        _existing_num_pages,
+        _existing_page_count,
         _existing_filesize,
-        _existing_format,
+        _existing_filetype,
         _existing_favorite,
     ) = get_basic_info(&document_id)?;
 
@@ -420,10 +419,9 @@ pub fn move_documents(
                 .clone();
 
             crate::services::connection_manager::with_connection(|conn| {
-                let now = chrono::Utc::now().to_rfc3339();
                 conn.execute(
-                    "UPDATE documents SET doctype = ?, category = ?, updatedAt = ? WHERE id = ?",
-                    rusqlite::params![new_doctype, new_category, now, document_id],
+                    "UPDATE documents SET doctype = ?, category = ? WHERE id = ?",
+                    rusqlite::params![new_doctype, new_category, document_id],
                 )
                 .map_err(|e| format!("Failed to update document: {}", e))
             })?;

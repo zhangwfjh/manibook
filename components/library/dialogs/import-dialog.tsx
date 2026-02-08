@@ -288,6 +288,7 @@ export function ImportDialog({
     const importItems = validUrls.map((url) => ({
       filename: url.split("/").pop() || "Unknown",
       status: "importing" as const,
+      path: url,
       abortController: new AbortController(),
     }));
 

@@ -21,6 +21,7 @@ import {
   BanIcon,
 } from "lucide-react";
 import { format } from "date-fns";
+import { toast } from "sonner";
 import { useImportStore, type ImportItem } from "@/stores";
 import {
   Item,
@@ -82,6 +83,8 @@ function exportImportProgress(
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+
+  toast.success(`Export completed successfully, downloaded as ${a.download}.`);
 }
 
 async function retryFailedItems(

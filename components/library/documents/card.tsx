@@ -26,7 +26,7 @@ export const DocumentCard = ({ document }: { document: Document }) => {
     ? formatFileSize(metadata.filesize)
     : null;
 
-  const formatIcon = metadata.format ? getFormatIcon(metadata.format) : null;
+  const formatIcon = metadata.filetype ? getFormatIcon(metadata.filetype) : null;
 
   const handleCardClick = () => {
     handleDocumentClick(document, selectionMode);
@@ -49,7 +49,7 @@ export const DocumentCard = ({ document }: { document: Document }) => {
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
               <CalendarIcon className="h-4 w-4" />
               <span>
-                {metadata.publicationYear ? metadata.publicationYear : "?"}
+                {metadata.publication_year ? metadata.publication_year : "?"}
               </span>
             </div>
 

@@ -41,7 +41,7 @@ interface UIState {
 }
 
 export const useLibraryUIStore = create<UIState>((set, get) => ({
-  sortBy: "updatedAt-desc",
+  sortBy: "created_at-desc",
   setSortBy: async (sort) => {
     set({ sortBy: sort });
     const { loadFilteredData } = useLibraryOperations.getState();

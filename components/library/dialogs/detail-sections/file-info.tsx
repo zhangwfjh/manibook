@@ -44,16 +44,19 @@ export function FileInfo({ document }: DialogFileInfoProps) {
               </TableCell>
               <TableCell className="max-w-0">
                 <div className="flex items-center gap-2">
-                  {metadata.filesize && metadata.format && (
+                  {metadata.filesize && metadata.filetype && (
                     <>
                       <Tooltip>
                         <TooltipTrigger>
-                          {React.createElement(getFormatIcon(metadata.format), {
-                            className: "h-4 w-4 text-muted-foreground",
-                          })}
+                          {React.createElement(
+                            getFormatIcon(metadata.filetype),
+                            {
+                              className: "h-4 w-4 text-muted-foreground",
+                            },
+                          )}
                         </TooltipTrigger>
                         <TooltipContent>
-                          File format: {metadata.format?.toUpperCase()}
+                          File format: {metadata.filetype?.toUpperCase()}
                         </TooltipContent>
                       </Tooltip>
                       <span>{formatFileSize(metadata.filesize)}</span>
@@ -68,19 +71,22 @@ export function FileInfo({ document }: DialogFileInfoProps) {
               </TableCell>
               <TableCell className="max-w-0">
                 <div className="flex items-center gap-2">
-                  {metadata.format && (
+                  {metadata.filetype && (
                     <>
                       <Tooltip>
                         <TooltipTrigger>
-                          {React.createElement(getFormatIcon(metadata.format), {
-                            className: "h-4 w-4 text-muted-foreground",
-                          })}
+                          {React.createElement(
+                            getFormatIcon(metadata.filetype),
+                            {
+                              className: "h-4 w-4 text-muted-foreground",
+                            },
+                          )}
                         </TooltipTrigger>
                         <TooltipContent>
-                          File format: {metadata.format?.toUpperCase()}
+                          File format: {metadata.filetype?.toUpperCase()}
                         </TooltipContent>
                       </Tooltip>
-                      <span className="uppercase">{metadata.format}</span>
+                      <span className="uppercase">{metadata.filetype}</span>
                     </>
                   )}
                 </div>
