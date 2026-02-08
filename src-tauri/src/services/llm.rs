@@ -353,7 +353,7 @@ pub async fn extract_metadata_from_text(
 
     let mut metadata: Option<Metadata> = None;
     for retry in 0..3 {
-        log::debug!("Metadata extraction attempt {}/3", retry + 1);
+        log::info!("Metadata extraction attempt {}/3", retry + 1);
 
         match call_openai_api(messages.clone(), provider, Some("json_object")).await {
             Ok(response) => match parse_metadata_response(&response) {
