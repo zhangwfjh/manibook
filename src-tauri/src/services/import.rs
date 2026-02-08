@@ -77,21 +77,20 @@ pub async fn process_import(
         .replace('\\', "/");
     let id = nanoid!();
 
-    insert_document(&id, &new_filename, &url, &metadata, &hash)?;
+    insert_document(&id, &url, &metadata, &hash)?;
     if let Some(ref cover_data) = cover {
         cover::save_cover(library_path, &id, cover_data.as_slice())?;
     }
 
     log::info!(
-        "Successfully imported document: id={}, filename='{}', title='{}'",
+        "Successfully imported document: id={}, url='{}', title='{}'",
         id,
-        new_filename,
+        url,
         metadata.title
     );
 
     Ok(ImportResult {
         success: true,
-        filename: Some(new_filename),
         metadata: Some(metadata),
         error: None,
     })

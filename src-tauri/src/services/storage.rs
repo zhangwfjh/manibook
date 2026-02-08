@@ -1,27 +1,23 @@
-use crate::services::connection_manager::with_connection;
+use crate::utils::content::get_extension;
 use crate::utils::path::sanitize_filename;
 use std::fs;
 use std::path::Path;
 
 pub fn move_file(
     library_path: &str,
-    current_filename: &str,
     current_url: &str,
     new_doctype: &str,
     new_category: &str,
     title: &str,
-) -> Result<(String, String), String> {
+) -> Result<String, String> {
     log::debug!(
-        "Moving file: current='{}', new_doctype='{}', new_category='{}'",
-        current_filename,
+        "Moving file: current_url='{}', new_doctype='{}', new_category='{}'",
+        current_url,
         new_doctype,
         new_category
     );
 
-    let file_extension = Path::new(current_filename)
-        .extension()
-        .and_then(|ext| ext.to_str())
-        .unwrap_or("");
+    let file_extension = get_extension(current_url);
 
     let category_parts: Vec<String> = new_category
         .split(" > ")
@@ -49,20 +45,7 @@ pub fn move_file(
     let mut new_filename = format!("{}.{}", safe_title, file_extension);
 
     let mut counter = 1;
-    while {
-        let file_exists = Path::new(&category_dir).join(&new_filename).exists();
-        let db_exists = with_connection(|conn| {
-            Ok(conn
-                .query_row(
-                    "SELECT COUNT(*) FROM documents WHERE filename = ?",
-                    rusqlite::params![&new_filename],
-                    |row| row.get::<_, i64>(0),
-                )
-                .unwrap_or(0)
-                > 0)
-        })?;
-        file_exists || db_exists
-    } {
+    while Path::new(&category_dir).join(&new_filename).exists() {
         new_filename = format!("{}_{}.{}", safe_title, counter, file_extension);
         counter += 1;
     }
@@ -86,7 +69,7 @@ pub fn move_file(
     let new_url = format!("{}/{}", folder_path, new_filename);
 
     log::debug!("Successfully moved file to: {}", new_file_path.display());
-    Ok((new_filename, new_url))
+    Ok(new_url)
 }
 
 pub fn create_category_directory(

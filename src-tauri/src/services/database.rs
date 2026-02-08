@@ -30,35 +30,26 @@ pub(crate) fn open_database(library_path: &str) -> Result<rusqlite::Connection, 
     })
 }
 
-pub fn get_basic_info(
-    document_id: &str,
-) -> Result<(String, String, i32, i64, String, i32), String> {
+pub fn get_basic_info(document_id: &str) -> Result<(String, i32, i64, String, i32), String> {
     with_connection(|conn| {
         let mut stmt = conn
-            .prepare("SELECT filename, url, numPages, filesize, format, favorite FROM documents WHERE id = ?")
+            .prepare("SELECT url, numPages, filesize, format, favorite FROM documents WHERE id = ?")
             .map_err(|e| format!("Failed to prepare document query: {}", e))?;
 
         stmt.query_row(params![document_id], |row| {
             Ok((
                 row.get::<_, String>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, i32>(2)?,
-                row.get::<_, i64>(3)?,
-                row.get::<_, String>(4)?,
-                row.get::<_, i32>(5)?,
+                row.get::<_, i32>(1)?,
+                row.get::<_, i64>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, i32>(4)?,
             ))
         })
         .map_err(|e| format!("Document '{}' not found in database: {}", document_id, e))
     })
 }
 
-pub fn insert_document(
-    id: &str,
-    filename: &str,
-    url: &str,
-    metadata: &Metadata,
-    hash: &str,
-) -> Result<(), String> {
+pub fn insert_document(id: &str, url: &str, metadata: &Metadata, hash: &str) -> Result<(), String> {
     log::debug!(
         "Inserting document into database: id={}, title='{}'",
         id,
@@ -67,10 +58,9 @@ pub fn insert_document(
 
     with_connection(|conn| {
         conn.execute(
-            "INSERT INTO documents (id, filename, url, doctype, title, authors, publicationYear, publisher, category, language, keywords, abstract, favorite, metadata, hash, numPages, filesize, format) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO documents (id, url, doctype, title, authors, publicationYear, publisher, category, language, keywords, abstract, favorite, metadata, hash, numPages, filesize, format) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             params![
                 id,
-                filename,
                 url,
                 &metadata.doctype,
                 &metadata.title,
@@ -146,13 +136,13 @@ pub fn update_metadata(document_id: &str, metadata: &Metadata) -> Result<(), Str
     })
 }
 
-pub fn update_file_info(document_id: &str, filename: &str, url: &str) -> Result<(), String> {
+pub fn update_file_info(document_id: &str, url: &str) -> Result<(), String> {
     with_connection(|conn| {
         conn.execute(
-            "UPDATE documents SET filename = ?, url = ? WHERE id = ?",
-            params![filename, url, document_id],
+            "UPDATE documents SET url = ? WHERE id = ?",
+            params![url, document_id],
         )
-        .map_err(|e| format!("Failed to update filename and url: {}", e))?;
+        .map_err(|e| format!("Failed to update url: {}", e))?;
         Ok(())
     })
 }
@@ -322,7 +312,7 @@ pub fn get_documents(query: DocumentQuery) -> Result<DocumentList, String> {
         let offset = (query.page.saturating_sub(1)) * limit;
 
         let sql = format!(
-        "SELECT id, filename, url, doctype, title, authors, publicationYear, publisher, category, language, keywords, abstract, favorite, numPages, filesize, format, metadata, updatedAt FROM documents {} ORDER BY {} {} LIMIT ? OFFSET ?",
+        "SELECT id, url, doctype, title, authors, publicationYear, publisher, category, language, keywords, abstract, favorite, numPages, filesize, format, metadata, updatedAt FROM documents {} ORDER BY {} {} LIMIT ? OFFSET ?",
         where_clause, order_by, sort_order
     );
         let mut params_with_pagination = params.clone();

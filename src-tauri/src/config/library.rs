@@ -103,7 +103,6 @@ fn create_database(db_path: &Path) -> Result<(), String> {
         r#"
         CREATE TABLE "documents" (
             "id" TEXT NOT NULL PRIMARY KEY,
-            "filename" TEXT NOT NULL UNIQUE,
             "url" TEXT NOT NULL,
             "doctype" TEXT NOT NULL,
             "title" TEXT NOT NULL,
@@ -132,7 +131,6 @@ fn create_database(db_path: &Path) -> Result<(), String> {
         "CREATE INDEX idx_hash ON documents(hash)",
         "CREATE INDEX idx_doctype_category ON documents(doctype, category)",
         "CREATE INDEX idx_favorite ON documents(favorite)",
-        "CREATE INDEX idx_filename ON documents(filename)",
         "CREATE INDEX idx_format ON documents(format)",
         "CREATE INDEX idx_publisher ON documents(publisher)",
         "CREATE INDEX idx_language ON documents(language)",

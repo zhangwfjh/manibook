@@ -28,7 +28,7 @@ pub async fn generate_metadata(app: AppHandle, document_id: String) -> Result<Me
 
     let library_path = get_library_path()?;
 
-    let (filename, url, existing_num_pages, existing_filesize, existing_format, existing_favorite) =
+    let (url, existing_num_pages, existing_filesize, existing_format, existing_favorite) =
         get_basic_info(&document_id)?;
 
     let file_url = get_lib_path(&url)?;
@@ -51,7 +51,7 @@ pub async fn generate_metadata(app: AppHandle, document_id: String) -> Result<Me
         format!("Failed to read file {}: {}", file_path.display(), e)
     })?;
 
-    let file_extension = get_extension(&filename);
+    let file_extension = get_extension(&url);
     let llm_settings = get_llm_settings(app)?;
 
     let mut metadata = crate::utils::content::extract_document_content(
@@ -109,7 +109,6 @@ pub async fn import_documents(
                     log::warn!("Failed to import file '{}': {}", file_datum.filename, e);
                     results.push(ImportResult {
                         success: false,
-                        filename: Some(file_datum.filename.clone()),
                         metadata: None,
                         error: Some(e.clone()),
                     });
@@ -130,7 +129,6 @@ pub async fn import_documents(
                     log::warn!("Failed to import URL '{}': {}", url, e);
                     results.push(ImportResult {
                         success: false,
-                        filename: None,
                         metadata: None,
                         error: Some(e.clone()),
                     });
@@ -300,7 +298,6 @@ pub fn update_document(document_id: String, metadata: Metadata) -> Result<Docume
     let normalized_metadata = normalize_metadata(metadata);
 
     let (
-        existing_filename,
         existing_url,
         _existing_num_pages,
         _existing_filesize,
@@ -346,21 +343,19 @@ pub fn update_document(document_id: String, metadata: Metadata) -> Result<Docume
         || old_title != new_title
         || old_doctype != normalized_metadata.doctype
     {
-        let (new_filename, new_url) = move_file(
+        let new_url = move_file(
             &library_path,
-            &existing_filename,
             &existing_url,
             &normalized_metadata.doctype,
             &new_category,
             &new_title,
         )?;
 
-        update_file_info(&document_id, &new_filename, &new_url)?;
+        update_file_info(&document_id, &new_url)?;
     }
 
     let doc = Document {
         id: document_id,
-        filename: String::new(),
         url: String::new(),
         metadata: normalized_metadata,
         category_path: vec![],
@@ -396,12 +391,10 @@ pub fn move_documents(
     for document_id in document_ids {
         log::debug!("Moving document: {}", document_id);
         match (|| {
-            let (existing_filename, existing_url, old_category, old_doctype, title) =
+            let (existing_url, old_category, old_doctype, title) =
                 crate::services::connection_manager::with_connection(|conn| {
                     let mut stmt = conn
-                        .prepare(
-                            "SELECT filename, url, category, doctype, title FROM documents WHERE id = ?",
-                        )
+                        .prepare("SELECT url, category, doctype, title FROM documents WHERE id = ?")
                         .map_err(|e| format!("Failed to prepare query: {}", e))?;
 
                     stmt.query_row(rusqlite::params![&document_id], |row| {
@@ -410,7 +403,6 @@ pub fn move_documents(
                             row.get::<_, String>(1)?,
                             row.get::<_, String>(2)?,
                             row.get::<_, String>(3)?,
-                            row.get::<_, String>(4)?,
                         ))
                     })
                     .map_err(|e| format!("Failed to find document: {}", e))
@@ -437,16 +429,15 @@ pub fn move_documents(
             })?;
 
             if old_category != new_category || old_doctype != new_doctype {
-                let (new_filename, new_url) = move_file(
+                let new_url = move_file(
                     &library_path,
-                    &existing_filename,
                     &existing_url,
                     &new_doctype,
                     &new_category,
                     &title,
                 )?;
 
-                update_file_info(&document_id, &new_filename, &new_url)?;
+                update_file_info(&document_id, &new_url)?;
             }
 
             Ok::<(), String>(())

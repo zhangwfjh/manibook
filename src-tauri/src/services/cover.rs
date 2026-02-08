@@ -44,7 +44,7 @@ pub async fn get_cover(library_path: &str, document_id: &str) -> Result<Option<V
         return Ok(Some(data));
     }
 
-    let (filename, url, _, _, _, _) = get_basic_info(document_id)?;
+    let (url, _, _, _, _) = get_basic_info(document_id)?;
     let relative_path = get_lib_path(&url)?;
     let file_path = Path::new(library_path).join(relative_path);
     if !file_path.exists() {
@@ -57,7 +57,7 @@ pub async fn get_cover(library_path: &str, document_id: &str) -> Result<Option<V
     let buffer = fs::read(&file_path)
         .map_err(|e| format!("Failed to read file {}: {}", file_path.display(), e))?;
 
-    let file_extension = get_extension(&filename);
+    let file_extension = get_extension(&url);
     let images: Vec<Vec<u8>> = match file_extension.as_str() {
         "pdf" => PdfExtractor::extract_images(&buffer, Some(1), Some(1)).await,
         "epub" => EpubExtractor::extract_images(&buffer, Some(1), Some(1)).await,

@@ -6,7 +6,6 @@ use serde_rusqlite::from_row;
 #[derive(Deserialize)]
 pub struct DbDocument {
     pub id: String,
-    pub filename: String,
     pub url: String,
     pub doctype: String,
     pub title: String,
@@ -33,7 +32,6 @@ impl DbDocument {
     pub fn into_document(self) -> Document {
         Document {
             id: self.id,
-            filename: self.filename,
             url: self.url,
             metadata: Metadata {
                 doctype: self.doctype,
@@ -85,7 +83,6 @@ pub struct Metadata {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Document {
     pub id: String,
-    pub filename: String,
     pub url: String,
     pub metadata: Metadata,
     #[serde(rename = "categoryPath")]
@@ -150,7 +147,6 @@ pub struct FileData {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct ImportResult {
     pub success: bool,
-    pub filename: Option<String>,
     pub metadata: Option<Metadata>,
     pub error: Option<String>,
 }

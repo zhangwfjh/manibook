@@ -28,7 +28,9 @@ export function FileInfo({ document }: DialogFileInfoProps) {
               <TableCell className="w-1/6 min-w-24 font-medium">
                 Filename
               </TableCell>
-              <TableCell className="max-w-0">{document.filename}</TableCell>
+              <TableCell className="max-w-0">
+                {document.url.split("/").pop()}
+              </TableCell>
             </TableRow>
             <TableRow>
               <TableCell className="w-1/6 min-w-24 font-medium">
