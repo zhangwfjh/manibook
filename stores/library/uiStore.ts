@@ -36,6 +36,9 @@ interface UIState {
   bulkDeleteDialogOpen: boolean;
   setBulkDeleteDialogOpen: (open: boolean) => void;
 
+  settingsOpen: boolean;
+  setSettingsOpen: (open: boolean) => void;
+
   handleDocumentClick: (document: Document, inSelectionMode: boolean) => void;
   handleDocumentUpdate: (updatedDoc: Document) => Promise<Document | undefined>;
 }
@@ -106,6 +109,9 @@ export const useLibraryUIStore = create<UIState>((set, get) => ({
 
   bulkDeleteDialogOpen: false,
   setBulkDeleteDialogOpen: (open) => set({ bulkDeleteDialogOpen: open }),
+
+  settingsOpen: false,
+  setSettingsOpen: (open) => set({ settingsOpen: open }),
 
   handleDocumentClick: (document, inSelectionMode) => {
     if (inSelectionMode) {

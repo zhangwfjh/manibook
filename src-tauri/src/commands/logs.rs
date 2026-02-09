@@ -74,32 +74,62 @@ pub async fn export_logs(app: AppHandle, target_path: String) -> Result<(), Stri
         .map_err(|e| format!("Failed to get app data dir: {}", e))?
         .join("logs");
 
-    let target = PathBuf::from(target_path);
+    if !log_dir.exists() {
+        return Err(format!(
+            "Log directory does not exist: {}",
+            log_dir.display()
+        ));
+    }
 
-    if target.is_dir() {
-        // Copy all log files to the target directory
-        let mut exported_count = 0;
-        if let Ok(entries) = fs::read_dir(&log_dir) {
-            for entry in entries.flatten() {
-                let path = entry.path();
-                if let Some(ext) = path.extension() {
-                    if ext == "log" || (ext.to_str().unwrap_or("").starts_with("log")) {
-                        let file_name = path.file_name().unwrap_or_default();
-                        let dest = target.join(file_name);
-                        fs::copy(&path, &dest)
-                            .map_err(|e| format!("Failed to copy {}: {}", path.display(), e))?;
-                        exported_count += 1;
-                    }
+    let mut log_files: Vec<PathBuf> = Vec::new();
+    if let Ok(entries) = fs::read_dir(&log_dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if let Some(ext) = path.extension() {
+                let ext_str = ext.to_string_lossy();
+                if ext_str == "log" || ext_str.starts_with("log") {
+                    log_files.push(path);
                 }
             }
         }
+    }
+
+    if log_files.is_empty() {
+        return Err(format!(
+            "No log files found in directory: {}",
+            log_dir.display()
+        ));
+    }
+
+    log_files.sort_by(|a, b| {
+        let a_name = a.file_name().unwrap_or_default();
+        let b_name = b.file_name().unwrap_or_default();
+        b_name.cmp(&a_name)
+    });
+
+    let target = PathBuf::from(&target_path);
+
+    if target.is_dir() {
+        let mut exported_count = 0;
+        for path in &log_files {
+            let file_name = path.file_name().unwrap_or_default();
+            let dest = target.join(file_name);
+            match fs::copy(path, &dest) {
+                Ok(_) => exported_count += 1,
+                Err(e) => log::warn!("Failed to copy {}: {}", path.display(), e),
+            }
+        }
+
+        if exported_count == 0 {
+            return Err("Failed to export any log files".to_string());
+        }
+
         log::info!(
             "Exported {} log files to directory: {}",
             exported_count,
             target.display()
         );
     } else {
-        // Single file - concatenate all logs into one file
         let mut content = String::new();
         content.push_str("=== ManiBook Log Export ===\n");
         content.push_str(&format!(
@@ -108,34 +138,35 @@ pub async fn export_logs(app: AppHandle, target_path: String) -> Result<(), Stri
         ));
         content.push_str("========================\n\n");
 
-        if let Ok(entries) = fs::read_dir(&log_dir) {
-            let mut log_files: Vec<_> = entries.flatten().collect();
-            log_files.sort_by(|a, b| {
-                let a_name = a.file_name();
-                let b_name = b.file_name();
-                b_name.cmp(&a_name) // Reverse order - newest first
-            });
+        for path in &log_files {
+            content.push_str(&format!(
+                "\n=== File: {} ===\n",
+                path.file_name().unwrap_or_default().to_string_lossy()
+            ));
 
-            for entry in log_files {
-                let path = entry.path();
-                if let Some(ext) = path.extension() {
-                    if ext == "log" || (ext.to_str().unwrap_or("").starts_with("log")) {
-                        content.push_str(&format!(
-                            "\n=== File: {} ===\n",
-                            path.file_name().unwrap_or_default().to_string_lossy()
-                        ));
-                        if let Ok(file_content) = fs::read_to_string(&path) {
-                            content.push_str(&file_content);
-                        }
-                        content.push_str("\n\n");
-                    }
+            match fs::read_to_string(path) {
+                Ok(file_content) => content.push_str(&file_content),
+                Err(e) => {
+                    log::warn!("Failed to read {}: {}", path.display(), e);
+                    content.push_str(&format!("[Error reading file: {}]\n", e));
                 }
             }
+            content.push_str("\n\n");
+        }
+
+        if let Some(parent) = target.parent() {
+            fs::create_dir_all(parent)
+                .map_err(|e| format!("Failed to create parent directory: {}", e))?;
         }
 
         fs::write(&target, content)
             .map_err(|e| format!("Failed to write log export file: {}", e))?;
-        log::info!("Exported logs to single file: {}", target.display());
+
+        log::info!(
+            "Exported {} log files to single file: {}",
+            log_files.len(),
+            target.display()
+        );
     }
 
     Ok(())

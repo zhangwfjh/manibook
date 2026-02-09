@@ -8,7 +8,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +22,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SettingsIcon, PlusIcon, TrashIcon, UploadIcon } from "lucide-react";
+import { PlusIcon, TrashIcon, UploadIcon } from "lucide-react";
 
 interface LLMProvider {
   name: string;
@@ -49,9 +48,13 @@ const emptySettings: LLMSettings = {
   },
 };
 
-export function SettingsDialog() {
+interface SettingsDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const [settings, setSettings] = useState<LLMSettings>(emptySettings);
-  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -71,7 +74,7 @@ export function SettingsDialog() {
   const handleSave = async () => {
     try {
       await invoke("set_llm_settings", { settings });
-      setOpen(false);
+      onOpenChange(false);
     } catch (error) {
       console.error("Error saving settings:", error);
       alert("Error saving settings");
@@ -152,13 +155,7 @@ export function SettingsDialog() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <SettingsIcon className="h-4 w-4 mr-2" />
-          Settings
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-175 max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>LLM Configuration</DialogTitle>

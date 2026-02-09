@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
@@ -21,8 +22,8 @@ import {
   CheckSquare2Icon,
   TrashIcon,
   XIcon,
+  SettingsIcon,
 } from "lucide-react";
-import { SettingsDialog } from "@/components/library/dialogs/settings-dialog";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BulkMoveDropdown } from "@/components/library/features/move-dropdown";
 import { SORT_OPTIONS } from "@/components/library/types";
@@ -35,6 +36,7 @@ import {
 } from "@/stores";
 
 export function Controls() {
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const { searchQuery, setSearchQuery } = useLibraryFilterStore();
   const { sortBy, setSortBy } = useLibraryUIStore();
   const { libraries } = useLibraryDataStore();
@@ -46,9 +48,23 @@ export function Controls() {
     selectAllDocuments,
     clearSelection,
     setBulkDeleteDialogOpen,
+    setSettingsOpen,
   } = useLibraryUIStore();
   const { bulkMove } = useLibraryOperations();
   const { setImportDialogOpen } = useImportStore();
+
+  // Keyboard shortcut handler (Cmd/Ctrl + K)
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
+  }, []);
 
   return (
     <div className="mb-6 space-y-4">
@@ -57,6 +73,7 @@ export function Controls() {
           <SidebarTrigger className="shrink-0 hover:bg-muted/80 transition-colors duration-200" />
           <InputGroup className="flex-1 relative">
             <InputGroupInput
+              ref={searchInputRef}
               placeholder="Search by title, author, publisher, keywords, or abstract...  "
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -155,7 +172,14 @@ export function Controls() {
                 </Button>
               </div>
               <div className="flex items-center gap-1 pl-2 border-l border-border/50">
-                <SettingsDialog />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSettingsOpen(true)}
+                >
+                  <SettingsIcon className="h-4 w-4 mr-2" />
+                  Settings
+                </Button>
                 <ThemeToggle />
               </div>
             </div>

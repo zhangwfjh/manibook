@@ -9,30 +9,44 @@ const RENDER_MAX_HEIGHT: i32 = 1200;
 static PDFIUM: OnceLock<Pdfium> = OnceLock::new();
 
 pub fn init_pdfium(resource_dir: &std::path::Path) -> Result<(), String> {
-    log::info!("Initializing PDFium from resource directory: {}", resource_dir.display());
+    log::info!(
+        "Initializing PDFium from resource directory: {}",
+        resource_dir.display()
+    );
 
     let library_name = Pdfium::pdfium_platform_library_name_at_path(resource_dir);
 
-    let bindings = Pdfium::bind_to_library(&library_name)
-        .map_err(|e| {
-            log::error!("Failed to bind to PDFium library at {}: {}", library_name.display(), e);
-            format!("Failed to bind to PDFium library at {}: {}", library_name.display(), e)
-        })?;
+    let bindings = Pdfium::bind_to_library(&library_name).map_err(|e| {
+        log::error!(
+            "Failed to bind to PDFium library at {}: {}",
+            library_name.display(),
+            e
+        );
+        format!(
+            "Failed to bind to PDFium library at {}: {}",
+            library_name.display(),
+            e
+        )
+    })?;
 
     let pdfium = Pdfium::new(bindings);
 
-    PDFIUM.set(pdfium)
-        .map_err(|_| {
-            log::error!("PDFium already initialized");
-            "PDFium already initialized".to_string()
-        })?;
+    PDFIUM.set(pdfium).map_err(|_| {
+        log::error!("PDFium already initialized");
+        "PDFium already initialized".to_string()
+    })?;
 
-    log::info!("PDFium initialized successfully at: {}", library_name.display());
+    log::info!(
+        "PDFium initialized successfully at: {}",
+        library_name.display()
+    );
     Ok(())
 }
 
 fn pdfium() -> &'static Pdfium {
-    PDFIUM.get().expect("PDFium not initialized. Call init_pdfium() during app setup first.")
+    PDFIUM
+        .get()
+        .expect("PDFium not initialized. Call init_pdfium() during app setup first.")
 }
 
 pub struct PdfExtractor;

@@ -37,9 +37,7 @@ export function LibrarySidebar() {
           <h1 className="text-xl font-bold tracking-tight bg-linear-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
             ManiBook
           </h1>
-          <p className="text-muted-foreground text-xs">
-            Organize and browse your collection
-          </p>
+          <p className="text-muted-foreground text-xs">Your friendly AI documents manager</p>
         </div>
       </SidebarHeader>
 

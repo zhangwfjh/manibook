@@ -38,7 +38,9 @@ pub fn run() {
                     .build(),
             )?;
 
-            let resource_dir = app.path().resource_dir()
+            let resource_dir = app
+                .path()
+                .resource_dir()
                 .map_err(|e| format!("Failed to get resource directory: {}", e))?;
             extractors::pdf::init_pdfium(&resource_dir)
                 .map_err(|e| format!("Failed to initialize PDFium: {}", e))?;

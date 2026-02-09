@@ -3,6 +3,7 @@
 import { DocumentDetailDialog } from "@/components/library/dialogs/detail-dialog";
 import { CreateLibraryDialog } from "@/components/library/dialogs/create-library-dialog";
 import { ImportDialog } from "@/components/library/dialogs/import-dialog";
+import { SettingsDialog } from "@/components/library/dialogs/settings-dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,6 +33,8 @@ export function DialogManager() {
     resetCreateDialog,
     selectedDocuments,
     handleDocumentUpdate,
+    settingsOpen,
+    setSettingsOpen,
   } = useLibraryUIStore();
   const {
     createLibrary,
@@ -70,6 +73,8 @@ export function DialogManager() {
         onOpenChange={setImportDialogOpen}
         onImportComplete={refreshData}
       />
+
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
 
       <AlertDialog
         open={bulkDeleteDialogOpen}

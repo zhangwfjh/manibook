@@ -11,6 +11,7 @@ import { LibrarySidebar } from "@/components/library/navigation/sidebar";
 import { Controls } from "@/components/library/views/controls";
 import { Content } from "@/components/library/views/content";
 import { DialogManager } from "@/components/library/dialogs/dialog-manager";
+import { CommandPalette } from "@/components/command-palette";
 import {
   useLibraryDataStore,
   useLibraryFilterStore,
@@ -60,6 +61,7 @@ function HomeContent() {
             <Controls />
             <Content />
             <DialogManager />
+            <CommandPalette />
           </div>
         </SidebarInset>
       </div>
