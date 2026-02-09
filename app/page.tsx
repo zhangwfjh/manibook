@@ -12,6 +12,7 @@ import { Controls } from "@/components/library/views/controls";
 import { Content } from "@/components/library/views/content";
 import { DialogManager } from "@/components/library/dialogs/dialog-manager";
 import { CommandPalette } from "@/components/command-palette";
+import { FloatingScrollButtons } from "@/components/floating-scroll-buttons";
 import {
   useLibraryDataStore,
   useLibraryFilterStore,
@@ -65,6 +66,7 @@ function HomeContent() {
           </div>
         </SidebarInset>
       </div>
+      <FloatingScrollButtons />
     </SidebarProvider>
   );
 }
