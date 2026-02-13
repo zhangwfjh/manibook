@@ -97,56 +97,102 @@ async function retryFailedItems(
 ) {
   if (!batch) return;
 
-  const failedUrls = batch.items.filter(
-    (item) =>
-      item.status === "failed" && item.path && item.path.startsWith("http"),
-  );
+  const failedItems = batch.items.filter((item) => item.status === "failed");
 
-  if (failedUrls.length === 0) {
-    // No failed URL imports to retry
+  if (failedItems.length === 0) {
     return;
   }
 
-  // Set them to importing
-  failedUrls.forEach((item) => {
+  const failedUrls = failedItems.filter(
+    (item) => item.path && item.path.startsWith("http"),
+  );
+  const failedFiles = failedItems.filter((item) => item.fileData);
+
+  failedItems.forEach((item) => {
     updateItemStatus(item.id, "importing");
   });
 
-  try {
-    const result = await invoke<{
-      results: Array<{
-        success: boolean;
-        filename?: string;
-        error?: string;
-      }>;
-      errors: Array<{
-        source: string;
-        error: string;
-      }>;
-    }>("import_documents", {
-      request: {
-        urls: failedUrls.map((item) => item.path as string),
-      },
-    });
+  if (failedUrls.length > 0) {
+    try {
+      const result = await invoke<{
+        results: Array<{
+          success: boolean;
+          filename?: string;
+          error?: string;
+        }>;
+        errors: Array<{
+          source: string;
+          error: string;
+        }>;
+      }>("import_documents", {
+        request: {
+          urls: failedUrls.map((item) => item.path as string),
+        },
+      });
 
-    failedUrls.forEach((item, index) => {
-      const itemResult = result.results[index];
-      if (itemResult?.success) {
-        updateItemStatus(item.id, "success", { completedAt: new Date() });
-      } else {
-        const errorMsg = itemResult?.error || "Import failed";
-        if (errorMsg.toLowerCase().includes("already exists")) {
+      failedUrls.forEach((item, index) => {
+        const itemResult = result.results[index];
+        if (itemResult?.success) {
           updateItemStatus(item.id, "success", { completedAt: new Date() });
         } else {
-          updateItemStatus(item.id, "failed", { error: errorMsg });
+          const errorMsg = itemResult?.error || "Import failed";
+          if (errorMsg.toLowerCase().includes("already exists")) {
+            updateItemStatus(item.id, "success", { completedAt: new Date() });
+          } else {
+            updateItemStatus(item.id, "failed", { error: errorMsg });
+          }
         }
-      }
-    });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    failedUrls.forEach((item) => {
-      updateItemStatus(item.id, "failed", { error: errorMessage });
-    });
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      failedUrls.forEach((item) => {
+        updateItemStatus(item.id, "failed", { error: errorMessage });
+      });
+    }
+  }
+
+  if (failedFiles.length > 0) {
+    try {
+      const fileData = failedFiles.map((item) => ({
+        filename: item.filename,
+        data: item.fileData as number[],
+      }));
+
+      const result = await invoke<{
+        results: Array<{
+          success: boolean;
+          filename?: string;
+          error?: string;
+        }>;
+        errors: Array<{
+          source: string;
+          error: string;
+        }>;
+      }>("import_documents", {
+        request: {
+          file_data: fileData,
+        },
+      });
+
+      failedFiles.forEach((item, index) => {
+        const itemResult = result.results[index];
+        if (itemResult?.success) {
+          updateItemStatus(item.id, "success", { completedAt: new Date() });
+        } else {
+          const errorMsg = itemResult?.error || "Import failed";
+          if (errorMsg.toLowerCase().includes("already exists")) {
+            updateItemStatus(item.id, "success", { completedAt: new Date() });
+          } else {
+            updateItemStatus(item.id, "failed", { error: errorMsg });
+          }
+        }
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      failedFiles.forEach((item) => {
+        updateItemStatus(item.id, "failed", { error: errorMessage });
+      });
+    }
   }
 }
 
@@ -196,10 +242,7 @@ export function ImportDrawer({ open, onOpenChange }: ImportDrawerProps) {
               disabled={
                 !currentBatch ||
                 !currentBatch.items.some(
-                  (item: ImportItem) =>
-                    item.status === "failed" &&
-                    item.path &&
-                    item.path.startsWith("http"),
+                  (item: ImportItem) => item.status === "failed"
                 )
               }
             >

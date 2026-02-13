@@ -138,17 +138,6 @@ export function ImportDialog({
 
     clearBatch();
 
-    const importItems = filteredFiles.map((file) => ({
-      filename: file.name,
-      status: "importing" as const,
-      abortController: new AbortController(),
-    }));
-
-    const batchId = addBatch(importItems);
-    setDrawerOpen(true);
-    setImporting(true);
-
-    // Read file data
     const fileDataPromises = filteredFiles.map(async (file) => {
       const buffer = await file.arrayBuffer();
       return {
@@ -157,8 +146,26 @@ export function ImportDialog({
       };
     });
 
+    let fileData: { filename: string; data: number[] }[];
     try {
-      const fileData = await Promise.all(fileDataPromises);
+      fileData = await Promise.all(fileDataPromises);
+    } catch (error) {
+      toast.error("Failed to read files");
+      return;
+    }
+
+    const importItems = fileData.map((fd) => ({
+      filename: fd.filename,
+      status: "importing" as const,
+      abortController: new AbortController(),
+      fileData: fd.data,
+    }));
+
+    const batchId = addBatch(importItems);
+    setDrawerOpen(true);
+    setImporting(true);
+
+    try {
 
       const result = await invoke<{
         results: Array<{
@@ -176,7 +183,6 @@ export function ImportDialog({
         },
       });
 
-      // Update status for each file
       filteredFiles.forEach((file, index) => {
         const itemId = `${batchId}-item-${index}`;
         const fileResult = result.results[index];
@@ -313,7 +319,6 @@ export function ImportDialog({
         },
       });
 
-      // Update status for each URL
       validUrls.forEach((url, index) => {
         const itemId = `${batchId}-item-${index}`;
         const urlResult = result.results[index];
@@ -387,11 +392,10 @@ export function ImportDialog({
 
           <TabsContent value="files" className="space-y-4">
             <div
-              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                dragActive
-                  ? "border-primary bg-primary/5"
-                  : "border-muted-foreground/25 hover:border-muted-foreground/50"
-              }`}
+              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${dragActive
+                ? "border-primary bg-primary/5"
+                : "border-muted-foreground/25 hover:border-muted-foreground/50"
+                }`}
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
               onDragOver={handleDrag}

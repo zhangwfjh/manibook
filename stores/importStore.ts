@@ -10,6 +10,7 @@ export interface ImportItem {
   completedAt?: Date;
   error?: string;
   path?: string;
+  fileData?: number[];
 }
 
 export interface ImportBatch {
