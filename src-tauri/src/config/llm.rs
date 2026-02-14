@@ -1,4 +1,4 @@
-use crate::models::llm::{Jobs, LLMSettings};
+use crate::models::llm::LLMSettings;
 use crate::utils::settings::{read_json_file_with_default, write_json_file};
 use std::fs;
 use std::path::Path;
@@ -11,34 +11,30 @@ pub fn get_llm_settings(app: AppHandle) -> Result<LLMSettings, String> {
         .map_err(|e| format!("Failed to get app config dir: {}", e))?
         .join("config");
     let settings_path = config_dir.join("llm.json");
-    read_json_file_with_default(
-        &settings_path,
-        LLMSettings {
-            providers: vec![],
-            jobs: Jobs {
-                metadataExtraction: String::new(),
-                imageTextExtraction: String::new(),
-            },
-        },
-    )
+    read_json_file_with_default(&settings_path, LLMSettings::default())
 }
 
 pub fn set_llm_settings(app: AppHandle, settings: LLMSettings) -> Result<(), String> {
-    if !settings.jobs.metadataExtraction.is_empty()
-        && !settings
-            .providers
-            .iter()
-            .any(|p| p.name == settings.jobs.metadataExtraction)
-    {
-        return Err("Invalid metadata extraction provider".to_string());
+    if !settings.jobs.metadata_extraction.is_empty() {
+        if let Some(provider_id) = settings.jobs.metadata_extraction.split('/').next() {
+            if !settings.api_keys.contains_key(provider_id) {
+                return Err(format!(
+                    "API key not configured for provider '{}' (required by metadata extraction model)",
+                    provider_id
+                ));
+            }
+        }
     }
-    if !settings.jobs.imageTextExtraction.is_empty()
-        && !settings
-            .providers
-            .iter()
-            .any(|p| p.name == settings.jobs.imageTextExtraction)
-    {
-        return Err("Invalid image text extraction provider".to_string());
+
+    if !settings.jobs.image_text_extraction.is_empty() {
+        if let Some(provider_id) = settings.jobs.image_text_extraction.split('/').next() {
+            if !settings.api_keys.contains_key(provider_id) {
+                return Err(format!(
+                    "API key not configured for provider '{}' (required by image text extraction model)",
+                    provider_id
+                ));
+            }
+        }
     }
 
     let config_dir = app

@@ -1,7 +1,7 @@
 use crate::extractors::{djvu::DjvuExtractor, epub::EpubExtractor, pdf::PdfExtractor, Extractor};
 use crate::models::document::Metadata;
 use crate::models::llm::LLMSettings;
-use crate::services::llm::{extract_metadata_from_text, extract_text_from_images, find_provider};
+use crate::services::llm::{extract_metadata_from_text, extract_text_from_images, resolve_model};
 
 pub fn get_extension(filename: &str) -> String {
     std::path::Path::new(filename)
@@ -49,26 +49,32 @@ pub async fn extract_text_with_ocr(
         return Ok(foreword.to_string());
     }
 
-    let image_provider_name = &llm_settings.jobs.imageTextExtraction;
-    if image_provider_name.is_empty() {
-        return Err("Image text extraction provider not configured in LLM settings (llm.json > jobs.imageTextExtraction)".to_string());
+    let model_id = &llm_settings.jobs.image_text_extraction;
+    if model_id.is_empty() {
+        return Err("Image text extraction model not configured".to_string());
     }
 
-    let image_provider = find_provider(&llm_settings.providers, image_provider_name)?;
-    extract_text_from_images(&images, image_provider).await
+    let model = resolve_model(model_id, &llm_settings.api_keys)
+        .await
+        .map_err(|e| format!("Failed to resolve image model: {}", e))?;
+
+    extract_text_from_images(&images, &model).await
 }
 
 pub async fn extract_metadata(
     foreword: &str,
     llm_settings: &LLMSettings,
 ) -> Result<Metadata, String> {
-    let metadata_provider_name = &llm_settings.jobs.metadataExtraction;
-    if metadata_provider_name.is_empty() {
-        return Err("Metadata extraction provider not configured in LLM settings (llm.json > jobs.metadataExtraction)".to_string());
+    let model_id = &llm_settings.jobs.metadata_extraction;
+    if model_id.is_empty() {
+        return Err("Metadata extraction model not configured".to_string());
     }
 
-    let metadata_provider = find_provider(&llm_settings.providers, metadata_provider_name)?;
-    extract_metadata_from_text(foreword, metadata_provider).await
+    let model = resolve_model(model_id, &llm_settings.api_keys)
+        .await
+        .map_err(|e| format!("Failed to resolve metadata model: {}", e))?;
+
+    extract_metadata_from_text(foreword, &model).await
 }
 
 pub async fn extract_document_content(

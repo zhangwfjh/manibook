@@ -1,26 +1,15 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
-#[derive(Serialize, Deserialize, Clone)]
-#[allow(non_snake_case)]
-pub struct LLMProvider {
-    pub name: String,
-    #[serde(rename = "type")]
-    pub r#type: String,
-    pub model: String,
-    pub baseURL: String,
-    pub apiKey: Option<String>,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-#[allow(non_snake_case)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct Jobs {
-    pub metadataExtraction: String,
-    pub imageTextExtraction: String,
+    pub metadata_extraction: String,
+    pub image_text_extraction: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct LLMSettings {
-    pub providers: Vec<LLMProvider>,
+    pub api_keys: HashMap<String, String>,
     pub jobs: Jobs,
 }
 

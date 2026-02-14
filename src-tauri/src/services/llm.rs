@@ -1,8 +1,10 @@
 use crate::models::document::Metadata;
-use crate::models::llm::{ChatMessage, ChatRequest, ChatResponse, LLMProvider};
+use crate::models::llm::{ChatMessage, ChatRequest, ChatResponse};
+use crate::services::models_dev::get_model_from_configured_providers;
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use lazy_static::lazy_static;
 use regex::Regex;
+use std::collections::HashMap;
 use std::time::Duration;
 
 lazy_static! {
@@ -43,35 +45,55 @@ const METADATA_PROMPT: &str = "Extract structured metadata from the provided doc
     5. **Output**:\n\
        - Return ONLY valid JSON. Do not include explanations, markdown, or extra text.";
 
-pub fn find_provider<'a>(
-    providers: &'a [LLMProvider],
-    name: &str,
-) -> Result<&'a LLMProvider, String> {
-    providers
-        .iter()
-        .find(|p| p.name == name)
-        .ok_or_else(|| format!("Provider '{}' not found", name))
+pub struct Model {
+    pub api_url: String,
+    pub model_id: String,
+    pub api_key: String,
+}
+
+pub async fn resolve_model(
+    model_id: &str,
+    api_keys: &HashMap<String, String>,
+) -> Result<Model, String> {
+    if model_id.is_empty() {
+        return Err("Model ID is empty".to_string());
+    }
+
+    let configured_providers: Vec<String> = api_keys.keys().cloned().collect();
+    let (provider, model) = get_model_from_configured_providers(model_id, &configured_providers)
+        .await?
+        .ok_or_else(|| format!("Model '{}' not found in configured providers", model_id))?;
+    let api_url = provider
+        .api
+        .ok_or_else(|| format!("Provider '{}' has no API URL", provider.id))?;
+    let api_key = api_keys
+        .get(&provider.id)
+        .ok_or_else(|| format!("API key not configured for provider '{}'", provider.id))?
+        .clone();
+
+    Ok(Model {
+        api_url,
+        model_id: model.id,
+        api_key,
+    })
 }
 
 pub async fn call_openai_api(
     messages: Vec<ChatMessage>,
-    provider: &LLMProvider,
+    model: &Model,
     response_format: Option<&str>,
 ) -> Result<String, String> {
     log::debug!(
         "Calling LLM API: {} with model {}",
-        provider.baseURL,
-        provider.model
+        model.api_url,
+        model.model_id
     );
 
     let client = reqwest::Client::new();
-    let url = format!(
-        "{}/chat/completions",
-        provider.baseURL.trim_end_matches('/')
-    );
+    let url = format!("{}/chat/completions", model.api_url.trim_end_matches('/'));
 
     let request_body = ChatRequest {
-        model: provider.model.clone(),
+        model: model.model_id.clone(),
         messages,
         response_format: response_format.map(|rf| serde_json::json!({ "type": rf })),
         temperature: Some(0.0),
@@ -83,8 +105,9 @@ pub async fn call_openai_api(
         .header("Content-Type", "application/json")
         .json(&request_body);
 
-    if let Some(api_key) = &provider.apiKey {
-        request_builder = request_builder.header("Authorization", format!("Bearer {}", api_key));
+    if !model.api_key.is_empty() {
+        request_builder =
+            request_builder.header("Authorization", format!("Bearer {}", model.api_key));
     }
 
     let response = request_builder
@@ -278,10 +301,7 @@ pub fn parse_metadata_response(response: &str) -> Result<Metadata, String> {
     Ok(meta)
 }
 
-pub async fn extract_text_from_images(
-    images: &[Vec<u8>],
-    provider: &LLMProvider,
-) -> Result<String, String> {
+pub async fn extract_text_from_images(images: &[Vec<u8>], model: &Model) -> Result<String, String> {
     if images.is_empty() {
         return Ok(String::new());
     }
@@ -317,7 +337,7 @@ pub async fn extract_text_from_images(
         },
     ];
 
-    match call_openai_api(messages, provider, None).await {
+    match call_openai_api(messages, model, None).await {
         Ok(result) => {
             log::debug!(
                 "Successfully extracted text from images ({} chars)",
@@ -332,10 +352,7 @@ pub async fn extract_text_from_images(
     }
 }
 
-pub async fn extract_metadata_from_text(
-    text: &str,
-    provider: &LLMProvider,
-) -> Result<Metadata, String> {
+pub async fn extract_metadata_from_text(text: &str, model: &Model) -> Result<Metadata, String> {
     log::debug!("Extracting metadata from text ({} chars)", text.len());
 
     let truncated_text = text.chars().take(5000).collect::<String>();
@@ -355,7 +372,7 @@ pub async fn extract_metadata_from_text(
     for retry in 0..3 {
         log::info!("Metadata extraction attempt {}/3", retry + 1);
 
-        match call_openai_api(messages.clone(), provider, Some("json_object")).await {
+        match call_openai_api(messages.clone(), model, Some("json_object")).await {
             Ok(response) => match parse_metadata_response(&response) {
                 Ok(parsed) => {
                     metadata = Some(parsed);

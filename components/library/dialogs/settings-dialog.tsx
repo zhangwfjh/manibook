@@ -22,29 +22,23 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { PlusIcon, TrashIcon, UploadIcon } from "lucide-react";
-
-interface LLMProvider {
-  name: string;
-  type: "OpenAI" | "Ollama";
-  model: string;
-  baseURL: string;
-  apiKey?: string;
-}
-
-interface LLMSettings {
-  providers: LLMProvider[];
-  jobs: {
-    metadataExtraction: string; // provider name
-    imageTextExtraction: string; // provider name
-  };
-}
+import { UploadIcon, RefreshCwIcon, KeyIcon, EyeIcon, FileTextIcon, PlusIcon, TrashIcon } from "lucide-react";
+import type { LLMSettings, Jobs } from "@/lib/llm-types";
+import {
+  listProviders,
+  clearCache,
+  supportsVision,
+  supportsText,
+  formatCost,
+  formatContext,
+} from "@/lib/models-dev";
+import type { ModelsDevProvider, ModelsDevModel } from "@/lib/models-dev";
 
 const emptySettings: LLMSettings = {
-  providers: [],
+  api_keys: {},
   jobs: {
-    metadataExtraction: "",
-    imageTextExtraction: "",
+    metadata_extraction: "",
+    image_text_extraction: "",
   },
 };
 
@@ -55,21 +49,51 @@ interface SettingsDialogProps {
 
 export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const [settings, setSettings] = useState<LLMSettings>(emptySettings);
+  const [providers, setProviders] = useState<ModelsDevProvider[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("api-keys");
+  const [selectedNewProvider, setSelectedNewProvider] = useState<string>("");
 
   useEffect(() => {
     if (open) {
-      const loadSettings = async () => {
-        try {
-          const data = await invoke<LLMSettings>("get_llm_settings");
-          setSettings(data);
-        } catch (error) {
-          console.error("Error loading settings:", error);
-          setSettings(emptySettings);
-        }
-      };
       loadSettings();
+      loadProviders();
     }
   }, [open]);
+
+  const loadSettings = async () => {
+    try {
+      const data = await invoke<LLMSettings>("get_llm_settings");
+      setSettings(data);
+    } catch (error) {
+      console.error("Error loading settings:", error);
+      setSettings(emptySettings);
+    }
+  };
+
+  const loadProviders = async () => {
+    setLoading(true);
+    try {
+      const data = await listProviders();
+      setProviders(data);
+    } catch (error) {
+      console.error("Error loading providers:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const refreshModels = async () => {
+    setLoading(true);
+    try {
+      clearCache();
+      await loadProviders();
+    } catch (error) {
+      console.error("Error refreshing models:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSave = async () => {
     try {
@@ -77,7 +101,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
       onOpenChange(false);
     } catch (error) {
       console.error("Error saving settings:", error);
-      alert("Error saving settings");
+      alert(`Error saving settings: ${error}`);
     }
   };
 
@@ -85,262 +109,281 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     try {
       const filePath = await openDialog({
         multiple: false,
-        filters: [
-          {
-            name: "JSON",
-            extensions: ["json"],
-          },
-        ],
+        filters: [{ name: "JSON", extensions: ["json"] }],
       });
-
       if (!filePath) return;
-
       await invoke("import_llm_settings", { filePath });
-      const data = await invoke<LLMSettings>("get_llm_settings");
-      setSettings(data);
+      await loadSettings();
     } catch (error) {
       console.error("Error importing settings:", error);
-      alert("Error importing settings");
+      alert(`Error importing settings: ${error}`);
     }
   };
 
-  const addProvider = (type: "OpenAI" | "Ollama") => {
-    const newProvider: LLMProvider = {
-      name: `New ${type} Provider`,
-      type,
-      model: "",
-      baseURL: "",
-      apiKey: "",
-    };
+  const setApiKey = (providerId: string, key: string) => {
     setSettings((prev) => ({
       ...prev,
-      providers: [...prev.providers, newProvider],
+      api_keys: { ...prev.api_keys, [providerId]: key },
     }));
   };
 
-  const updateProvider = (name: string, updates: Partial<LLMProvider>) => {
+  const removeApiKey = (providerId: string) => {
+    setSettings((prev) => {
+      const newKeys = { ...prev.api_keys };
+      delete newKeys[providerId];
+      return { ...prev, api_keys: newKeys };
+    });
+  };
+
+  const addNewProvider = () => {
+    if (!selectedNewProvider) return;
+    setApiKey(selectedNewProvider, "");
+    setSelectedNewProvider("");
+  };
+
+  const updateJob = (job: keyof Jobs, modelId: string) => {
     setSettings((prev) => ({
       ...prev,
-      providers: prev.providers.map((p) =>
-        p.name === name ? { ...p, ...updates } : p,
-      ),
+      jobs: { ...prev.jobs, [job]: modelId },
     }));
   };
 
-  const deleteProvider = (name: string) => {
-    setSettings((prev) => ({
-      ...prev,
-      providers: prev.providers.filter((p) => p.name !== name),
-      jobs: {
-        metadataExtraction:
-          prev.jobs.metadataExtraction === name
-            ? ""
-            : prev.jobs.metadataExtraction,
-        imageTextExtraction:
-          prev.jobs.imageTextExtraction === name
-            ? ""
-            : prev.jobs.imageTextExtraction,
-      },
-    }));
+  const configuredProviders = providers.filter((p) => settings.api_keys.hasOwnProperty(p.id));
+  const unconfiguredProviders = providers.filter((p) => !settings.api_keys.hasOwnProperty(p.id));
+
+  const getConfiguredModels = (): { provider: ModelsDevProvider; model: ModelsDevModel }[] => {
+    return configuredProviders.flatMap((provider) =>
+      Object.values(provider.models).map((model) => ({ provider, model }))
+    );
   };
 
-  const updateJob = (job: keyof LLMSettings["jobs"], providerName: string) => {
-    setSettings((prev) => ({
-      ...prev,
-      jobs: {
-        ...prev.jobs,
-        [job]: providerName,
-      },
-    }));
-  };
+  const getTextModels = () => getConfiguredModels().filter(({ model }) => supportsText(model));
+  const getVisionModels = () => getConfiguredModels().filter(({ model }) => supportsVision(model));
+  const hasApiKey = (providerId: string): boolean => !!settings.api_keys[providerId];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-175 max-h-[80vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>LLM Configuration</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            LLM Configuration
+            <Button variant="ghost" size="sm" onClick={refreshModels} disabled={loading}>
+              <RefreshCwIcon className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            </Button>
+          </DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="providers" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="providers">Providers</TabsTrigger>
-            <TabsTrigger value="jobs">Job Assignment</TabsTrigger>
+            <TabsTrigger value="api-keys" className="flex items-center gap-2">
+              <KeyIcon className="h-4 w-4" />
+              API Keys ({configuredProviders.length})
+            </TabsTrigger>
+            <TabsTrigger value="jobs" className="flex items-center gap-2">
+              <FileTextIcon className="h-4 w-4" />
+              Job Assignment
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="providers" className="space-y-4">
-            <div className="flex gap-2">
-              <Button onClick={() => addProvider("OpenAI")} size="sm">
-                <PlusIcon className="h-4 w-4 mr-2" />
-                Add OpenAI
-              </Button>
-              <Button
-                onClick={() => addProvider("Ollama")}
-                size="sm"
-                variant="outline"
-              >
-                <PlusIcon className="h-4 w-4 mr-2" />
-                Add Ollama
-              </Button>
+          <TabsContent value="api-keys" className="space-y-4">
+            <div className="text-sm text-muted-foreground mb-4">
+              Configure API keys for the providers you want to use.
             </div>
 
-            <div className="space-y-4">
-              {settings.providers.map((provider, index) => (
-                <Card key={index}>
-                  <CardHeader className="pb-3">
+            <div className="space-y-3">
+              {configuredProviders.map((provider) => (
+                <Card key={provider.id}>
+                  <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-sm flex items-center gap-2">
                         {provider.name}
-                        <Badge
-                          variant={
-                            provider.type === "OpenAI" ? "default" : "secondary"
-                          }
-                        >
-                          {provider.type}
-                        </Badge>
+                        {hasApiKey(provider.id) && (
+                          <Badge variant="default" className="text-xs">Configured</Badge>
+                        )}
                       </CardTitle>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteProvider(provider.name)}
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => removeApiKey(provider.id)}>
                         <TrashIcon className="h-4 w-4" />
                       </Button>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <Label className="text-xs">Name</Label>
-                        <Input
-                          value={provider.name}
-                          onChange={(e) =>
-                            updateProvider(provider.name, {
-                              name: e.target.value,
-                            })
-                          }
-                          placeholder="Provider name"
-                        />
+                  <CardContent>
+                    <div className="space-y-2">
+                      <Label className="text-xs">API Key {provider.env[0] ? `(${provider.env[0]})` : ""}</Label>
+                      <Input
+                        type="password"
+                        value={settings.api_keys[provider.id] || ""}
+                        onChange={(e) => setApiKey(provider.id, e.target.value)}
+                        placeholder={`Enter API key for ${provider.name}`}
+                      />
+                      <div className="text-xs text-muted-foreground">
+                        {Object.keys(provider.models).length} models available
+                        {provider.doc && (
+                          <a href={provider.doc} target="_blank" rel="noopener noreferrer" className="ml-2 underline">Docs</a>
+                        )}
                       </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Model</Label>
-                        <Input
-                          value={provider.model}
-                          onChange={(e) =>
-                            updateProvider(provider.name, {
-                              model: e.target.value,
-                            })
-                          }
-                          placeholder="Model name"
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <Label className="text-xs">Base URL</Label>
-                        <Input
-                          value={provider.baseURL}
-                          onChange={(e) =>
-                            updateProvider(provider.name, {
-                              baseURL: e.target.value,
-                            })
-                          }
-                          placeholder="Base URL"
-                        />
-                      </div>
-                      {provider.type === "OpenAI" && (
-                        <div className="space-y-1">
-                          <Label className="text-xs">API Key</Label>
-                          <Input
-                            type="password"
-                            value={provider.apiKey || ""}
-                            onChange={(e) =>
-                              updateProvider(provider.name, {
-                                apiKey: e.target.value,
-                              })
-                            }
-                            placeholder="API Key"
-                          />
-                        </div>
-                      )}
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
+
+            {unconfiguredProviders.length > 0 && (
+              <Card className="border-dashed">
+                <CardContent className="pt-4">
+                  <div className="flex items-center gap-2">
+                    <Select value={selectedNewProvider} onValueChange={setSelectedNewProvider}>
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Add a new provider..." />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-64">
+                        {unconfiguredProviders.map((provider) => (
+                          <SelectItem key={provider.id} value={provider.id}>
+                            <div className="flex items-center gap-2">
+                              <span>{provider.name}</span>
+                              <Badge variant="outline" className="text-xs">
+                                {Object.keys(provider.models).length} models
+                              </Badge>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button size="sm" onClick={addNewProvider} disabled={!selectedNewProvider}>
+                      <PlusIcon className="h-4 w-4 mr-1" /> Add
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {configuredProviders.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                No providers configured yet. Select a provider above to add an API key.
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="jobs" className="space-y-4">
-            <div className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Metadata Extraction</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Select
-                    value={settings.jobs.metadataExtraction}
-                    onValueChange={(value) =>
-                      updateJob("metadataExtraction", value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a provider for metadata extraction" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {settings.providers.map((provider) => (
-                        <SelectItem key={provider.name} value={provider.name}>
-                          {provider.name} ({provider.model})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Used for extracting document metadata (title, authors,
-                    categories, etc.)
-                  </p>
-                </CardContent>
-              </Card>
+            {configuredProviders.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Configure at least one provider with an API key in the API Keys tab first.
+              </div>
+            ) : (
+              <>
+                <div className="text-sm text-muted-foreground mb-4">
+                  Select which AI models to use for each task. Only models from configured providers are shown.
+                </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">
-                    Image Text Extraction
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Select
-                    value={settings.jobs.imageTextExtraction}
-                    onValueChange={(value) =>
-                      updateJob("imageTextExtraction", value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a provider for image text extraction" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {settings.providers.map((provider) => (
-                        <SelectItem key={provider.name} value={provider.name}>
-                          {provider.name} ({provider.model})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Used for extracting text from document cover images
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <FileTextIcon className="h-4 w-4" /> Metadata Extraction
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <Select
+                      value={settings.jobs.metadata_extraction}
+                      onValueChange={(value) => updateJob("metadata_extraction", value)}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Select a model for metadata extraction" /></SelectTrigger>
+                      <SelectContent className="max-h-64">
+                        {getTextModels().map(({ provider, model }) => (
+                          <SelectItem key={`${provider.id}/${model.id}`} value={`${provider.id}/${model.id}`}>
+                            <div className="flex items-center gap-2">
+                              <span className="text-muted-foreground">{provider.name}</span>
+                              <span>/</span>
+                              <span>{model.name}</span>
+                              {model.limit && <Badge variant="outline" className="text-xs ml-2">{formatContext(model.limit)} ctx</Badge>}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="text-xs text-muted-foreground">
+                      Used for extracting document metadata (title, authors, categories, etc.) from document text.
+                    </div>
+                    {settings.jobs.metadata_extraction && (
+                      <ModelInfo modelId={settings.jobs.metadata_extraction} providers={providers} hasApiKey={hasApiKey} />
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <EyeIcon className="h-4 w-4" /> Image Text Extraction (OCR)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <Select
+                      value={settings.jobs.image_text_extraction}
+                      onValueChange={(value) => updateJob("image_text_extraction", value)}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Select a vision model for image text extraction" /></SelectTrigger>
+                      <SelectContent className="max-h-64">
+                        {getVisionModels().map(({ provider, model }) => (
+                          <SelectItem key={`${provider.id}/${model.id}`} value={`${provider.id}/${model.id}`}>
+                            <div className="flex items-center gap-2">
+                              <span className="text-muted-foreground">{provider.name}</span>
+                              <span>/</span>
+                              <span>{model.name}</span>
+                              <Badge variant="outline" className="text-xs ml-2">Vision</Badge>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="text-xs text-muted-foreground">
+                      Used for extracting text from document cover images. Requires a model with vision capabilities.
+                    </div>
+                    {settings.jobs.image_text_extraction && (
+                      <ModelInfo modelId={settings.jobs.image_text_extraction} providers={providers} hasApiKey={hasApiKey} />
+                    )}
+                  </CardContent>
+                </Card>
+              </>
+            )}
           </TabsContent>
         </Tabs>
 
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-2 pt-4 border-t">
           <Button variant="outline" onClick={handleImport}>
-            <UploadIcon className="h-4 w-4 mr-2" />
-            Import
+            <UploadIcon className="h-4 w-4 mr-2" /> Import
           </Button>
           <Button onClick={handleSave}>Save Settings</Button>
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ModelInfo({ modelId, providers, hasApiKey }: {
+  modelId: string;
+  providers: ModelsDevProvider[];
+  hasApiKey: (providerId: string) => boolean;
+}) {
+  const slashIndex = modelId.indexOf("/");
+  if (slashIndex === -1) {
+    return <div className="text-xs text-destructive">Invalid model ID format: {modelId}</div>;
+  }
+
+  const providerId = modelId.slice(0, slashIndex);
+  const modelKey = modelId.slice(slashIndex + 1);
+
+  const provider = providers.find(p => p.id === providerId);
+  const model = provider?.models[modelKey];
+
+  if (!provider || !model) {
+    return <div className="text-xs text-destructive">Model not found: {modelId}</div>;
+  }
+
+  const apiKeySet = hasApiKey(provider.id);
+
+  return (
+    <div className="flex flex-wrap gap-2 text-xs">
+      {model.limit && <Badge variant="outline">{formatContext(model.limit)} context</Badge>}
+      {model.cost && <Badge variant="outline">{formatCost(model.cost)}</Badge>}
+      {!apiKeySet && <Badge variant="destructive">API key not set for {provider.name}</Badge>}
+    </div>
   );
 }

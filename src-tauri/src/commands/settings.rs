@@ -10,15 +10,19 @@ pub fn get_llm_settings(app: AppHandle) -> Result<LLMSettings, String> {
     log::debug!("Fetching LLM settings");
 
     let settings = config_get_llm_settings(app)?;
-    let provider_count = settings.providers.len();
-    log::debug!("Loaded LLM settings with {} providers", provider_count);
+    log::debug!(
+        "Loaded LLM settings with {} API keys",
+        settings.api_keys.len()
+    );
     Ok(settings)
 }
 
 #[tauri::command]
 pub fn set_llm_settings(app: AppHandle, settings: LLMSettings) -> Result<(), String> {
-    let provider_count = settings.providers.len();
-    log::info!("Saving LLM settings with {} providers", provider_count);
+    log::info!(
+        "Saving LLM settings with {} API keys",
+        settings.api_keys.len()
+    );
 
     config_set_llm_settings(app, settings)?;
     log::info!("Successfully saved LLM settings");
