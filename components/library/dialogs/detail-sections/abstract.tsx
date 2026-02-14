@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,6 +19,8 @@ export function AbstractSection({
   editedMetadata,
   onChange,
 }: DialogAbstractSectionProps) {
+  const t = useTranslations("detailSections");
+
   const handleChange = (value: string) => {
     onChange({
       ...editedMetadata,
@@ -32,7 +35,7 @@ export function AbstractSection({
           htmlFor="abstract"
           className="text-sm font-medium text-muted-foreground"
         >
-          ABSTRACT
+          {t("abstract.title")}
         </Label>
         {isEditing ? (
           <Textarea
@@ -40,7 +43,7 @@ export function AbstractSection({
             value={editedMetadata?.abstract || ""}
             onChange={(e) => handleChange(e.target.value)}
             className="mt-1 min-h-25"
-            placeholder="Document abstract or summary..."
+            placeholder={t("abstract.placeholder")}
           />
         ) : (
           <div className="mt-1">
@@ -49,7 +52,7 @@ export function AbstractSection({
                 {metadata.abstract}
               </div>
             ) : (
-              <span className="text-muted-foreground">No abstract</span>
+              <span className="text-muted-foreground">{t("abstract.noAbstract")}</span>
             )}
           </div>
         )}

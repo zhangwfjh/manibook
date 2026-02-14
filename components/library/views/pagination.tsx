@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, KeyboardEvent } from "react";
+import { useTranslations } from "next-intl";
 import {
   Pagination as UIPagination,
   PaginationContent,
@@ -29,6 +30,7 @@ export function Pagination({
   onGoToPage,
   className = "",
 }: PaginationControlsProps) {
+  const t = useTranslations("views.pagination");
   const [pageInput, setPageInput] = useState<string>("");
 
   if (totalPages <= 1) return null;
@@ -145,7 +147,7 @@ export function Pagination({
               onKeyDown={handleKeyDown}
               placeholder={currentPage.toString()}
               className="w-16 h-8 text-center text-sm"
-              aria-label={`Go to page (1-${totalPages})`}
+              aria-label={t("goToPage", { totalPages })}
             />
             <span className="text-sm text-muted-foreground whitespace-nowrap">
               / {totalPages}

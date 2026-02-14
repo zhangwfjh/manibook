@@ -8,8 +8,11 @@ import { Shelf } from "./shelf";
 import { Filter } from "@/components/ui/filter";
 import { useLibraryFilterStore, useLibraryDataStore } from "@/stores";
 import { useFilterWithReload } from "@/hooks/library";
+import { useTranslations } from "next-intl";
 
 export function LibrarySidebar() {
+  const t = useTranslations("navigation");
+
   const {
     selectedKeywords,
     selectedFormats,
@@ -37,7 +40,7 @@ export function LibrarySidebar() {
           <h1 className="text-xl font-bold tracking-tight bg-linear-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
             ManiBook
           </h1>
-          <p className="text-muted-foreground text-xs">Your friendly AI documents manager</p>
+          <p className="text-muted-foreground text-xs">{t("tagline")}</p>
         </div>
       </SidebarHeader>
 
@@ -49,7 +52,7 @@ export function LibrarySidebar() {
 
           <div className="space-y-2">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-              Filters
+              {t("filters")}
             </h3>
           </div>
 
@@ -60,40 +63,40 @@ export function LibrarySidebar() {
               onCheckedChange={setShowFavoritesOnly}
             />
             <Label htmlFor="favorites" className="text-sm">
-              Show only favorites
+              {t("showOnlyFavorites")}
             </Label>
           </div>
 
           <Filter
-            title="Formats"
+            title={t("formats")}
             selectedItems={selectedFormats}
             onItemsChange={setSelectedFormats}
             filterOptions={filterOptions?.formats || {}}
           />
 
           <Filter
-            title="Keywords"
+            title={t("keywords")}
             selectedItems={selectedKeywords}
             onItemsChange={setSelectedKeywords}
             filterOptions={filterOptions?.keywords || {}}
           />
 
           <Filter
-            title="Authors"
+            title={t("authors")}
             selectedItems={selectedAuthors}
             onItemsChange={setSelectedAuthors}
             filterOptions={filterOptions?.authors || {}}
           />
 
           <Filter
-            title="Publishers"
+            title={t("publishers")}
             selectedItems={selectedPublishers}
             onItemsChange={setSelectedPublishers}
             filterOptions={filterOptions?.publishers || {}}
           />
 
           <Filter
-            title="Languages"
+            title={t("languages")}
             selectedItems={selectedLanguages}
             onItemsChange={setSelectedLanguages}
             filterOptions={filterOptions?.languages || {}}

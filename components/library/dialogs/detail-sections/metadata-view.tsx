@@ -1,3 +1,6 @@
+"use client";
+
+import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Metadata } from "@/lib/library";
@@ -14,64 +17,66 @@ interface DialogMetadataViewProps {
 }
 
 export function MetadataView({ metadata }: DialogMetadataViewProps) {
+  const t = useTranslations("detailSections");
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div className="space-y-3">
         <div>
           <Label className="text-sm font-medium text-muted-foreground">
-            TITLE
+            {t("metadata.title")}
           </Label>
           <div className="mt-1 text-lg">
-            {metadata.title ? metadata.title : "Untitled"}
+            {metadata.title ? metadata.title : t("metadataView.untitled")}
           </div>
         </div>
 
         <div>
           <Label className="text-sm font-medium text-muted-foreground">
-            AUTHORS
+            {t("metadata.authors")}
           </Label>
           <div className="flex items-center gap-2 mt-1">
             <UsersIcon className="h-4 w-4 text-muted-foreground" />
             <span>
               {metadata.authors && metadata.authors.length > 0
                 ? metadata.authors.join(", ")
-                : "Unknown"}
+                : t("metadataView.unknown")}
             </span>
           </div>
         </div>
 
         <div>
           <Label className="text-sm font-medium text-muted-foreground">
-            PUBLICATION YEAR
+            {t("metadata.publicationYear")}
           </Label>
           <div className="flex items-center gap-2 mt-1">
             <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-            <span>{metadata.publication_year || "Unknown"}</span>
+            <span>{metadata.publication_year || t("metadataView.unknown")}</span>
           </div>
         </div>
 
         <div>
           <Label className="text-sm font-medium text-muted-foreground">
-            PUBLISHER
+            {t("metadata.publisher")}
           </Label>
           <div className="flex items-center gap-2 mt-1">
             <GlobeIcon className="h-4 w-4 text-muted-foreground" />
-            <span>{metadata.publisher || "Unknown"}</span>
+            <span>{metadata.publisher || t("metadataView.unknown")}</span>
           </div>
         </div>
 
         <div>
           <Label className="text-sm font-medium text-muted-foreground">
-            LANGUAGE
+            {t("metadata.language")}
           </Label>
           <span className="mt-1 block text-sm">
-            {metadata.language || "Unknown"}
+            {metadata.language || t("metadataView.unknown")}
           </span>
         </div>
 
         <div>
           <Label className="text-sm font-medium text-muted-foreground">
-            PAGES
+            {t("metadata.pages")}
           </Label>
           {metadata.page_count && (
             <div className="flex items-center gap-2 mt-1">
@@ -85,7 +90,7 @@ export function MetadataView({ metadata }: DialogMetadataViewProps) {
       <div className="space-y-3">
         <div>
           <Label className="text-sm font-medium text-muted-foreground">
-            DOCUMENT TYPE
+            {t("metadata.documentType")}
           </Label>
           <div className="flex items-center gap-2 mt-1">
             <Badge variant="secondary">
@@ -97,7 +102,7 @@ export function MetadataView({ metadata }: DialogMetadataViewProps) {
 
         <div>
           <Label className="text-sm font-medium text-muted-foreground">
-            CATEGORY
+            {t("metadata.category")}
           </Label>
           {metadata.category && (
             <div className="mt-1">
@@ -111,7 +116,7 @@ export function MetadataView({ metadata }: DialogMetadataViewProps) {
 
         <div>
           <Label className="text-sm font-medium text-muted-foreground">
-            KEYWORDS
+            {t("metadata.keywords")}
           </Label>
           <div className="mt-1">
             {metadata.keywords && metadata.keywords.length > 0 ? (
@@ -123,7 +128,7 @@ export function MetadataView({ metadata }: DialogMetadataViewProps) {
                 ))}
               </div>
             ) : (
-              <span className="text-muted-foreground">No keywords</span>
+              <span className="text-muted-foreground">{t("metadataView.noKeywords")}</span>
             )}
           </div>
         </div>

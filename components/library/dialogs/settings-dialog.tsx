@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { invoke } from "@tauri-apps/api/core";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import {
@@ -48,6 +49,7 @@ interface SettingsDialogProps {
 }
 
 export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
+  const t = useTranslations("dialogs.settings");
   const [settings, setSettings] = useState<LLMSettings>(emptySettings);
   const [providers, setProviders] = useState<ModelsDevProvider[]>([]);
   const [loading, setLoading] = useState(false);
@@ -166,7 +168,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
       <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            LLM Configuration
+            {t("title")}
             <Button variant="ghost" size="sm" onClick={refreshModels} disabled={loading}>
               <RefreshCwIcon className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             </Button>
@@ -177,17 +179,17 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="api-keys" className="flex items-center gap-2">
               <KeyIcon className="h-4 w-4" />
-              API Keys ({configuredProviders.length})
+              {t("apiKeys")} ({configuredProviders.length})
             </TabsTrigger>
             <TabsTrigger value="jobs" className="flex items-center gap-2">
               <FileTextIcon className="h-4 w-4" />
-              Job Assignment
+              {t("jobs")}
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="api-keys" className="space-y-4">
             <div className="text-sm text-muted-foreground mb-4">
-              Configure API keys for the providers you want to use.
+              {t("configureApiKeys")}
             </div>
 
             <div className="space-y-3">
@@ -198,7 +200,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                       <CardTitle className="text-sm flex items-center gap-2">
                         {provider.name}
                         {hasApiKey(provider.id) && (
-                          <Badge variant="default" className="text-xs">Configured</Badge>
+                          <Badge variant="default" className="text-xs">{t("configured")}</Badge>
                         )}
                       </CardTitle>
                       <Button variant="ghost" size="sm" onClick={() => removeApiKey(provider.id)}>
@@ -208,17 +210,17 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <Label className="text-xs">API Key {provider.env[0] ? `(${provider.env[0]})` : ""}</Label>
+                      <Label className="text-xs">{t("apiKeyLabel", { env: provider.env[0] || "" })}</Label>
                       <Input
                         type="password"
                         value={settings.api_keys[provider.id] || ""}
                         onChange={(e) => setApiKey(provider.id, e.target.value)}
-                        placeholder={`Enter API key for ${provider.name}`}
+                        placeholder={t("apiKeyPlaceholder", { provider: provider.name })}
                       />
                       <div className="text-xs text-muted-foreground">
-                        {Object.keys(provider.models).length} models available
+                        {t("modelsAvailable", { count: Object.keys(provider.models).length })}
                         {provider.doc && (
-                          <a href={provider.doc} target="_blank" rel="noopener noreferrer" className="ml-2 underline">Docs</a>
+                          <a href={provider.doc} target="_blank" rel="noopener noreferrer" className="ml-2 underline">{t("docs")}</a>
                         )}
                       </div>
                     </div>
@@ -233,7 +235,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                   <div className="flex items-center gap-2">
                     <Select value={selectedNewProvider} onValueChange={setSelectedNewProvider}>
                       <SelectTrigger className="flex-1">
-                        <SelectValue placeholder="Add a new provider..." />
+                        <SelectValue placeholder={t("addNewProvider")} />
                       </SelectTrigger>
                       <SelectContent className="max-h-64">
                         {unconfiguredProviders.map((provider) => (
@@ -241,7 +243,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                             <div className="flex items-center gap-2">
                               <span>{provider.name}</span>
                               <Badge variant="outline" className="text-xs">
-                                {Object.keys(provider.models).length} models
+                                {t("modelsCount", { count: Object.keys(provider.models).length })}
                               </Badge>
                             </div>
                           </SelectItem>
@@ -249,7 +251,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                       </SelectContent>
                     </Select>
                     <Button size="sm" onClick={addNewProvider} disabled={!selectedNewProvider}>
-                      <PlusIcon className="h-4 w-4 mr-1" /> Add
+                      <PlusIcon className="h-4 w-4 mr-1" /> {t("add")}
                     </Button>
                   </div>
                 </CardContent>
@@ -258,7 +260,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
             {configuredProviders.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
-                No providers configured yet. Select a provider above to add an API key.
+                {t("noProvidersConfigured")}
               </div>
             )}
           </TabsContent>
@@ -266,18 +268,18 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
           <TabsContent value="jobs" className="space-y-4">
             {configuredProviders.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                Configure at least one provider with an API key in the API Keys tab first.
+                {t("configureProviderFirst")}
               </div>
             ) : (
               <>
                 <div className="text-sm text-muted-foreground mb-4">
-                  Select which AI models to use for each task. Only models from configured providers are shown.
+                  {t("selectModelsForTasks")}
                 </div>
 
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-sm flex items-center gap-2">
-                      <FileTextIcon className="h-4 w-4" /> Metadata Extraction
+                      <FileTextIcon className="h-4 w-4" /> {t("metadataExtraction")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
@@ -285,7 +287,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                       value={settings.jobs.metadata_extraction}
                       onValueChange={(value) => updateJob("metadata_extraction", value)}
                     >
-                      <SelectTrigger><SelectValue placeholder="Select a model for metadata extraction" /></SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder={t("selectModelForMetadata")} /></SelectTrigger>
                       <SelectContent className="max-h-64">
                         {getTextModels().map(({ provider, model }) => (
                           <SelectItem key={`${provider.id}/${model.id}`} value={`${provider.id}/${model.id}`}>
@@ -293,17 +295,17 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                               <span className="text-muted-foreground">{provider.name}</span>
                               <span>/</span>
                               <span>{model.name}</span>
-                              {model.limit && <Badge variant="outline" className="text-xs ml-2">{formatContext(model.limit)} ctx</Badge>}
+                              {model.limit && <Badge variant="outline" className="text-xs ml-2">{formatContext(model.limit)} {t("ctx")}</Badge>}
                             </div>
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     <div className="text-xs text-muted-foreground">
-                      Used for extracting document metadata (title, authors, categories, etc.) from document text.
+                      {t("metadataExtractionDesc")}
                     </div>
                     {settings.jobs.metadata_extraction && (
-                      <ModelInfo modelId={settings.jobs.metadata_extraction} providers={providers} hasApiKey={hasApiKey} />
+                      <ModelInfo modelId={settings.jobs.metadata_extraction} providers={providers} hasApiKey={hasApiKey} t={t} />
                     )}
                   </CardContent>
                 </Card>
@@ -311,7 +313,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-sm flex items-center gap-2">
-                      <EyeIcon className="h-4 w-4" /> Image Text Extraction (OCR)
+                      <EyeIcon className="h-4 w-4" /> {t("imageTextExtraction")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
@@ -319,7 +321,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                       value={settings.jobs.image_text_extraction}
                       onValueChange={(value) => updateJob("image_text_extraction", value)}
                     >
-                      <SelectTrigger><SelectValue placeholder="Select a vision model for image text extraction" /></SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder={t("selectVisionModel")} /></SelectTrigger>
                       <SelectContent className="max-h-64">
                         {getVisionModels().map(({ provider, model }) => (
                           <SelectItem key={`${provider.id}/${model.id}`} value={`${provider.id}/${model.id}`}>
@@ -327,17 +329,17 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                               <span className="text-muted-foreground">{provider.name}</span>
                               <span>/</span>
                               <span>{model.name}</span>
-                              <Badge variant="outline" className="text-xs ml-2">Vision</Badge>
+                              <Badge variant="outline" className="text-xs ml-2">{t("vision")}</Badge>
                             </div>
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     <div className="text-xs text-muted-foreground">
-                      Used for extracting text from document cover images. Requires a model with vision capabilities.
+                      {t("imageTextExtractionDesc")}
                     </div>
                     {settings.jobs.image_text_extraction && (
-                      <ModelInfo modelId={settings.jobs.image_text_extraction} providers={providers} hasApiKey={hasApiKey} />
+                      <ModelInfo modelId={settings.jobs.image_text_extraction} providers={providers} hasApiKey={hasApiKey} t={t} />
                     )}
                   </CardContent>
                 </Card>
@@ -348,23 +350,24 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
         <div className="flex justify-end gap-2 pt-4 border-t">
           <Button variant="outline" onClick={handleImport}>
-            <UploadIcon className="h-4 w-4 mr-2" /> Import
+            <UploadIcon className="h-4 w-4 mr-2" /> {t("import")}
           </Button>
-          <Button onClick={handleSave}>Save Settings</Button>
+          <Button onClick={handleSave}>{t("saveSettings")}</Button>
         </div>
       </DialogContent>
     </Dialog>
   );
 }
 
-function ModelInfo({ modelId, providers, hasApiKey }: {
+function ModelInfo({ modelId, providers, hasApiKey, t }: {
   modelId: string;
   providers: ModelsDevProvider[];
   hasApiKey: (providerId: string) => boolean;
+  t: (key: string, params?: Record<string, string | number>) => string;
 }) {
   const slashIndex = modelId.indexOf("/");
   if (slashIndex === -1) {
-    return <div className="text-xs text-destructive">Invalid model ID format: {modelId}</div>;
+    return <div className="text-xs text-destructive">{t("invalidModelId", { modelId })}</div>;
   }
 
   const providerId = modelId.slice(0, slashIndex);
@@ -374,16 +377,16 @@ function ModelInfo({ modelId, providers, hasApiKey }: {
   const model = provider?.models[modelKey];
 
   if (!provider || !model) {
-    return <div className="text-xs text-destructive">Model not found: {modelId}</div>;
+    return <div className="text-xs text-destructive">{t("modelNotFound", { modelId })}</div>;
   }
 
   const apiKeySet = hasApiKey(provider.id);
 
   return (
     <div className="flex flex-wrap gap-2 text-xs">
-      {model.limit && <Badge variant="outline">{formatContext(model.limit)} context</Badge>}
+      {model.limit && <Badge variant="outline">{formatContext(model.limit)} {t("context")}</Badge>}
       {model.cost && <Badge variant="outline">{formatCost(model.cost)}</Badge>}
-      {!apiKeySet && <Badge variant="destructive">API key not set for {provider.name}</Badge>}
+      {!apiKeySet && <Badge variant="destructive">{t("apiKeyNotSet", { provider: provider.name })}</Badge>}
     </div>
   );
 }

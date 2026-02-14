@@ -1,0 +1,271 @@
+{
+  "common": {
+    "welcome": "Welcome to ManiBook",
+    "docTypes": {
+      "book": "Book",
+      "paper": "Paper",
+      "report": "Report",
+      "manual": "Manual",
+      "others": "Others"
+    }
+  },
+  "navigation": {
+    "tagline": "Your friendly AI documents manager",
+    "filters": "Filters",
+    "showOnlyFavorites": "Show only favorites",
+    "formats": "Formats",
+    "keywords": "Keywords",
+    "authors": "Authors",
+    "publishers": "Publishers",
+    "languages": "Languages",
+    "shelves": "Shelves",
+    "noShelvesYet": "No shelves yet",
+    "importDocumentsHint": "Import documents to organize them into categories"
+  },
+  "features": {
+    "moveDropdown": {
+      "move": "Move",
+      "moveDocuments": "Move Documents",
+      "documentType": "Document Type",
+      "selectDoctype": "Select doctype...",
+      "category": "Category",
+      "mainCategory": "Main Category",
+      "enterMainCategory": "Enter main category...",
+      "subCategory": "Sub Category",
+      "enterSubCategory": "Enter subcategory...",
+      "applyChanges": "Apply Changes"
+    },
+    "documentActions": {
+      "deleteDocument": "Delete Document",
+      "deleteConfirm": "Are you sure you want to delete \"{title}\"? This action cannot be undone.",
+      "thisDocument": "this document",
+      "cancel": "Cancel",
+      "delete": "Delete"
+    }
+  },
+  "detailSections": {
+    "metadata": {
+      "title": "Title",
+      "authors": "Authors",
+      "publicationYear": "Publication Year",
+      "publisher": "Publisher",
+      "language": "Language",
+      "pages": "Pages",
+      "documentType": "Document Type",
+      "category": "Category",
+      "mainCategory": "Main Category",
+      "subCategory": "Sub Category",
+      "keywords": "Keywords",
+      "required": "{field} *"
+    },
+    "fileInfo": {
+      "title": "File Information",
+      "filename": "Filename",
+      "filePath": "File path",
+      "fileSize": "File size",
+      "format": "Format",
+      "fileFormat": "File format: {format}"
+    },
+    "metadataView": {
+      "untitled": "Untitled",
+      "unknown": "Unknown",
+      "noKeywords": "No keywords"
+    },
+    "abstract": {
+      "title": "Abstract",
+      "placeholder": "Document abstract or summary...",
+      "noAbstract": "No abstract"
+    },
+    "extraMetadata": {
+      "title": "Additional Metadata",
+      "key": "Key",
+      "value": "Value",
+      "addField": "Add Field",
+      "noMetadata": "No additional metadata"
+    },
+    "placeholders": {
+      "authorsExample": "Author 1, Author 2, Author 3",
+      "year": "2023",
+      "publisher": "Publisher name",
+      "language": "English",
+      "pages": "100",
+      "doctypeExample": "e.g., Book, Paper, Report, Manual, Others",
+      "mainCategoryExample": "e.g., Science",
+      "subCategoryExample": "e.g., Physics",
+      "addKeyword": "Add keyword..."
+    }
+  },
+  "views": {
+    "controls": {
+      "searchPlaceholder": "Search by title, author, publisher, keywords, or abstract...",
+      "selected": "{count} selected",
+      "clear": "Clear",
+      "selectAll": "Select All",
+      "delete": "Delete",
+      "cancel": "Cancel",
+      "sortBy": "Sort by...",
+      "import": "Import",
+      "select": "Select",
+      "settings": "Settings",
+      "sortOptions": {
+        "titleAsc": "Title A-Z",
+        "titleDesc": "Title Z-A",
+        "authorAsc": "Author A-Z",
+        "authorDesc": "Author Z-A",
+        "publicationYearDesc": "Publication Year Newest",
+        "publicationYearAsc": "Publication Year Oldest",
+        "pageCountAsc": "Pages Fewest",
+        "pageCountDesc": "Pages Most",
+        "importedAtDesc": "Recently Imported",
+        "importedAtAsc": "Least Recently Imported",
+        "filesizeAsc": "File Size Smallest",
+        "filesizeDesc": "File Size Largest"
+      }
+    },
+    "content": {
+      "welcomeDescription": "Create a new library or Select one from the list below.",
+      "createLibrary": "Create Library",
+      "location": "Location:",
+      "closeLibrary": "Close library",
+      "documentsFound": "{count} document(s) found",
+      "noDocuments": "No documents found",
+      "noDocumentsDescription": "Try adjusting your search query, category filter, or import some documents to get started."
+    },
+    "pagination": {
+      "previous": "Previous",
+      "next": "Next",
+      "goToPage": "Go to page (1-{totalPages})",
+      "goToPreviousPage": "Go to previous page",
+      "goToNextPage": "Go to next page",
+      "morePages": "More pages"
+    }
+  },
+  "commandPalette": {
+    "searchPlaceholder": "Type a command or search...",
+    "noResults": "No results found.",
+    "groups": {
+      "libraries": "Libraries",
+      "documents": "Documents",
+      "actions": "Actions"
+    },
+    "commands": {
+      "createLibrary": "Create Library",
+      "closeLibrary": "Close Current Library",
+      "openLibrary": "Open {name}",
+      "currentLibrary": "{name} (current)",
+      "searchDocuments": "Search Documents",
+      "importDocuments": "Import Documents",
+      "settings": "Settings",
+      "exportLogs": "Export Logs"
+    },
+    "toast": {
+      "libraryClosed": "Library closed",
+      "libraryAlreadyOpen": "Library is already open: {name}",
+      "libraryOpened": "Opened library: {name}",
+      "logsExported": "Logs exported successfully",
+      "logsExportFailed": "Failed to export logs: {error}"
+    }
+  },
+  "dialogs": {
+    "settings": {
+      "title": "LLM Configuration",
+      "apiKeys": "API Keys",
+      "jobs": "Job Assignment",
+      "configureApiKeys": "Configure API keys for the providers you want to use.",
+      "configured": "Configured",
+      "apiKeyLabel": "API Key ({env})",
+      "apiKeyPlaceholder": "Enter API key for {provider}",
+      "modelsAvailable": "{count} models available",
+      "docs": "Docs",
+      "addNewProvider": "Add a new provider...",
+      "modelsCount": "{count} models",
+      "add": "Add",
+      "noProvidersConfigured": "No providers configured yet. Select a provider above to add an API key.",
+      "configureProviderFirst": "Configure at least one provider with an API key in the API Keys tab first.",
+      "selectModelsForTasks": "Select which AI models to use for each task. Only models from configured providers are shown.",
+      "metadataExtraction": "Metadata Extraction",
+      "selectModelForMetadata": "Select a model for metadata extraction",
+      "ctx": "ctx",
+      "metadataExtractionDesc": "Used for extracting document metadata (title, authors, categories, etc.) from document text.",
+      "imageTextExtraction": "Image Text Extraction (OCR)",
+      "selectVisionModel": "Select a vision model for image text extraction",
+      "vision": "Vision",
+      "imageTextExtractionDesc": "Used for extracting text from document cover images. Requires a model with vision capabilities.",
+      "import": "Import",
+      "saveSettings": "Save Settings",
+      "invalidModelId": "Invalid model ID: {modelId}",
+      "modelNotFound": "Model not found: {modelId}",
+      "context": "context",
+      "apiKeyNotSet": "API key not set for {provider}"
+    },
+    "import": {
+      "title": "Import Documents",
+      "filesAndFolders": "Files & Folders",
+      "importFromUrls": "Import from URLs",
+      "dropFilesHere": "Drop files here",
+      "dragDropDescription": "or click the buttons below to select files",
+      "selectFiles": "Select Files",
+      "selectFolder": "Select Folder",
+      "pdfUrlsLabel": "PDF URLs",
+      "urlPlaceholder": "https://example.com/document.pdf",
+      "addAnotherUrl": "Add another URL",
+      "supportedFormats": "Supported formats: PDF, EPUB, DJVU",
+      "maxFileSize": "Maximum file size: 100MB",
+      "importUrls": "Import from URLs",
+      "showImportProgress": "Show Import Progress",
+      "invalidFilesError": "No valid files found. Supported formats: PDF, EPUB, DJVU",
+      "failedToReadFiles": "Failed to read files",
+      "importFailed": "Import failed",
+      "invalidUrlFormat": "Invalid URL format",
+      "enterAtLeastOneUrl": "Please enter at least one URL",
+      "fixUrlErrors": "Please fix the URL errors before importing",
+      "unknown": "Unknown",
+      "itemTypes": {
+        "file": {
+          "singular": "file",
+          "plural": "files"
+        },
+        "document": {
+          "singular": "document",
+          "plural": "documents"
+        }
+      },
+      "toast": {
+        "success": "Successfully imported {count} {itemType}",
+        "allFailed": "Failed to import {count} {itemType}",
+        "partialFailure": "Imported {successCount} items, failed {failedCount}",
+        "importedAndCanceled": "Imported {successCount} {itemType}, canceled {canceledCount}",
+        "importedFailedCanceled": "Imported {successCount}, failed {failedCount}, canceled {canceledCount}",
+        "canceledAll": "Canceled import of {count} {itemType}"
+      }
+    },
+    "detail": {
+      "titleRequired": "Title is required",
+      "doctypeRequired": "Document type is required",
+      "categoryRequired": "Category is required",
+      "unknownAuthor": "Unknown",
+      "errorUpdatingDocument": "Error updating document",
+      "error": "Error",
+      "failedToGenerateMetadata": "Failed to generate metadata",
+      "delete": "Delete",
+      "generate": "Generate",
+      "cancel": "Cancel",
+      "save": "Save",
+      "edit": "Edit",
+      "open": "Open",
+      "deleteDocument": "Delete Document",
+      "deleteConfirm": "Are you sure you want to delete \"{title}\"? This action cannot be undone."
+    },
+    "createLibrary": {
+      "title": "Create New Library",
+      "description": "Enter a name and select a location for your new library.",
+      "name": "Name",
+      "namePlaceholder": "My Library",
+      "path": "Path",
+      "pathPlaceholder": "/path/to/library",
+      "selectLibraryFolder": "Select Library Folder",
+      "cancel": "Cancel",
+      "create": "Create"
+    }
+  }
+}

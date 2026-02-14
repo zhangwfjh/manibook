@@ -6,19 +6,25 @@ export type SortOption =
   | "imported_at-desc" | "imported_at-asc"
   | "filesize-asc" | "filesize-desc";
 
-export const SORT_OPTIONS: { value: SortOption; label: string }[] = [
-  { value: "title-asc", label: "Title A-Z" },
-  { value: "title-desc", label: "Title Z-A" },
-  { value: "author-asc", label: "Author A-Z" },
-  { value: "author-desc", label: "Author Z-A" },
-  { value: "publication_year-desc", label: "Publication Year Newest" },
-  { value: "publication_year-asc", label: "Publication Year Oldest" },
-  { value: "page_count-asc", label: "Pages Fewest" },
-  { value: "page_count-desc", label: "Pages Most" },
-  { value: "imported_at-desc", label: "Recently Imported" },
-  { value: "imported_at-asc", label: "Least Recently Imported" },
-  { value: "filesize-asc", label: "File Size Smallest" },
-  { value: "filesize-desc", label: "File Size Largest" },
+export const SORT_OPTIONS: { value: SortOption; labelKey: string }[] = [
+  { value: "title-asc", labelKey: "views.controls.sortOptions.titleAsc" },
+  { value: "title-desc", labelKey: "views.controls.sortOptions.titleDesc" },
+  { value: "author-asc", labelKey: "views.controls.sortOptions.authorAsc" },
+  { value: "author-desc", labelKey: "views.controls.sortOptions.authorDesc" },
+  { value: "publication_year-desc", labelKey: "views.controls.sortOptions.publicationYearDesc" },
+  { value: "publication_year-asc", labelKey: "views.controls.sortOptions.publicationYearAsc" },
+  { value: "page_count-asc", labelKey: "views.controls.sortOptions.pageCountAsc" },
+  { value: "page_count-desc", labelKey: "views.controls.sortOptions.pageCountDesc" },
+  { value: "imported_at-desc", labelKey: "views.controls.sortOptions.importedAtDesc" },
+  { value: "imported_at-asc", labelKey: "views.controls.sortOptions.importedAtAsc" },
+  { value: "filesize-asc", labelKey: "views.controls.sortOptions.filesizeAsc" },
+  { value: "filesize-desc", labelKey: "views.controls.sortOptions.filesizeDesc" },
 ];
 
-export const DOCTYPE_OPTIONS = ["Book", "Paper", "Report", "Manual", "Others"];
+export const DOCTYPE_OPTION_KEYS = [
+  { value: "Book", labelKey: "common.docTypes.book" },
+  { value: "Paper", labelKey: "common.docTypes.paper" },
+  { value: "Report", labelKey: "common.docTypes.report" },
+  { value: "Manual", labelKey: "common.docTypes.manual" },
+  { value: "Others", labelKey: "common.docTypes.others" },
+];

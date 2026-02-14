@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { save as saveDialog } from "@tauri-apps/plugin-dialog";
+import { useTranslations } from "next-intl";
 import {
   CommandDialog,
   CommandEmpty,
@@ -31,6 +32,7 @@ import {
 import { toast } from "sonner";
 
 export function CommandPalette() {
+  const t = useTranslations("commandPalette");
   const [open, setOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
 
@@ -60,16 +62,16 @@ export function CommandPalette() {
   const handleCloseLibrary = () => {
     setOpen(false);
     setLibraryName("");
-    toast.success("Library closed");
+    toast.success(t("toast.libraryClosed"));
   };
 
   const handleOpenLibrary = (name: string) => {
     setOpen(false);
     setLibraryName(name);
     if (libraryName === name) {
-      toast.success(`Library is already open: ${name}`);
+      toast.success(t("toast.libraryAlreadyOpen", { name }));
     } else {
-      toast.success(`Opened library: ${name}`);
+      toast.success(t("toast.libraryOpened", { name }));
     }
   };
 
@@ -105,14 +107,14 @@ export function CommandPalette() {
       if (!filePath) return;
 
       await invoke("export_logs", { targetPath: filePath });
-      toast.success("Logs exported successfully");
+      toast.success(t("toast.logsExported"));
     } catch (error) {
       console.error("Error exporting logs:", error);
       const errorMessage =
         error instanceof Error
           ? error.message
           : String(error) || "Unknown error";
-      toast.error(`Failed to export logs: ${errorMessage}`);
+      toast.error(t("toast.logsExportFailed", { error: errorMessage }));
     }
   };
 
@@ -125,22 +127,22 @@ export function CommandPalette() {
       }}
     >
       <CommandInput
-        placeholder="Type a command or search..."
+        placeholder={t("searchPlaceholder")}
         value={searchValue}
         onValueChange={setSearchValue}
       />
       <CommandList>
-        <CommandEmpty>No results found.</CommandEmpty>
+        <CommandEmpty>{t("noResults")}</CommandEmpty>
 
-        <CommandGroup heading="Libraries">
+        <CommandGroup heading={t("groups.libraries")}>
           <CommandItem onSelect={handleCreateLibrary}>
             <PlusIcon className="mr-2 h-4 w-4" />
-            <span>Create Library</span>
+            <span>{t("commands.createLibrary")}</span>
           </CommandItem>
           {libraryName && (
             <CommandItem onSelect={handleCloseLibrary}>
               <XIcon className="mr-2 h-4 w-4" />
-              <span>Close Current Library</span>
+              <span>{t("commands.closeLibrary")}</span>
               <CommandShortcut>{libraryName}</CommandShortcut>
             </CommandItem>
           )}
@@ -153,7 +155,7 @@ export function CommandPalette() {
                   onSelect={() => handleOpenLibrary(lib.name)}
                 >
                   <FolderOpenIcon className="mr-2 h-4 w-4" />
-                  <span>{libraryName === lib.name ? `${lib.name} (current)` : `Open ${lib.name}`}</span>
+                  <span>{libraryName === lib.name ? t("commands.currentLibrary", { name: lib.name }) : t("commands.openLibrary", { name: lib.name })}</span>
                 </CommandItem>
               ))}
             </>
@@ -162,7 +164,7 @@ export function CommandPalette() {
 
         <CommandSeparator />
 
-        <CommandGroup heading="Documents">
+        <CommandGroup heading={t("groups.documents")}>
           <CommandItem
             onSelect={() => {
               if (searchValue.trim()) {
@@ -171,7 +173,7 @@ export function CommandPalette() {
             }}
           >
             <SearchIcon className="mr-2 h-4 w-4" />
-            <span>Search Documents</span>
+            <span>{t("commands.searchDocuments")}</span>
             {searchValue && (
               <CommandShortcut>&ldquo;{searchValue}&rdquo;</CommandShortcut>
             )}
@@ -180,18 +182,18 @@ export function CommandPalette() {
 
         <CommandSeparator />
 
-        <CommandGroup heading="Actions">
+        <CommandGroup heading={t("groups.actions")}>
           <CommandItem onSelect={handleImport}>
             <UploadIcon className="mr-2 h-4 w-4" />
-            <span>Import Documents</span>
+            <span>{t("commands.importDocuments")}</span>
           </CommandItem>
           <CommandItem onSelect={handleSettings}>
             <SettingsIcon className="mr-2 h-4 w-4" />
-            <span>Settings</span>
+            <span>{t("commands.settings")}</span>
           </CommandItem>
           <CommandItem onSelect={handleExportLogs}>
             <FileDownIcon className="mr-2 h-4 w-4" />
-            <span>Export Logs</span>
+            <span>{t("commands.exportLogs")}</span>
           </CommandItem>
         </CommandGroup>
       </CommandList>

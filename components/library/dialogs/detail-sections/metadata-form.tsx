@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +20,8 @@ export function MetadataForm({
   onChange,
   validationErrors,
 }: DialogMetadataFormProps) {
+  const t = useTranslations("detailSections");
+
   const handleFieldChange = (field: keyof Metadata, value: unknown) => {
     const updated = {
       ...editedMetadata,
@@ -82,7 +85,7 @@ export function MetadataForm({
             htmlFor="title"
             className="text-sm font-medium text-muted-foreground"
           >
-            TITLE *
+            {t("metadata.required", { field: t("metadata.title") })}
           </Label>
           <Input
             id="title"
@@ -102,14 +105,14 @@ export function MetadataForm({
             htmlFor="authors"
             className="text-sm font-medium text-muted-foreground"
           >
-            AUTHORS
+            {t("metadata.authors")}
           </Label>
           <Input
             id="authors"
             value={editedMetadata.authors?.join(", ") || ""}
             onChange={handleAuthorsChange}
             className="mt-1"
-            placeholder="Author 1, Author 2, Author 3"
+            placeholder={t("placeholders.authorsExample")}
           />
         </div>
 
@@ -118,7 +121,7 @@ export function MetadataForm({
             htmlFor="publicationYear"
             className="text-sm font-medium text-muted-foreground"
           >
-            PUBLICATION YEAR
+            {t("metadata.publicationYear")}
           </Label>
           <Input
             id="publicationYear"
@@ -131,7 +134,7 @@ export function MetadataForm({
               )
             }
             className="mt-1"
-            placeholder="2023"
+            placeholder={t("placeholders.year")}
           />
         </div>
 
@@ -140,14 +143,14 @@ export function MetadataForm({
             htmlFor="publisher"
             className="text-sm font-medium text-muted-foreground"
           >
-            PUBLISHER
+            {t("metadata.publisher")}
           </Label>
           <Input
             id="publisher"
             value={editedMetadata.publisher || ""}
             onChange={(e) => handleFieldChange("publisher", e.target.value)}
             className="mt-1"
-            placeholder="Publisher name"
+            placeholder={t("placeholders.publisher")}
           />
         </div>
 
@@ -156,14 +159,14 @@ export function MetadataForm({
             htmlFor="language"
             className="text-sm font-medium text-muted-foreground"
           >
-            LANGUAGE
+            {t("metadata.language")}
           </Label>
           <Input
             id="language"
             value={editedMetadata.language || ""}
             onChange={(e) => handleFieldChange("language", e.target.value)}
             className="mt-1"
-            placeholder="English"
+            placeholder={t("placeholders.language")}
           />
         </div>
 
@@ -172,7 +175,7 @@ export function MetadataForm({
             htmlFor="pages"
             className="text-sm font-medium text-muted-foreground"
           >
-            PAGES
+            {t("metadata.pages")}
           </Label>
           <Input
             id="pages"
@@ -181,7 +184,7 @@ export function MetadataForm({
               handleFieldChange("page_count", parseInt(e.target.value) || 0)
             }
             className="mt-1"
-            placeholder="100"
+            placeholder={t("placeholders.pages")}
           />
         </div>
       </div>
@@ -192,14 +195,14 @@ export function MetadataForm({
             htmlFor="doctype"
             className="text-sm font-medium text-muted-foreground"
           >
-            DOCUMENT TYPE *
+            {t("metadata.required", { field: t("metadata.documentType") })}
           </Label>
           <Input
             id="doctype"
             value={editedMetadata.doctype || ""}
             onChange={(e) => handleFieldChange("doctype", e.target.value)}
             className="mt-1"
-            placeholder="e.g., Book, Paper, Report, Manual, Others"
+            placeholder={t("placeholders.doctypeExample")}
           />
           {validationErrors.doctype && (
             <Alert variant="destructive" className="mt-1">
@@ -213,7 +216,7 @@ export function MetadataForm({
             htmlFor="category"
             className="text-sm font-medium text-muted-foreground"
           >
-            CATEGORY *
+            {t("metadata.required", { field: t("metadata.category") })}
           </Label>
           <div className="mt-1 space-y-2">
             <div>
@@ -221,13 +224,13 @@ export function MetadataForm({
                 htmlFor="main-category"
                 className="text-xs text-muted-foreground"
               >
-                Main Category
+                {t("metadata.mainCategory")}
               </Label>
               <Input
                 id="main-category"
                 value={editedMetadata.category?.split(" > ")[0] || ""}
                 onChange={handleCategoryMainChange}
-                placeholder="e.g., Science"
+                placeholder={t("placeholders.mainCategoryExample")}
               />
             </div>
             <div>
@@ -235,7 +238,7 @@ export function MetadataForm({
                 htmlFor="sub-category"
                 className="text-xs text-muted-foreground"
               >
-                Sub Category
+                {t("metadata.subCategory")}
               </Label>
               <Input
                 id="sub-category"
@@ -244,7 +247,7 @@ export function MetadataForm({
                   ""
                 }
                 onChange={handleCategorySubChange}
-                placeholder="e.g., Physics"
+                placeholder={t("placeholders.subCategoryExample")}
               />
             </div>
           </div>
@@ -260,13 +263,14 @@ export function MetadataForm({
             htmlFor="keywords"
             className="text-sm font-medium text-muted-foreground"
           >
-            KEYWORDS
+            {t("metadata.keywords")}
           </Label>
           <div className="mt-1">
             <KeywordEditor
               keywords={editedMetadata.keywords || []}
               onRemove={handleKeywordRemove}
               onKeyDown={handleKeywordKeyDown}
+              placeholder={t("placeholders.addKeyword")}
             />
           </div>
         </div>
@@ -279,12 +283,14 @@ interface KeywordEditorProps {
   keywords: string[];
   onRemove: (index: number) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>, value: string) => void;
+  placeholder?: string;
 }
 
 export const KeywordEditor = ({
   keywords,
   onRemove,
   onKeyDown,
+  placeholder = "Add keyword...",
 }: KeywordEditorProps) => {
   const [inputValue, setInputValue] = React.useState("");
 
@@ -317,7 +323,7 @@ export const KeywordEditor = ({
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Add keyword..."
+        placeholder={placeholder}
         className="flex-1 min-w-20 border-0 p-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-auto"
       />
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -19,18 +20,23 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MoveIcon } from "lucide-react";
-import { DOCTYPE_OPTIONS } from "@/components/library/types";
+import { DOCTYPE_OPTION_KEYS } from "@/components/library/types";
 
 interface BulkMoveDropdownProps {
   onBulkMove: (doctype: string, category: string) => void;
 }
 
 export function BulkMoveDropdown({ onBulkMove }: BulkMoveDropdownProps) {
+  const t = useTranslations("features.moveDropdown");
+  const tCommon = useTranslations("common");
   const [selectedDoctype, setSelectedDoctype] = useState("");
   const [selectedMainCategory, setSelectedMainCategory] = useState("");
   const [selectedSubCategory, setSelectedSubCategory] = useState("");
 
-  const doctypes = DOCTYPE_OPTIONS;
+  const doctypes = DOCTYPE_OPTION_KEYS.map(opt => ({
+    value: opt.value,
+    label: tCommon(opt.labelKey.replace("common.", ""))
+  }));
 
   const handleApply = () => {
     const category = selectedMainCategory
@@ -52,26 +58,26 @@ export function BulkMoveDropdown({ onBulkMove }: BulkMoveDropdownProps) {
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm">
           <MoveIcon className="h-4 w-4 mr-2" />
-          Move
+          {t("move")}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-80 p-4">
-        <DropdownMenuLabel>Move Documents</DropdownMenuLabel>
+        <DropdownMenuLabel>{t("moveDocuments")}</DropdownMenuLabel>
         <DropdownMenuSeparator />
 
         <div className="space-y-4">
           <div>
             <Label htmlFor="doctype" className="text-sm font-medium">
-              Document Type
+              {t("documentType")}
             </Label>
             <Select value={selectedDoctype} onValueChange={setSelectedDoctype}>
               <SelectTrigger id="doctype" className="w-full mt-1">
-                <SelectValue placeholder="Select doctype..." />
+                <SelectValue placeholder={t("selectDoctype")} />
               </SelectTrigger>
               <SelectContent>
                 {doctypes.map((doctype) => (
-                  <SelectItem key={doctype} value={doctype}>
-                    {doctype}
+                  <SelectItem key={doctype.value} value={doctype.value}>
+                    {doctype.label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -79,20 +85,20 @@ export function BulkMoveDropdown({ onBulkMove }: BulkMoveDropdownProps) {
           </div>
 
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Category</Label>
+            <Label className="text-sm font-medium">{t("category")}</Label>
 
             <div>
               <Label
                 htmlFor="main-category"
                 className="text-xs text-muted-foreground"
               >
-                Main Category
+                {t("mainCategory")}
               </Label>
               <Input
                 id="main-category"
                 value={selectedMainCategory}
                 onChange={(e) => setSelectedMainCategory(e.target.value)}
-                placeholder="Enter main category..."
+                placeholder={t("enterMainCategory")}
                 className="mt-1"
               />
             </div>
@@ -102,13 +108,13 @@ export function BulkMoveDropdown({ onBulkMove }: BulkMoveDropdownProps) {
                 htmlFor="sub-category"
                 className="text-xs text-muted-foreground"
               >
-                Sub Category
+                {t("subCategory")}
               </Label>
               <Input
                 id="sub-category"
                 value={selectedSubCategory}
                 onChange={(e) => setSelectedSubCategory(e.target.value)}
-                placeholder="Enter subcategory..."
+                placeholder={t("enterSubCategory")}
                 className="mt-1"
               />
             </div>
@@ -119,7 +125,7 @@ export function BulkMoveDropdown({ onBulkMove }: BulkMoveDropdownProps) {
             disabled={!selectedDoctype && !selectedMainCategory}
             className="w-full"
           >
-            Apply Changes
+            {t("applyChanges")}
           </Button>
         </div>
       </DropdownMenuContent>

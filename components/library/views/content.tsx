@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useTranslations } from "next-intl";
 import { invoke } from "@tauri-apps/api/core";
 import {
   Breadcrumb,
@@ -31,6 +32,8 @@ import {
 import { useFilterWithReload } from "@/hooks/library";
 
 export function Content() {
+  const t = useTranslations("views.content");
+  const tCommon = useTranslations("common");
   const {
     libraryName,
     setLibraryName,
@@ -95,9 +98,9 @@ export function Content() {
             <EmptyMedia variant="icon">
               <BookOpenIcon className="h-12 w-12" />
             </EmptyMedia>
-            <EmptyTitle>Welcome to ManiBook</EmptyTitle>
+            <EmptyTitle>{tCommon("welcome")}</EmptyTitle>
             <EmptyDescription>
-              Create a new library or Select one from the list below.
+              {t("welcomeDescription")}
             </EmptyDescription>
           </EmptyHeader>
           <div className="w-full max-w-md space-y-1">
@@ -122,7 +125,7 @@ export function Content() {
                 useLibraryUIStore.getState().setCreateLibraryOpen(true)
               }
             >
-              Create Library
+              {t("createLibrary")}
             </Button>
           </div>
         </Empty>
@@ -135,7 +138,7 @@ export function Content() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <Breadcrumb>
           <BreadcrumbList>
-            <BreadcrumbItem>Location:</BreadcrumbItem>
+            <BreadcrumbItem>{t("location")}</BreadcrumbItem>
             <BreadcrumbItem>
               <div className="flex items-center gap-1">
                 <BreadcrumbLink
@@ -153,7 +156,7 @@ export function Content() {
                   size="sm"
                   className="h-5 w-5 p-0 hover:bg-destructive/10 hover:text-destructive"
                   onClick={closeLibrary}
-                  title="Close library"
+                  title={t("closeLibrary")}
                 >
                   <XIcon className="h-3 w-3" />
                 </Button>
@@ -191,10 +194,7 @@ export function Content() {
 
         <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
           <span className="font-medium text-foreground">
-            {totalCount || documents.length}
-          </span>
-          <span>
-            document{(totalCount || documents.length) !== 1 ? "s" : ""} found
+            {t("documentsFound", { count: totalCount || documents.length })}
           </span>
         </div>
       </div>
@@ -211,10 +211,9 @@ export function Content() {
             <EmptyMedia variant="icon">
               <BookOpenIcon className="h-12 w-12" />
             </EmptyMedia>
-            <EmptyTitle>No documents found</EmptyTitle>
+            <EmptyTitle>{t("noDocuments")}</EmptyTitle>
             <EmptyDescription>
-              Try adjusting your search query, category filter, or import some
-              documents to get started.
+              {t("noDocumentsDescription")}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>

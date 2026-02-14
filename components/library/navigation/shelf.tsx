@@ -19,6 +19,7 @@ import { useLibraryDataStore, useLibraryFilterStore } from "@/stores";
 import { useFilterWithReload } from "@/hooks/library";
 import type { Category } from "@/lib/library";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 interface CategoryNodeProps {
   category: Category;
@@ -165,6 +166,8 @@ function CategoryNode({
 }
 
 export function Shelf() {
+  const t = useTranslations("navigation");
+
   const { categories } = useLibraryDataStore();
   const { selectedCategory } = useLibraryFilterStore();
   const { setSelectedCategory } = useFilterWithReload();
@@ -199,7 +202,7 @@ export function Shelf() {
     <div className="space-y-4">
       <div className="space-y-1">
         <div className="flex items-center justify-between px-2">
-          <h3 className="text-sm font-semibold text-foreground">Shelves</h3>
+          <h3 className="text-sm font-semibold text-foreground">{t("shelves")}</h3>
           {totalDocuments > 0 && (
             <Badge
               variant="secondary"
@@ -233,9 +236,9 @@ export function Shelf() {
           <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mb-3">
             <FolderIcon className="h-5 w-5 text-muted-foreground" />
           </div>
-          <p className="text-sm text-muted-foreground mb-1">No shelves yet</p>
+          <p className="text-sm text-muted-foreground mb-1">{t("noShelvesYet")}</p>
           <p className="text-xs text-muted-foreground/70">
-            Import documents to organize them into categories
+            {t("importDocumentsHint")}
           </p>
         </div>
       )}

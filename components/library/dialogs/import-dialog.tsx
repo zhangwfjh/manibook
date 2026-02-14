@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,6 +28,7 @@ import { invoke } from "@tauri-apps/api/core";
 function showImportCompleteToast(
   batch: ImportBatch,
   itemType: "file" | "document",
+  t: (key: string, params?: Record<string, string | number>) => string,
 ) {
   const successCount = batch.items.filter(
     (item) => item.status === "success",
@@ -38,30 +40,23 @@ function showImportCompleteToast(
     (item) => item.status === "canceled",
   ).length;
 
-  const pluralize = (count: number) => (count > 1 ? `${itemType}s` : itemType);
+  const itemTypeKey = itemType === "file" ? "file" : "document";
+  const itemLabel = successCount !== 1 || failedCount !== 1 ? t(`itemTypes.${itemTypeKey}.plural`) : t(`itemTypes.${itemTypeKey}.singular`);
 
   if (canceledCount > 0) {
     if (successCount === 0 && failedCount === 0) {
-      toast.info(
-        `Import canceled. ${canceledCount} ${pluralize(canceledCount)} canceled.`,
-      );
+      toast.info(t("toast.canceledAll", { count: canceledCount, itemType: itemLabel }));
     } else if (failedCount === 0) {
-      toast.info(
-        `${successCount} ${pluralize(successCount)} imported, ${canceledCount} canceled`,
-      );
+      toast.info(t("toast.importedAndCanceled", { successCount, canceledCount, itemType: itemLabel }));
     } else {
-      toast.warning(
-        `${successCount} imported, ${failedCount} failed, ${canceledCount} canceled`,
-      );
+      toast.warning(t("toast.importedFailedCanceled", { successCount, failedCount, canceledCount }));
     }
   } else if (failedCount === 0) {
-    toast.success(
-      `Successfully imported ${successCount} ${pluralize(successCount)}!`,
-    );
+    toast.success(t("toast.success", { count: successCount, itemType: itemLabel }));
   } else if (successCount === 0) {
-    toast.error(`Failed to import ${failedCount} ${pluralize(failedCount)}`);
+    toast.error(t("toast.allFailed", { count: failedCount, itemType: itemLabel }));
   } else {
-    toast.warning(`${successCount} imported, ${failedCount} failed`);
+    toast.warning(t("toast.partialFailure", { successCount, failedCount }));
   }
 }
 
@@ -76,6 +71,7 @@ export function ImportDialog({
   onOpenChange,
   onImportComplete,
 }: ImportDialogProps) {
+  const t = useTranslations("dialogs.import");
   const [activeTab, setActiveTab] = useState("files");
   const [importing, setImporting] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -130,9 +126,7 @@ export function ImportDialog({
     });
 
     if (filteredFiles.length === 0) {
-      toast.error(
-        "No valid files selected. Only PDF, DJVU, and EPUB files are allowed.",
-      );
+      toast.error(t("invalidFilesError"));
       return;
     }
 
@@ -150,7 +144,7 @@ export function ImportDialog({
     try {
       fileData = await Promise.all(fileDataPromises);
     } catch (error) {
-      toast.error("Failed to read files");
+      toast.error(t("failedToReadFiles"));
       return;
     }
 
@@ -192,7 +186,7 @@ export function ImportDialog({
             completedAt: new Date(),
           });
         } else {
-          const errorMsg = fileResult?.error || "Import failed";
+          const errorMsg = fileResult?.error || t("importFailed");
           if (errorMsg.toLowerCase().includes("already exists")) {
             updateItemStatus(itemId, "success", {
               completedAt: new Date(),
@@ -207,7 +201,7 @@ export function ImportDialog({
       filteredFiles.forEach((_, index) => {
         const itemId = `${batchId}-item-${index}`;
         updateItemStatus(itemId, "failed", {
-          error: error instanceof Error ? error.message : "Import failed",
+          error: error instanceof Error ? error.message : t("importFailed"),
         });
       });
     } finally {
@@ -224,7 +218,7 @@ export function ImportDialog({
     }
 
     if (currentBatch) {
-      showImportCompleteToast(currentBatch, "file");
+      showImportCompleteToast(currentBatch, "file", t);
     }
   };
 
@@ -270,14 +264,14 @@ export function ImportDialog({
       new URL(url);
       return "";
     } catch {
-      return "Invalid URL format";
+      return t("invalidUrlFormat");
     }
   };
 
   const handleUrlImport = async () => {
     const validUrls = urls.filter((url) => url.trim());
     if (validUrls.length === 0) {
-      toast.error("Please enter at least one URL");
+      toast.error(t("enterAtLeastOneUrl"));
       return;
     }
 
@@ -285,14 +279,14 @@ export function ImportDialog({
     setUrlErrors(newErrors);
 
     if (newErrors.some((error) => error)) {
-      toast.error("Please fix the URL errors before importing");
+      toast.error(t("fixUrlErrors"));
       return;
     }
 
     clearBatch();
 
     const importItems = validUrls.map((url) => ({
-      filename: url.split("/").pop() || "Unknown",
+      filename: url.split("/").pop() || t("unknown"),
       status: "importing" as const,
       path: url,
       abortController: new AbortController(),
@@ -328,7 +322,7 @@ export function ImportDialog({
             completedAt: new Date(),
           });
         } else {
-          const errorMsg = urlResult?.error || "Import failed";
+          const errorMsg = urlResult?.error || t("importFailed");
           if (errorMsg.toLowerCase().includes("already exists")) {
             // Already imported, treat as success
             updateItemStatus(itemId, "success", {
@@ -346,11 +340,11 @@ export function ImportDialog({
       onImportComplete();
 
       if (currentBatch) {
-        showImportCompleteToast(currentBatch, "document");
+        showImportCompleteToast(currentBatch, "document", t);
       }
     } catch (error) {
       console.error("Error importing URLs:", error);
-      toast.error("Import failed");
+      toast.error(t("importFailed"));
       // Mark all as failed
       const errorMessage =
         error instanceof Error ? error.message : String(error);
@@ -375,18 +369,18 @@ export function ImportDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="min-w-1xl max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Import Documents</DialogTitle>
+          <DialogTitle>{t("title")}</DialogTitle>
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="files" className="flex items-center gap-2">
               <UploadIcon className="h-4 w-4" />
-              Files & Folders
+              {t("filesAndFolders")}
             </TabsTrigger>
             <TabsTrigger value="urls" className="flex items-center gap-2">
               <LinkIcon className="h-4 w-4" />
-              Import from URLs
+              {t("importFromUrls")}
             </TabsTrigger>
           </TabsList>
 
@@ -402,15 +396,14 @@ export function ImportDialog({
               onDrop={handleDrop}
             >
               <FileTextIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Drop files here</h3>
+              <h3 className="text-lg font-semibold mb-2">{t("dropFilesHere")}</h3>
               <p className="text-muted-foreground mb-4">
-                Drag and drop PDF, EPUB, or DJVU files, or click the buttons
-                below
+                {t("dragDropDescription")}
               </p>
               <div className="flex gap-2 justify-center">
                 <Button onClick={triggerFileImport} disabled={importing}>
                   <UploadIcon className="h-4 w-4 mr-2" />
-                  Select Files
+                  {t("selectFiles")}
                 </Button>
                 <Button
                   variant="outline"
@@ -418,7 +411,7 @@ export function ImportDialog({
                   disabled={importing}
                 >
                   <UploadIcon className="h-4 w-4 mr-2" />
-                  Select Folder
+                  {t("selectFolder")}
                 </Button>
               </div>
             </div>
@@ -446,14 +439,14 @@ export function ImportDialog({
           <TabsContent value="urls" className="space-y-4">
             <div className="space-y-3">
               <Label className="text-sm font-medium">
-                PDF URLs (one per line or separate inputs)
+                {t("pdfUrlsLabel")}
               </Label>
 
               {urls.map((url, index) => (
                 <div key={index}>
                   <InputGroup>
                     <Input
-                      placeholder="https://example.com/document.pdf"
+                      placeholder={t("urlPlaceholder")}
                       value={url}
                       onChange={(e) => updateUrl(index, e.target.value)}
                       className={urlErrors[index] ? "border-red-500" : ""}
@@ -479,20 +472,20 @@ export function ImportDialog({
                 disabled={importing}
               >
                 <PlusIcon className="h-4 w-4 mr-2" />
-                Add Another URL
+                {t("addAnotherUrl")}
               </Button>
             </div>
 
             <div className="text-sm text-muted-foreground">
-              <p>Supported formats: PDF, EPUB, DJVU</p>
-              <p>Maximum file size: 100MB per document</p>
+              <p>{t("supportedFormats")}</p>
+              <p>{t("maxFileSize")}</p>
             </div>
           </TabsContent>
         </Tabs>
 
         {activeTab === "urls" && (
           <Button onClick={handleUrlImport} disabled={importing}>
-            Import URLs
+            {t("importUrls")}
           </Button>
         )}
 
@@ -502,7 +495,7 @@ export function ImportDialog({
             variant="outline"
             className="w-full"
           >
-            Show Import Progress
+            {t("showImportProgress")}
           </Button>
         )}
 

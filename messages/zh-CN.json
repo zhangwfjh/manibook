@@ -1,0 +1,271 @@
+{
+  "common": {
+    "welcome": "欢迎使用 ManiBook",
+    "docTypes": {
+      "book": "书籍",
+      "paper": "论文",
+      "report": "报告",
+      "manual": "手册",
+      "others": "其他"
+    }
+  },
+  "navigation": {
+    "tagline": "您的智能文档管理助手",
+    "filters": "筛选",
+    "showOnlyFavorites": "仅显示收藏",
+    "formats": "格式",
+    "keywords": "关键词",
+    "authors": "作者",
+    "publishers": "出版社",
+    "languages": "语言",
+    "shelves": "书架",
+    "noShelvesYet": "暂无书架",
+    "importDocumentsHint": "导入文档以将它们整理分类"
+  },
+  "detailSections": {
+    "metadata": {
+      "title": "标题",
+      "authors": "作者",
+      "publicationYear": "出版年份",
+      "publisher": "出版社",
+      "language": "语言",
+      "pages": "页数",
+      "documentType": "文档类型",
+      "category": "分类",
+      "mainCategory": "主分类",
+      "subCategory": "子分类",
+      "keywords": "关键词",
+      "required": "{field} *"
+    },
+    "fileInfo": {
+      "title": "文件信息",
+      "filename": "文件名",
+      "filePath": "文件路径",
+      "fileSize": "文件大小",
+      "format": "格式",
+      "fileFormat": "文件格式：{format}"
+    },
+    "metadataView": {
+      "untitled": "无标题",
+      "unknown": "未知",
+      "noKeywords": "无关键词"
+    },
+    "abstract": {
+      "title": "摘要",
+      "placeholder": "文档摘要或简介...",
+      "noAbstract": "无摘要"
+    },
+    "extraMetadata": {
+      "title": "附加元数据",
+      "key": "键",
+      "value": "值",
+      "addField": "添加字段",
+      "noMetadata": "无附加元数据"
+    },
+    "placeholders": {
+      "authorsExample": "作者1, 作者2, 作者3",
+      "year": "2023",
+      "publisher": "出版社名称",
+      "language": "中文",
+      "pages": "100",
+      "doctypeExample": "例如：书籍、论文、报告、手册、其他",
+      "mainCategoryExample": "例如：科学",
+      "subCategoryExample": "例如：物理",
+      "addKeyword": "添加关键词..."
+    }
+  },
+  "features": {
+    "moveDropdown": {
+      "move": "移动",
+      "moveDocuments": "移动文档",
+      "documentType": "文档类型",
+      "selectDoctype": "选择文档类型...",
+      "category": "分类",
+      "mainCategory": "主分类",
+      "enterMainCategory": "输入主分类...",
+      "subCategory": "子分类",
+      "enterSubCategory": "输入子分类...",
+      "applyChanges": "应用更改"
+    },
+    "documentActions": {
+      "deleteDocument": "删除文档",
+      "deleteConfirm": "确定要删除\"{title}\"吗？此操作无法撤销。",
+      "thisDocument": "此文档",
+      "cancel": "取消",
+      "delete": "删除"
+    }
+  },
+  "views": {
+    "controls": {
+      "searchPlaceholder": "搜索标题、作者、出版社、关键词或摘要...",
+      "selected": "已选择 {count} 个",
+      "clear": "清除",
+      "selectAll": "全选",
+      "delete": "删除",
+      "cancel": "取消",
+      "sortBy": "排序方式...",
+      "import": "导入",
+      "select": "选择",
+      "settings": "设置",
+      "sortOptions": {
+        "titleAsc": "标题 A-Z",
+        "titleDesc": "标题 Z-A",
+        "authorAsc": "作者 A-Z",
+        "authorDesc": "作者 Z-A",
+        "publicationYearDesc": "出版年份 最新",
+        "publicationYearAsc": "出版年份 最早",
+        "pageCountAsc": "页数 最少",
+        "pageCountDesc": "页数 最多",
+        "importedAtDesc": "最近导入",
+        "importedAtAsc": "最早导入",
+        "filesizeAsc": "文件大小 最小",
+        "filesizeDesc": "文件大小 最大"
+      }
+    },
+    "content": {
+      "welcomeDescription": "创建新文库或从下方列表中选择一个。",
+      "createLibrary": "创建文库",
+      "location": "位置：",
+      "closeLibrary": "关闭文库",
+      "documentsFound": "找到 {count} 个文档",
+      "noDocuments": "未找到文档",
+      "noDocumentsDescription": "尝试调整搜索条件、分类筛选，或导入一些文档以开始使用。"
+    },
+    "pagination": {
+      "previous": "上一页",
+      "next": "下一页",
+      "goToPage": "跳转到第 (1-{totalPages}) 页",
+      "goToPreviousPage": "转到上一页",
+      "goToNextPage": "转到下一页",
+      "morePages": "更多页"
+    }
+  },
+  "commandPalette": {
+    "searchPlaceholder": "输入命令或搜索...",
+    "noResults": "未找到结果。",
+    "groups": {
+      "libraries": "文库",
+      "documents": "文档",
+      "actions": "操作"
+    },
+    "commands": {
+      "createLibrary": "创建文库",
+      "closeLibrary": "关闭当前文库",
+      "openLibrary": "打开 {name}",
+      "currentLibrary": "{name} (当前)",
+      "searchDocuments": "搜索文档",
+      "importDocuments": "导入文档",
+      "settings": "设置",
+      "exportLogs": "导出日志"
+    },
+    "toast": {
+      "libraryClosed": "文库已关闭",
+      "libraryAlreadyOpen": "文库已打开：{name}",
+      "libraryOpened": "已打开文库：{name}",
+      "logsExported": "日志导出成功",
+      "logsExportFailed": "日志导出失败：{error}"
+    }
+  },
+  "dialogs": {
+    "settings": {
+      "title": "LLM 配置",
+      "apiKeys": "API 密钥",
+      "jobs": "任务分配",
+      "configureApiKeys": "为您想使用的提供商配置 API 密钥。",
+      "configured": "已配置",
+      "apiKeyLabel": "API 密钥 ({env})",
+      "apiKeyPlaceholder": "输入 {provider} 的 API 密钥",
+      "modelsAvailable": "可用模型 {count} 个",
+      "docs": "文档",
+      "addNewProvider": "添加新提供商...",
+      "modelsCount": "{count} 个模型",
+      "add": "添加",
+      "noProvidersConfigured": "尚未配置任何提供商。请在上方选择一个提供商以添加 API 密钥。",
+      "configureProviderFirst": "请先在 API 密钥标签页中配置至少一个提供商的 API 密钥。",
+      "selectModelsForTasks": "选择用于各项任务的 AI 模型。仅显示已配置提供商的模型。",
+      "metadataExtraction": "元数据提取",
+      "selectModelForMetadata": "选择用于元数据提取的模型",
+      "ctx": "上下文",
+      "metadataExtractionDesc": "用于从文档文本中提取文档元数据（标题、作者、分类等）。",
+      "imageTextExtraction": "图片文字提取 (OCR)",
+      "selectVisionModel": "选择用于图片文字提取的视觉模型",
+      "vision": "视觉",
+      "imageTextExtractionDesc": "用于从文档封面图片中提取文字。需要具有视觉能力的模型。",
+      "import": "导入",
+      "saveSettings": "保存设置",
+      "invalidModelId": "无效的模型 ID：{modelId}",
+      "modelNotFound": "未找到模型：{modelId}",
+      "context": "上下文",
+      "apiKeyNotSet": "未设置 {provider} 的 API 密钥"
+    },
+    "import": {
+      "title": "导入文档",
+      "filesAndFolders": "文件和文件夹",
+      "importFromUrls": "从 URL 导入",
+      "dropFilesHere": "将文件拖放到此处",
+      "dragDropDescription": "或点击下方按钮选择文件",
+      "selectFiles": "选择文件",
+      "selectFolder": "选择文件夹",
+      "pdfUrlsLabel": "PDF 网址",
+      "urlPlaceholder": "https://example.com/document.pdf",
+      "addAnotherUrl": "添加另一个 URL",
+      "supportedFormats": "支持的格式：PDF、EPUB、DJVU",
+      "maxFileSize": "最大文件大小：100MB",
+      "importUrls": "从 URL 导入",
+      "showImportProgress": "显示导入进度",
+      "invalidFilesError": "未找到有效文件。支持的格式：PDF、EPUB、DJVU",
+      "failedToReadFiles": "读取文件失败",
+      "importFailed": "导入失败",
+      "invalidUrlFormat": "无效的 URL 格式",
+      "enterAtLeastOneUrl": "请输入至少一个 URL",
+      "fixUrlErrors": "请在导入前修复 URL 错误",
+      "unknown": "未知",
+      "itemTypes": {
+        "file": {
+          "singular": "个文件",
+          "plural": "个文件"
+        },
+        "document": {
+          "singular": "个文档",
+          "plural": "个文档"
+        }
+      },
+      "toast": {
+        "success": "成功导入 {count} {itemType}",
+        "allFailed": "导入 {count} {itemType} 失败",
+        "partialFailure": "已导入 {successCount} 项，失败 {failedCount} 项",
+        "importedAndCanceled": "已导入 {successCount} {itemType}，取消 {canceledCount} 个",
+        "importedFailedCanceled": "已导入 {successCount} 个，失败 {failedCount} 个，取消 {canceledCount} 个",
+        "canceledAll": "已取消导入 {count} {itemType}"
+      }
+    },
+    "detail": {
+      "titleRequired": "标题为必填项",
+      "doctypeRequired": "文档类型为必填项",
+      "categoryRequired": "分类为必填项",
+      "unknownAuthor": "未知",
+      "errorUpdatingDocument": "更新文档时出错",
+      "error": "错误",
+      "failedToGenerateMetadata": "生成元数据失败",
+      "delete": "删除",
+      "generate": "生成",
+      "cancel": "取消",
+      "save": "保存",
+      "edit": "编辑",
+      "open": "打开",
+      "deleteDocument": "删除文档",
+      "deleteConfirm": "确定要删除\"{title}\"吗？此操作无法撤销。"
+    },
+    "createLibrary": {
+      "title": "创建新文库",
+      "description": "输入新文库的名称并选择位置。",
+      "name": "名称",
+      "namePlaceholder": "我的文库",
+      "path": "路径",
+      "pathPlaceholder": "/文库/路径",
+      "selectLibraryFolder": "选择文库文件夹",
+      "cancel": "取消",
+      "create": "创建"
+    }
+  }
+}

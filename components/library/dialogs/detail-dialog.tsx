@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -49,6 +50,7 @@ export function DocumentDetailDialog({
   onDelete,
   onUpdate,
 }: DocumentDetailDialogProps) {
+  const t = useTranslations("dialogs.detail");
   const [isEditing, setIsEditing] = useState(false);
   const [editedMetadata, setEditedMetadata] = useState<Metadata | null>(
     document?.metadata || null,
@@ -85,13 +87,13 @@ export function DocumentDetailDialog({
 
     const errors: Record<string, string> = {};
     if (!editedMetadata.title?.trim()) {
-      errors.title = "Title is required";
+      errors.title = t("titleRequired");
     }
     if (!editedMetadata.doctype) {
-      errors.doctype = "Document type is required";
+      errors.doctype = t("doctypeRequired");
     }
     if (!editedMetadata.category?.split(" > ")[0]?.trim()) {
-      errors.category = "Category is required";
+      errors.category = t("categoryRequired");
     }
 
     if (Object.keys(errors).length > 0) {
@@ -107,7 +109,7 @@ export function DocumentDetailDialog({
       metadataToSave.authors.length === 0 ||
       metadataToSave.authors.every((author: string) => !author.trim())
     ) {
-      metadataToSave.authors = ["Unknown Author"];
+      metadataToSave.authors = [t("unknownAuthor")];
     }
 
     const updatedDocument: Document = {
@@ -120,7 +122,7 @@ export function DocumentDetailDialog({
       setIsEditing(false);
     } catch (error) {
       console.error("Error updating document:", error);
-      alert("Error updating document");
+      alert(t("errorUpdatingDocument"));
     }
   };
 
@@ -164,8 +166,7 @@ export function DocumentDetailDialog({
     } catch (error) {
       console.error("Error generating metadata:", error);
       alert(
-        `Error: ${
-          error instanceof Error ? error.message : "Failed to generate metadata"
+        `${t("error")}: ${error instanceof Error ? error.message : t("failedToGenerateMetadata")
         }`,
       );
     } finally {
@@ -220,7 +221,7 @@ export function DocumentDetailDialog({
             disabled={isEditing}
           >
             <TrashIcon className="h-4 w-4 mr-2" />
-            Delete
+            {t("delete")}
           </Button>
 
           <div className="flex gap-2">
@@ -234,26 +235,26 @@ export function DocumentDetailDialog({
                   <RefreshCwIcon
                     className={`h-4 w-4 mr-2 ${isGenerating ? "animate-spin" : ""}`}
                   />
-                  Generate
+                  {t("generate")}
                 </Button>
                 <Button variant="outline" onClick={handleCancel}>
                   <XIcon className="h-4 w-4 mr-2" />
-                  Cancel
+                  {t("cancel")}
                 </Button>
                 <Button onClick={handleSave}>
                   <SaveIcon className="h-4 w-4 mr-2" />
-                  Save
+                  {t("save")}
                 </Button>
               </>
             ) : (
               <>
                 <Button variant="outline" onClick={handleEdit}>
                   <EditIcon className="h-4 w-4 mr-2" />
-                  Edit
+                  {t("edit")}
                 </Button>
                 <Button onClick={handleOpen}>
                   <BookOpenIcon className="h-4 w-4 mr-2" />
-                  Open
+                  {t("open")}
                 </Button>
               </>
             )}
@@ -267,19 +268,18 @@ export function DocumentDetailDialog({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Document</AlertDialogTitle>
+            <AlertDialogTitle>{t("deleteDocument")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete &ldquo;{metadata.title}&rdquo;?
-              This action cannot be undone.
+              {t("deleteConfirm", { title: metadata.title })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              {t("delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

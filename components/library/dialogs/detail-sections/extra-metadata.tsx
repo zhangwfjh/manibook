@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,8 @@ export function ExtraMetadata({
   editedMetadata,
   onChange,
 }: DialogExtraMetadataProps) {
+  const t = useTranslations("detailSections");
+
   const handleFieldChange = (key: string, value: string) => {
     const currentMetadata = editedMetadata?.metadata || {};
     const newMetadata = { ...currentMetadata, [key]: value };
@@ -53,16 +56,16 @@ export function ExtraMetadata({
     <Card className="max-w-full">
       <CardContent>
         <Label className="text-sm font-medium text-muted-foreground">
-          ADDITIONAL METADATA
+          {t("extraMetadata.title")}
         </Label>
         {isEditing ? (
           <div className="mt-1 space-y-2">
             {editedMetadata?.metadata &&
-            Object.keys(editedMetadata.metadata).length > 0 ? (
+              Object.keys(editedMetadata.metadata).length > 0 ? (
               Object.entries(editedMetadata.metadata).map(([key, value]) => (
                 <div key={key} className="flex gap-2 items-center">
                   <Input
-                    placeholder="Key"
+                    placeholder={t("extraMetadata.key")}
                     value={key}
                     onChange={(e) => {
                       const newKey = e.target.value;
@@ -78,7 +81,7 @@ export function ExtraMetadata({
                     className="flex-1"
                   />
                   <Input
-                    placeholder="Value"
+                    placeholder={t("extraMetadata.value")}
                     value={
                       Array.isArray(value) ? value.join(", ") : String(value)
                     }
@@ -97,7 +100,7 @@ export function ExtraMetadata({
               ))
             ) : (
               <div className="text-sm text-muted-foreground">
-                No additional metadata
+                {t("extraMetadata.noMetadata")}
               </div>
             )}
             <Button
@@ -106,7 +109,7 @@ export function ExtraMetadata({
               size="sm"
               onClick={handleFieldAdd}
             >
-              Add Field
+              {t("extraMetadata.addField")}
             </Button>
           </div>
         ) : (
@@ -126,7 +129,7 @@ export function ExtraMetadata({
               </div>
             ) : (
               <span className="text-muted-foreground">
-                No additional metadata
+                {t("extraMetadata.noMetadata")}
               </span>
             )}
           </div>

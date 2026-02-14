@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -36,6 +37,8 @@ export function CreateLibraryDialog({
   onSubmit,
   onCancel,
 }: CreateLibraryDialogProps) {
+  const t = useTranslations("dialogs.createLibrary");
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const success = await onSubmit(name, path);
@@ -49,7 +52,7 @@ export function CreateLibraryDialog({
       const selectedPath = await openDialog({
         directory: true,
         multiple: false,
-        title: "Select Library Folder",
+        title: t("selectLibraryFolder"),
       });
       if (selectedPath) {
         onPathChange(selectedPath);
@@ -63,35 +66,35 @@ export function CreateLibraryDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create New Library</DialogTitle>
+          <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription>
-            Create a new library to organize your documents
+            {t("description")}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="name" className="text-right">
-                Name
+                {t("name")}
               </Label>
               <Input
                 id="name"
                 value={name}
                 onChange={(e) => onNameChange(e.target.value)}
                 className="col-span-3"
-                placeholder="My Library"
+                placeholder={t("namePlaceholder")}
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="path" className="text-right">
-                Path
+                {t("path")}
               </Label>
               <ButtonGroup className="col-span-3">
                 <Input
                   id="path"
                   value={path}
                   onChange={(e) => onPathChange(e.target.value)}
-                  placeholder="/path/to/library"
+                  placeholder={t("pathPlaceholder")}
                 />
                 <Button type="button" variant="outline" onClick={handleBrowse}>
                   <FolderIcon className="h-4 w-4" />
@@ -101,9 +104,9 @@ export function CreateLibraryDialog({
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onCancel}>
-              Cancel
+              {t("cancel")}
             </Button>
-            <Button type="submit">Create</Button>
+            <Button type="submit">{t("create")}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
@@ -25,8 +26,9 @@ import {
   SettingsIcon,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { BulkMoveDropdown } from "@/components/library/features/move-dropdown";
-import { SORT_OPTIONS } from "@/components/library/types";
+import { SortOption } from "@/components/library/types";
 import {
   useLibraryDataStore,
   useLibraryFilterStore,
@@ -36,6 +38,7 @@ import {
 } from "@/stores";
 
 export function Controls() {
+  const t = useTranslations("views.controls");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { searchQuery, setSearchQuery } = useLibraryFilterStore();
   const { sortBy, setSortBy } = useLibraryUIStore();
@@ -52,6 +55,22 @@ export function Controls() {
   } = useLibraryUIStore();
   const { bulkMove } = useLibraryOperations();
   const { setImportDialogOpen } = useImportStore();
+
+  // Translated sort options
+  const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+    { value: "title-asc", label: t("sortOptions.titleAsc") },
+    { value: "title-desc", label: t("sortOptions.titleDesc") },
+    { value: "author-asc", label: t("sortOptions.authorAsc") },
+    { value: "author-desc", label: t("sortOptions.authorDesc") },
+    { value: "publication_year-desc", label: t("sortOptions.publicationYearDesc") },
+    { value: "publication_year-asc", label: t("sortOptions.publicationYearAsc") },
+    { value: "page_count-asc", label: t("sortOptions.pageCountAsc") },
+    { value: "page_count-desc", label: t("sortOptions.pageCountDesc") },
+    { value: "imported_at-desc", label: t("sortOptions.importedAtDesc") },
+    { value: "imported_at-asc", label: t("sortOptions.importedAtAsc") },
+    { value: "filesize-asc", label: t("sortOptions.filesizeAsc") },
+    { value: "filesize-desc", label: t("sortOptions.filesizeDesc") },
+  ];
 
   // Keyboard shortcut handler (Cmd/Ctrl + K)
   useEffect(() => {
@@ -74,7 +93,7 @@ export function Controls() {
           <InputGroup className="flex-1 relative">
             <InputGroupInput
               ref={searchInputRef}
-              placeholder="Search by title, author, publisher, keywords, or abstract...  "
+              placeholder={t("searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -92,16 +111,16 @@ export function Controls() {
             <div className="flex flex-wrap items-center gap-2 animate-in slide-in-from-top-2 duration-300">
               <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-md border border-primary/20">
                 <span className="text-sm font-medium text-primary">
-                  {selectedDocuments.size} selected
+                  {t("selected", { count: selectedDocuments.size })}
                 </span>
               </div>
               <Button variant="outline" size="sm" onClick={clearSelection}>
                 <XIcon className="h-4 w-4 mr-2" />
-                Clear
+                {t("clear")}
               </Button>
               <Button variant="outline" size="sm" onClick={selectAllDocuments}>
                 <CheckSquare2Icon className="h-4 w-4 mr-2" />
-                Select All
+                {t("selectAll")}
               </Button>
               {selectedDocuments.size > 0 && (
                 <>
@@ -117,7 +136,7 @@ export function Controls() {
                     className="shadow-sm hover:shadow-md transition-all"
                   >
                     <TrashIcon className="h-4 w-4 mr-2" />
-                    Delete
+                    {t("delete")}
                   </Button>
                 </>
               )}
@@ -127,7 +146,7 @@ export function Controls() {
                 onClick={toggleSelectionMode}
                 className="hover:bg-muted/80 transition-colors"
               >
-                Cancel
+                {t("cancel")}
               </Button>
             </div>
           ) : (
@@ -139,7 +158,7 @@ export function Controls() {
                   onValueChange={setSortBy}
                 >
                   <SelectTrigger className="w-44 h-8 hover:bg-muted/80 transition-colors">
-                    <SelectValue placeholder="Sort by..." />
+                    <SelectValue placeholder={t("sortBy")} />
                   </SelectTrigger>
                   <SelectContent>
                     {SORT_OPTIONS.map((option) => (
@@ -158,7 +177,7 @@ export function Controls() {
                 className="shadow-sm hover:shadow-md transition-all duration-200"
               >
                 <UploadIcon className="h-4 w-4 mr-2" />
-                Import
+                {t("import")}
               </Button>
               <div className="flex items-center gap-1">
                 <Button
@@ -168,7 +187,7 @@ export function Controls() {
                   className="hover:bg-muted/80 transition-colors"
                 >
                   <CheckSquare2Icon className="h-4 w-4 mr-2" />
-                  Select
+                  {t("select")}
                 </Button>
               </div>
               <div className="flex items-center gap-1 pl-2 border-l border-border/50">
@@ -178,9 +197,10 @@ export function Controls() {
                   onClick={() => setSettingsOpen(true)}
                 >
                   <SettingsIcon className="h-4 w-4 mr-2" />
-                  Settings
+                  {t("settings")}
                 </Button>
                 <ThemeToggle />
+                <LanguageSwitcher />
               </div>
             </div>
           )}

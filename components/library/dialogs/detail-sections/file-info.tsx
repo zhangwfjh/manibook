@@ -1,4 +1,7 @@
+"use client";
+
 import React from "react";
+import { useTranslations } from "next-intl";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
@@ -14,19 +17,20 @@ interface DialogFileInfoProps {
 }
 
 export function FileInfo({ document }: DialogFileInfoProps) {
+  const t = useTranslations("detailSections");
   const { metadata } = document;
 
   return (
     <Card className="max-w-full">
       <CardContent>
         <Label className="text-sm font-medium text-muted-foreground">
-          FILE INFORMATION
+          {t("fileInfo.title")}
         </Label>
         <Table className="mt-3 max-w-full">
           <TableBody>
             <TableRow>
               <TableCell className="w-1/6 min-w-24 font-medium">
-                Filename
+                {t("fileInfo.filename")}
               </TableCell>
               <TableCell className="max-w-0">
                 {document.url.split("/").pop()}
@@ -34,13 +38,13 @@ export function FileInfo({ document }: DialogFileInfoProps) {
             </TableRow>
             <TableRow>
               <TableCell className="w-1/6 min-w-24 font-medium">
-                File path
+                {t("fileInfo.filePath")}
               </TableCell>
               <TableCell className="max-w-0">{document.url}</TableCell>
             </TableRow>
             <TableRow>
               <TableCell className="w-1/6 min-w-24 font-medium">
-                File size
+                {t("fileInfo.fileSize")}
               </TableCell>
               <TableCell className="max-w-0">
                 <div className="flex items-center gap-2">
@@ -56,7 +60,7 @@ export function FileInfo({ document }: DialogFileInfoProps) {
                           )}
                         </TooltipTrigger>
                         <TooltipContent>
-                          File format: {metadata.filetype?.toUpperCase()}
+                          {t("fileInfo.fileFormat", { format: metadata.filetype?.toUpperCase() })}
                         </TooltipContent>
                       </Tooltip>
                       <span>{formatFileSize(metadata.filesize)}</span>
@@ -67,7 +71,7 @@ export function FileInfo({ document }: DialogFileInfoProps) {
             </TableRow>
             <TableRow>
               <TableCell className="w-1/6 min-w-24 font-medium">
-                Format
+                {t("fileInfo.format")}
               </TableCell>
               <TableCell className="max-w-0">
                 <div className="flex items-center gap-2">
@@ -83,7 +87,7 @@ export function FileInfo({ document }: DialogFileInfoProps) {
                           )}
                         </TooltipTrigger>
                         <TooltipContent>
-                          File format: {metadata.filetype?.toUpperCase()}
+                          {t("fileInfo.fileFormat", { format: metadata.filetype?.toUpperCase() })}
                         </TooltipContent>
                       </Tooltip>
                       <span className="uppercase">{metadata.filetype}</span>

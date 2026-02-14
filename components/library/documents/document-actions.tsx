@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +24,7 @@ interface DocumentActionsProps {
 }
 
 export function DocumentActions({ document }: DocumentActionsProps) {
+  const t = useTranslations("features.documentActions");
   const { openDocument, toggleFavorite, deleteDocument } =
     useLibraryOperations();
   const { metadata } = document;
@@ -51,11 +53,10 @@ export function DocumentActions({ document }: DocumentActionsProps) {
         variant="ghost"
         size="sm"
         onClick={handleFavoriteClick}
-        className={`h-6 w-6 p-0 ${
-          metadata.favorite
+        className={`h-6 w-6 p-0 ${metadata.favorite
             ? "text-red-500"
             : "text-muted-foreground hover:text-red-500"
-        }`}
+          }`}
       >
         <HeartIcon
           className={`h-4 w-4 ${metadata.favorite ? "fill-current" : ""}`}
@@ -74,15 +75,13 @@ export function DocumentActions({ document }: DocumentActionsProps) {
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Document</AlertDialogTitle>
+            <AlertDialogTitle>{t("deleteDocument")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete &ldquo;
-              {metadata.title || "this document"}&rdquo;? This action cannot be
-              undone.
+              {t("deleteConfirm", { title: metadata.title || t("thisDocument") })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={(e) => {
@@ -90,7 +89,7 @@ export function DocumentActions({ document }: DocumentActionsProps) {
                 deleteDocument(document);
               }}
             >
-              Delete
+              {t("delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
