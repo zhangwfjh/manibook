@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
+import { useRouter, usePathname } from "@/i18n/navigation";
 import { invoke } from "@tauri-apps/api/core";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import {
@@ -12,7 +13,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -21,19 +21,32 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { UploadIcon, RefreshCwIcon, KeyIcon, EyeIcon, FileTextIcon, PlusIcon, TrashIcon } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
+import {
+  EyeIcon,
+  FileTextIcon,
+  PlusIcon,
+  TrashIcon,
+  PaletteIcon,
+  GlobeIcon,
+  SparklesIcon,
+  SunIcon,
+  MoonIcon,
+  MonitorIcon,
+  CheckIcon,
+  ChevronDownIcon,
+} from "lucide-react";
 import type { LLMSettings, Jobs } from "@/lib/llm-types";
 import {
   listProviders,
-  clearCache,
   supportsVision,
   supportsText,
-  formatCost,
   formatContext,
 } from "@/lib/models-dev";
 import type { ModelsDevProvider, ModelsDevModel } from "@/lib/models-dev";
+import { useTheme, COLOR_THEMES, MODE_THEMES, type ColorTheme, type ThemeMode } from "@/lib/theme";
 
 const emptySettings: LLMSettings = {
   api_keys: {},
@@ -53,7 +66,9 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const [settings, setSettings] = useState<LLMSettings>(emptySettings);
   const [providers, setProviders] = useState<ModelsDevProvider[]>([]);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("api-keys");
+  const [activeTab, setActiveTab] = useState("appearance");
+  const [expandedProvider, setExpandedProvider] = useState<string | null>(null);
+  const [showAddProvider, setShowAddProvider] = useState(false);
   const [selectedNewProvider, setSelectedNewProvider] = useState<string>("");
 
   useEffect(() => {
@@ -80,18 +95,6 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
       setProviders(data);
     } catch (error) {
       console.error("Error loading providers:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const refreshModels = async () => {
-    setLoading(true);
-    try {
-      clearCache();
-      await loadProviders();
-    } catch (error) {
-      console.error("Error refreshing models:", error);
     } finally {
       setLoading(false);
     }
@@ -135,12 +138,17 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
       delete newKeys[providerId];
       return { ...prev, api_keys: newKeys };
     });
+    if (expandedProvider === providerId) {
+      setExpandedProvider(null);
+    }
   };
 
   const addNewProvider = () => {
     if (!selectedNewProvider) return;
     setApiKey(selectedNewProvider, "");
     setSelectedNewProvider("");
+    setShowAddProvider(false);
+    setExpandedProvider(selectedNewProvider);
   };
 
   const updateJob = (job: keyof Jobs, modelId: string) => {
@@ -161,188 +169,209 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
   const getTextModels = () => getConfiguredModels().filter(({ model }) => supportsText(model));
   const getVisionModels = () => getConfiguredModels().filter(({ model }) => supportsVision(model));
-  const hasApiKey = (providerId: string): boolean => !!settings.api_keys[providerId];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            {t("title")}
-            <Button variant="ghost" size="sm" onClick={refreshModels} disabled={loading}>
-              <RefreshCwIcon className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            </Button>
-          </DialogTitle>
+          <DialogTitle>{t("title")}</DialogTitle>
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="api-keys" className="flex items-center gap-2">
-              <KeyIcon className="h-4 w-4" />
-              {t("apiKeys")} ({configuredProviders.length})
+          <TabsList className="grid w-full grid-cols-2 h-10">
+            <TabsTrigger value="appearance" className="gap-2">
+              <PaletteIcon className="h-4 w-4" />
+              {t("appearance")}
             </TabsTrigger>
-            <TabsTrigger value="jobs" className="flex items-center gap-2">
-              <FileTextIcon className="h-4 w-4" />
-              {t("jobs")}
+            <TabsTrigger value="model" className="gap-2">
+              <SparklesIcon className="h-4 w-4" />
+              {t("model")}
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="api-keys" className="space-y-4">
-            <div className="text-sm text-muted-foreground mb-4">
-              {t("configureApiKeys")}
-            </div>
-
-            <div className="space-y-3">
-              {configuredProviders.map((provider) => (
-                <Card key={provider.id}>
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-sm flex items-center gap-2">
-                        {provider.name}
-                        {hasApiKey(provider.id) && (
-                          <Badge variant="default" className="text-xs">{t("configured")}</Badge>
-                        )}
-                      </CardTitle>
-                      <Button variant="ghost" size="sm" onClick={() => removeApiKey(provider.id)}>
-                        <TrashIcon className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <Label className="text-xs">{t("apiKeyLabel", { env: provider.env[0] || "" })}</Label>
-                      <Input
-                        type="password"
-                        value={settings.api_keys[provider.id] || ""}
-                        onChange={(e) => setApiKey(provider.id, e.target.value)}
-                        placeholder={t("apiKeyPlaceholder", { provider: provider.name })}
-                      />
-                      <div className="text-xs text-muted-foreground">
-                        {t("modelsAvailable", { count: Object.keys(provider.models).length })}
-                        {provider.doc && (
-                          <a href={provider.doc} target="_blank" rel="noopener noreferrer" className="ml-2 underline">{t("docs")}</a>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {unconfiguredProviders.length > 0 && (
-              <Card className="border-dashed">
-                <CardContent className="pt-4">
-                  <div className="flex items-center gap-2">
-                    <Select value={selectedNewProvider} onValueChange={setSelectedNewProvider}>
-                      <SelectTrigger className="flex-1">
-                        <SelectValue placeholder={t("addNewProvider")} />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-64">
-                        {unconfiguredProviders.map((provider) => (
-                          <SelectItem key={provider.id} value={provider.id}>
-                            <div className="flex items-center gap-2">
-                              <span>{provider.name}</span>
-                              <Badge variant="outline" className="text-xs">
-                                {t("modelsCount", { count: Object.keys(provider.models).length })}
-                              </Badge>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button size="sm" onClick={addNewProvider} disabled={!selectedNewProvider}>
-                      <PlusIcon className="h-4 w-4 mr-1" /> {t("add")}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {configuredProviders.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                {t("noProvidersConfigured")}
-              </div>
-            )}
+          <TabsContent value="appearance" className="mt-6">
+            <AppearanceSettings t={t} />
           </TabsContent>
 
-          <TabsContent value="jobs" className="space-y-4">
-            {configuredProviders.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                {t("configureProviderFirst")}
+          <TabsContent value="model" className="mt-6 space-y-6">
+            {/* API Keys */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium">{t("models")}</h3>
+                {unconfiguredProviders.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => setShowAddProvider(!showAddProvider)}
+                  >
+                    <PlusIcon className="h-3 w-3 mr-1" />
+                    {t("add")}
+                  </Button>
+                )}
               </div>
-            ) : (
-              <>
-                <div className="text-sm text-muted-foreground mb-4">
-                  {t("selectModelsForTasks")}
+
+              {showAddProvider && (
+                <div className="flex items-center gap-2 p-3 rounded-lg border border-dashed bg-muted/30">
+                  <Select value={selectedNewProvider} onValueChange={setSelectedNewProvider}>
+                    <SelectTrigger className="flex-1 h-8">
+                      <SelectValue placeholder={t("addNewProvider")} />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-48">
+                      {unconfiguredProviders.map((provider) => (
+                        <SelectItem key={provider.id} value={provider.id}>
+                          <span>{provider.name}</span>
+                          <Badge variant="secondary" className="ml-2 text-[10px]">
+                            {Object.keys(provider.models).length}
+                          </Badge>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button size="sm" className="h-8" onClick={addNewProvider} disabled={!selectedNewProvider}>
+                    {t("add")}
+                  </Button>
                 </div>
+              )}
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <FileTextIcon className="h-4 w-4" /> {t("metadataExtraction")}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <Select
-                      value={settings.jobs.metadata_extraction}
-                      onValueChange={(value) => updateJob("metadata_extraction", value)}
-                    >
-                      <SelectTrigger><SelectValue placeholder={t("selectModelForMetadata")} /></SelectTrigger>
-                      <SelectContent className="max-h-64">
-                        {getTextModels().map(({ provider, model }) => (
-                          <SelectItem key={`${provider.id}/${model.id}`} value={`${provider.id}/${model.id}`}>
-                            <div className="flex items-center gap-2">
-                              <span className="text-muted-foreground">{provider.name}</span>
-                              <span>/</span>
-                              <span>{model.name}</span>
-                              {model.limit && <Badge variant="outline" className="text-xs ml-2">{formatContext(model.limit)} {t("ctx")}</Badge>}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <div className="text-xs text-muted-foreground">
-                      {t("metadataExtractionDesc")}
+              {configuredProviders.length === 0 ? (
+                <div className="py-8 text-center text-sm text-muted-foreground">
+                  {t("noProvidersConfigured")}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {configuredProviders.map((provider) => (
+                    <div key={provider.id} className="rounded-lg border">
+                      <button
+                        type="button"
+                        className="flex items-center justify-between w-full p-3 text-left hover:bg-muted/50 transition-colors"
+                        onClick={() => setExpandedProvider(expandedProvider === provider.id ? null : provider.id)}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="font-medium text-sm">{provider.name}</span>
+                          {settings.api_keys[provider.id] && (
+                            <Badge variant="secondary" className="text-[10px]">
+                              {t("configured")}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">
+                            {Object.keys(provider.models).length} {t("modelsLabel")}
+                          </span>
+                          <ChevronDownIcon className={`h-4 w-4 text-muted-foreground transition-transform ${expandedProvider === provider.id ? "rotate-180" : ""}`} />
+                        </div>
+                      </button>
+                      {expandedProvider === provider.id && (
+                        <div className="px-3 pb-3 pt-0 space-y-3 border-t">
+                          <Input
+                            type="password"
+                            value={settings.api_keys[provider.id] || ""}
+                            onChange={(e) => setApiKey(provider.id, e.target.value)}
+                            placeholder={t("apiKeyPlaceholder", { provider: provider.name })}
+                            className="h-8 text-sm"
+                          />
+                          <div className="flex items-center justify-between">
+                            {provider.doc && (
+                              <a
+                                href={provider.doc}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-xs text-primary hover:underline"
+                              >
+                                {t("docs")}
+                              </a>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs text-destructive hover:text-destructive"
+                              onClick={() => removeApiKey(provider.id)}
+                            >
+                              <TrashIcon className="h-3 w-3 mr-1" />
+                              {t("remove")}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    {settings.jobs.metadata_extraction && (
-                      <ModelInfo modelId={settings.jobs.metadata_extraction} providers={providers} hasApiKey={hasApiKey} t={t} />
-                    )}
-                  </CardContent>
-                </Card>
+                  ))}
+                </div>
+              )}
+            </div>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <EyeIcon className="h-4 w-4" /> {t("imageTextExtraction")}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <Select
-                      value={settings.jobs.image_text_extraction}
-                      onValueChange={(value) => updateJob("image_text_extraction", value)}
-                    >
-                      <SelectTrigger><SelectValue placeholder={t("selectVisionModel")} /></SelectTrigger>
-                      <SelectContent className="max-h-64">
-                        {getVisionModels().map(({ provider, model }) => (
-                          <SelectItem key={`${provider.id}/${model.id}`} value={`${provider.id}/${model.id}`}>
-                            <div className="flex items-center gap-2">
-                              <span className="text-muted-foreground">{provider.name}</span>
-                              <span>/</span>
-                              <span>{model.name}</span>
-                              <Badge variant="outline" className="text-xs ml-2">{t("vision")}</Badge>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <div className="text-xs text-muted-foreground">
-                      {t("imageTextExtractionDesc")}
+            {/* Task Assignment */}
+            {configuredProviders.length > 0 && (
+              <>
+                <Separator />
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">{t("taskAssignment")}</h3>
+
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-[auto_1fr] items-start gap-4">
+                      <div className="flex items-center gap-2 text-muted-foreground mt-2">
+                        <FileTextIcon className="h-4 w-4" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">{t("metadataExtraction")}</label>
+                        <Select
+                          value={settings.jobs.metadata_extraction}
+                          onValueChange={(value) => updateJob("metadata_extraction", value)}
+                        >
+                          <SelectTrigger className="h-8">
+                            <SelectValue placeholder={t("selectModel")} />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-48">
+                            {getTextModels().map(({ provider, model }) => (
+                              <SelectItem key={`${provider.id}/${model.id}`} value={`${provider.id}/${model.id}`}>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-muted-foreground text-xs">{provider.name}</span>
+                                  <span>/</span>
+                                  <span>{model.name}</span>
+                                  {model.limit && (
+                                    <Badge variant="outline" className="text-[10px] ml-auto">
+                                      {formatContext(model.limit)}
+                                    </Badge>
+                                  )}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                    {settings.jobs.image_text_extraction && (
-                      <ModelInfo modelId={settings.jobs.image_text_extraction} providers={providers} hasApiKey={hasApiKey} t={t} />
-                    )}
-                  </CardContent>
-                </Card>
+
+                    <div className="grid grid-cols-[auto_1fr] items-start gap-4">
+                      <div className="flex items-center gap-2 text-muted-foreground mt-2">
+                        <EyeIcon className="h-4 w-4" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">{t("imageTextExtraction")}</label>
+                        <Select
+                          value={settings.jobs.image_text_extraction}
+                          onValueChange={(value) => updateJob("image_text_extraction", value)}
+                        >
+                          <SelectTrigger className="h-8">
+                            <SelectValue placeholder={t("selectVisionModel")} />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-48">
+                            {getVisionModels().map(({ provider, model }) => (
+                              <SelectItem key={`${provider.id}/${model.id}`} value={`${provider.id}/${model.id}`}>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-muted-foreground text-xs">{provider.name}</span>
+                                  <span>/</span>
+                                  <span>{model.name}</span>
+                                  <Badge variant="outline" className="text-[10px]">{t("vision")}</Badge>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </>
             )}
           </TabsContent>
@@ -350,7 +379,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
         <div className="flex justify-end gap-2 pt-4 border-t">
           <Button variant="outline" onClick={handleImport}>
-            <UploadIcon className="h-4 w-4 mr-2" /> {t("import")}
+            {t("import")}
           </Button>
           <Button onClick={handleSave}>{t("saveSettings")}</Button>
         </div>
@@ -359,34 +388,147 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   );
 }
 
-function ModelInfo({ modelId, providers, hasApiKey, t }: {
-  modelId: string;
-  providers: ModelsDevProvider[];
-  hasApiKey: (providerId: string) => boolean;
-  t: (key: string, params?: Record<string, string | number>) => string;
-}) {
-  const slashIndex = modelId.indexOf("/");
-  if (slashIndex === -1) {
-    return <div className="text-xs text-destructive">{t("invalidModelId", { modelId })}</div>;
+const LOCALES = [
+  { value: "en", label: "English" },
+  { value: "zh-CN", label: "中文" },
+] as const;
+
+function AppearanceSettings({ t }: { t: (key: string, params?: Record<string, string | number>) => string }) {
+  const { mode, colorTheme, setFullTheme } = useTheme();
+  const locale = useLocale();
+  const router = useRouter();
+  const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const handleModeChange = (newMode: ThemeMode) => {
+    if (colorTheme) {
+      setFullTheme(`${newMode}-${colorTheme}`);
+    }
+  };
+
+  const handleColorChange = (newColor: ColorTheme) => {
+    if (mode) {
+      setFullTheme(`${mode}-${newColor}`);
+    }
+  };
+
+  const handleLocaleChange = (newLocale: string) => {
+    localStorage.setItem("locale", newLocale);
+    router.replace(pathname, { locale: newLocale });
+  };
+
+  const getColorSwatch = (color: string) => {
+    const colors: Record<string, string> = {
+      slate: "bg-slate-500",
+      blue: "bg-blue-500",
+      green: "bg-green-500",
+      purple: "bg-purple-500",
+      rose: "bg-rose-500",
+      orange: "bg-orange-500",
+    };
+    return colors[color] || "bg-slate-500";
+  };
+
+  const getModeIcon = (m: string) => {
+    switch (m) {
+      case "light": return <SunIcon className="h-4 w-4" />;
+      case "dark": return <MoonIcon className="h-4 w-4" />;
+      default: return <MonitorIcon className="h-4 w-4" />;
+    }
+  };
+
+  if (!mounted) {
+    return (
+      <div className="space-y-8 animate-pulse">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="space-y-3">
+            <div className="h-4 w-20 bg-muted rounded" />
+            <div className="h-10 bg-muted rounded" />
+          </div>
+        ))}
+      </div>
+    );
   }
-
-  const providerId = modelId.slice(0, slashIndex);
-  const modelKey = modelId.slice(slashIndex + 1);
-
-  const provider = providers.find(p => p.id === providerId);
-  const model = provider?.models[modelKey];
-
-  if (!provider || !model) {
-    return <div className="text-xs text-destructive">{t("modelNotFound", { modelId })}</div>;
-  }
-
-  const apiKeySet = hasApiKey(provider.id);
 
   return (
-    <div className="flex flex-wrap gap-2 text-xs">
-      {model.limit && <Badge variant="outline">{formatContext(model.limit)} {t("context")}</Badge>}
-      {model.cost && <Badge variant="outline">{formatCost(model.cost)}</Badge>}
-      {!apiKeySet && <Badge variant="destructive">{t("apiKeyNotSet", { provider: provider.name })}</Badge>}
+    <div className="space-y-8">
+      {/* Theme Mode */}
+      <div className="space-y-3">
+        <label className="text-sm font-medium">{t("themeMode")}</label>
+        <div className="flex gap-2">
+          {MODE_THEMES.map((theme) => (
+            <button
+              key={theme.value}
+              type="button"
+              onClick={() => handleModeChange(theme.value)}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 rounded-lg border transition-all",
+                (mode || "system") === theme.value
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-muted/50 border-transparent hover:border-muted-foreground/30"
+              )}
+            >
+              {getModeIcon(theme.value)}
+              <span>{theme.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Color Theme */}
+      <div className="space-y-3">
+        <label className="text-sm font-medium">{t("colorTheme")}</label>
+        <div className="flex flex-wrap gap-2">
+          {COLOR_THEMES.map((theme) => (
+            <button
+              key={theme.value}
+              type="button"
+              onClick={() => handleColorChange(theme.value)}
+              className={cn(
+                "flex items-center gap-2 px-3 py-2 rounded-lg border-2 transition-all",
+                colorTheme === theme.value
+                  ? "border-primary bg-primary/5"
+                  : "border-transparent hover:border-muted-foreground/30 bg-muted/50"
+              )}
+            >
+              <div className={cn("h-4 w-4 rounded-full", getColorSwatch(theme.value))} />
+              <span className="text-sm">{theme.label}</span>
+              {colorTheme === theme.value && (
+                <CheckIcon className="h-3 w-3 text-primary" />
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Language */}
+      <div className="space-y-3">
+        <label className="text-sm font-medium flex items-center gap-2">
+          <GlobeIcon className="h-4 w-4" />
+          {t("language")}
+        </label>
+        <div className="flex gap-2">
+          {LOCALES.map((loc) => (
+            <button
+              key={loc.value}
+              type="button"
+              onClick={() => handleLocaleChange(loc.value)}
+              className={cn(
+                "px-4 py-2 rounded-lg border transition-all",
+                locale === loc.value
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-muted/50 border-transparent hover:border-muted-foreground/30"
+              )}
+            >
+              {loc.label}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

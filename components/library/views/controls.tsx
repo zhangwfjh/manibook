@@ -25,8 +25,6 @@ import {
   XIcon,
   SettingsIcon,
 } from "lucide-react";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { LanguageSwitcher } from "@/components/language-switcher";
 import { BulkMoveDropdown } from "@/components/library/features/move-dropdown";
 import { SortOption } from "@/components/library/types";
 import {
@@ -56,7 +54,6 @@ export function Controls() {
   const { bulkMove } = useLibraryOperations();
   const { setImportDialogOpen } = useImportStore();
 
-  // Translated sort options
   const SORT_OPTIONS: { value: SortOption; label: string }[] = [
     { value: "title-asc", label: t("sortOptions.titleAsc") },
     { value: "title-desc", label: t("sortOptions.titleDesc") },
@@ -199,8 +196,6 @@ export function Controls() {
                   <SettingsIcon className="h-4 w-4 mr-2" />
                   {t("settings")}
                 </Button>
-                <ThemeToggle />
-                <LanguageSwitcher />
               </div>
             </div>
           )}
