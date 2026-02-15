@@ -41,10 +41,10 @@ export function CommandPalette() {
   const { setCreateLibraryOpen, setSettingsOpen } = useLibraryUIStore();
   const { setImportDialogOpen } = useImportStore();
 
-  // Keyboard shortcut handler (Cmd/Ctrl + P)
+  // Keyboard shortcut handler (Cmd/Ctrl + K)
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if (e.key === "p" && (e.metaKey || e.ctrlKey)) {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setOpen((open) => !open);
       }

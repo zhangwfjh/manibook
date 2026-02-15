@@ -69,10 +69,14 @@ export function Controls() {
     { value: "filesize-desc", label: t("sortOptions.filesizeDesc") },
   ];
 
-  // Keyboard shortcut handler (Cmd/Ctrl + K)
+  // Keyboard shortcut handler (/ to focus search)
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+      if (e.key === "/" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        const activeElement = document.activeElement;
+        if (activeElement?.tagName === "INPUT" || activeElement?.tagName === "TEXTAREA") {
+          return;
+        }
         e.preventDefault();
         searchInputRef.current?.focus();
       }
@@ -151,7 +155,7 @@ export function Controls() {
               <div className="flex items-center gap-1.5 pr-2 border-r border-border/50">
                 <Select
                   value={sortBy}
-                  defaultValue="created_at-desc"
+                  defaultValue="imported_at-desc"
                   onValueChange={setSortBy}
                 >
                   <SelectTrigger className="w-44 h-8 hover:bg-muted/80 transition-colors">
