@@ -20,7 +20,15 @@
     "languages": "语言",
     "shelves": "书架",
     "noShelvesYet": "暂无书架",
-    "importDocumentsHint": "导入文档以将它们整理分类"
+    "importDocumentsHint": "导入文档以将它们整理分类",
+    "filter": {
+      "clearAll": "清除全部",
+      "activeFilters": "当前筛选：",
+      "searchPlaceholder": "搜索{title}...",
+      "clickToFilter": "点击筛选：",
+      "noMatch": "没有匹配的{title}",
+      "noneAvailable": "没有可用的{title}"
+    }
   },
   "detailSections": {
     "metadata": {

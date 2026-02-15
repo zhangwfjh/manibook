@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ export function Filter({
   onItemsChange,
   filterOptions = {},
 }: GenericFilterProps) {
+  const t = useTranslations("navigation.filter");
   const [isOpen, setIsOpen] = useState(true);
   const [itemSearch, setItemSearch] = useState("");
 
@@ -61,9 +63,8 @@ export function Filter({
         <div className="flex items-center justify-between cursor-pointer hover:bg-muted/50 -mx-2 px-2 py-1 rounded">
           <div className="flex items-center gap-2">
             <ChevronDownIcon
-              className={`h-4 w-4 transition-transform duration-200 ${
-                isOpen ? "rotate-180" : ""
-              }`}
+              className={`h-4 w-4 transition-transform duration-200 ${isOpen ? "rotate-180" : ""
+                }`}
             />
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
               {title}
@@ -84,7 +85,7 @@ export function Filter({
               }}
               className="h-6 px-2 text-xs"
             >
-              Clear All
+              {t("clearAll")}
             </Button>
           )}
         </div>
@@ -94,7 +95,7 @@ export function Filter({
         {/* Selected Items */}
         {selectedItems.length > 0 && (
           <div className="space-y-2">
-            <p className="text-xs text-muted-foreground">Active filters:</p>
+            <p className="text-xs text-muted-foreground">{t("activeFilters")}</p>
             <div className="flex flex-wrap gap-1">
               {selectedItems.map((item) => (
                 <Badge
@@ -117,13 +118,13 @@ export function Filter({
             <div className="relative">
               <SearchIcon className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-3 w-3" />
               <Input
-                placeholder={`Search ${title.toLowerCase()}...`}
+                placeholder={t("searchPlaceholder", { title: title.toLowerCase() })}
                 value={itemSearch}
                 onChange={(e) => setItemSearch(e.target.value)}
                 className="pl-7 h-7 text-xs"
               />
             </div>
-            <p className="text-xs text-muted-foreground">Click to filter:</p>
+            <p className="text-xs text-muted-foreground">{t("clickToFilter")}</p>
             <div className="flex flex-wrap gap-1 max-h-52 overflow-y-auto">
               {filteredItems.map((item) => {
                 const isSelected = selectedItems.includes(item);
@@ -133,9 +134,8 @@ export function Filter({
                   <Badge
                     key={item}
                     variant={isSelected ? "default" : "outline"}
-                    className={`text-xs cursor-pointer hover:bg-primary/80 ${
-                      isSelected ? "" : "hover:border-primary/50"
-                    }`}
+                    className={`text-xs cursor-pointer hover:bg-primary/80 ${isSelected ? "" : "hover:border-primary/50"
+                      }`}
                     onClick={() => handleItemToggle(item)}
                   >
                     {item}
@@ -146,12 +146,12 @@ export function Filter({
             </div>
             {filteredItems.length === 0 && availableItems.length > 0 && (
               <p className="text-xs text-muted-foreground italic">
-                No {title.toLowerCase()} match your search
+                {t("noMatch", { title: title.toLowerCase() })}
               </p>
             )}
             {availableItems.length === 0 && (
               <p className="text-xs text-muted-foreground italic">
-                No {title.toLowerCase()} available
+                {t("noneAvailable", { title: title.toLowerCase() })}
               </p>
             )}
           </div>

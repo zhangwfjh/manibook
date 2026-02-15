@@ -20,7 +20,15 @@
     "languages": "Languages",
     "shelves": "Shelves",
     "noShelvesYet": "No shelves yet",
-    "importDocumentsHint": "Import documents to organize them into categories"
+    "importDocumentsHint": "Import documents to organize them into categories",
+    "filter": {
+      "clearAll": "Clear All",
+      "activeFilters": "Active filters:",
+      "searchPlaceholder": "Search {title}...",
+      "clickToFilter": "Click to filter:",
+      "noMatch": "No {title} match your search",
+      "noneAvailable": "No {title} available"
+    }
   },
   "features": {
     "moveDropdown": {
