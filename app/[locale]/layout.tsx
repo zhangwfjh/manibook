@@ -47,6 +47,25 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var savedTheme = localStorage.getItem('full-theme');
+                  var color = 'slate';
+                  if (savedTheme) {
+                    var parts = savedTheme.split('-');
+                    if (parts[1]) color = parts[1];
+                  }
+                  document.documentElement.setAttribute('data-color', color);
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>

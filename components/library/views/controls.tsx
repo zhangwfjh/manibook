@@ -88,7 +88,7 @@ export function Controls() {
 
   return (
     <div className="mb-6 space-y-4">
-      <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+      <div className="flex flex-row gap-4 justify-between">
         <div className="flex items-center gap-2 flex-1 max-w-md w-full lg:w-auto">
           <SidebarTrigger className="shrink-0 hover:bg-muted/80 transition-colors duration-200" />
           <InputGroup className="flex-1 relative">
