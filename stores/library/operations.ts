@@ -225,6 +225,8 @@ export const useLibraryOperations = create<OperationsState>((set, get) => ({
 
       const { loadFilteredData } = get();
       await loadFilteredData();
+      useLibraryUIStore.getState().clearSelection();
+      useLibraryUIStore.getState().setBulkDeleteDialogOpen(false);
     } catch (error) {
       console.error("Error bulk deleting documents:", error);
       toast.error("Failed to delete documents");
@@ -249,6 +251,7 @@ export const useLibraryOperations = create<OperationsState>((set, get) => ({
       const { loadFilteredData } = get();
       const { fetchCategories } = useLibraryDataStore.getState();
       await Promise.all([loadFilteredData(), fetchCategories()]);
+      useLibraryUIStore.getState().clearSelection();
     } catch (error) {
       console.error("Error bulk moving documents:", error);
       toast.error("Failed to move documents");
