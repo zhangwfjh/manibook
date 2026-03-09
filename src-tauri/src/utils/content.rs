@@ -28,6 +28,10 @@ pub async fn extract_text_with_ocr(
     foreword: &str,
     llm_settings: &LLMSettings,
 ) -> Result<String, String> {
+    if foreword.len() >= 100 {
+        return Ok(foreword.to_string());
+    }
+
     let images: Vec<Vec<u8>> = match extension {
         "pdf" => {
             PdfExtractor::extract_images(buffer, page_range.map(|r| r.0), page_range.map(|r| r.1))
@@ -45,7 +49,7 @@ pub async fn extract_text_with_ocr(
     }
     .map_err(|e| format!("Failed to extract images: {}", e))?;
 
-    if images.is_empty() || foreword.len() >= 100 {
+    if images.is_empty() {
         return Ok(foreword.to_string());
     }
 
