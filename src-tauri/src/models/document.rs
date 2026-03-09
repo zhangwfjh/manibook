@@ -128,7 +128,6 @@ pub struct DocumentList {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct ImportRequest {
     pub file_data: Option<Vec<FileData>>,
-    pub urls: Option<Vec<String>>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]

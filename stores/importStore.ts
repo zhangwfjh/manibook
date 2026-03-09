@@ -25,19 +25,17 @@ interface ImportStoreState {
   currentBatch: ImportBatch | null;
   importDialogOpen: boolean;
 
-  // Actions
   setImportDialogOpen: (open: boolean) => void;
   addBatch: (items: Omit<ImportItem, "id">[]) => string;
   updateItemStatus: (
     itemId: string,
     status: ImportItem["status"],
-    options?: { completedAt?: Date; error?: string }
+    options?: { completedAt?: Date; error?: string; fileData?: number[] }
   ) => void;
   cancelItem: (itemId: string) => void;
   clearBatch: () => void;
 }
 
-// Helper to count completed and failed items
 function countItemStats(items: ImportItem[]) {
   let completed = 0;
   let failed = 0;
@@ -49,11 +47,9 @@ function countItemStats(items: ImportItem[]) {
 }
 
 export const useImportStore = create<ImportStoreState>((set, get) => ({
-  // Initial state
   currentBatch: null,
   importDialogOpen: false,
 
-  // Actions
   setImportDialogOpen: (open) => set({ importDialogOpen: open }),
 
   addBatch: (items) => {

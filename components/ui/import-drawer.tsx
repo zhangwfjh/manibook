@@ -92,7 +92,7 @@ async function retryFailedItems(
   updateItemStatus: (
     itemId: string,
     status: ImportItem["status"],
-    options?: { completedAt?: Date; error?: string; path?: string },
+    options?: { completedAt?: Date; error?: string; fileData?: number[] },
   ) => void,
 ) {
   if (!batch) return;
@@ -106,100 +106,61 @@ async function retryFailedItems(
   for (let i = 0; i < failedItems.length; i++) {
     const item = failedItems[i];
 
+    if (!item.fileData) {
+      updateItemStatus(item.id, "failed", {
+        error: "No file data available for retry",
+      });
+      continue;
+    }
+
     updateItemStatus(item.id, "importing");
 
-    if (item.path && item.path.startsWith("http")) {
-      try {
-        const result = await invoke<{
-          results: Array<{
-            success: boolean;
-            filename?: string;
-            error?: string;
-          }>;
-          errors: Array<{
-            source: string;
-            error: string;
-          }>;
-        }>("import_documents", {
-          request: {
-            urls: [item.path],
-          },
-        });
+    try {
+      const result = await invoke<{
+        results: Array<{
+          success: boolean;
+          filename?: string;
+          error?: string;
+        }>;
+        errors: Array<{
+          source: string;
+          error: string;
+        }>;
+      }>("import_documents", {
+        request: {
+          file_data: [
+            {
+              filename: item.filename,
+              data: item.fileData,
+            },
+          ],
+        },
+      });
 
-        const currentBatch = useImportStore.getState().currentBatch;
-        const currentItem = currentBatch?.items.find((i) => i.id === item.id);
-        if (currentItem?.status === "canceled") {
-          continue;
-        }
+      const currentBatch = useImportStore.getState().currentBatch;
+      const currentItem = currentBatch?.items.find((i) => i.id === item.id);
+      if (currentItem?.status === "canceled") {
+        continue;
+      }
 
-        const itemResult = result.results[0];
-        if (itemResult?.success) {
+      const itemResult = result.results[0];
+      if (itemResult?.success) {
+        updateItemStatus(item.id, "success", { completedAt: new Date() });
+      } else {
+        const errorMsg = itemResult?.error || "Import failed";
+        if (errorMsg.toLowerCase().includes("already exists")) {
           updateItemStatus(item.id, "success", { completedAt: new Date() });
         } else {
-          const errorMsg = itemResult?.error || "Import failed";
-          if (errorMsg.toLowerCase().includes("already exists")) {
-            updateItemStatus(item.id, "success", { completedAt: new Date() });
-          } else {
-            updateItemStatus(item.id, "failed", { error: errorMsg });
-          }
-        }
-      } catch (error) {
-        const currentBatch = useImportStore.getState().currentBatch;
-        const currentItem = currentBatch?.items.find((i) => i.id === item.id);
-        if (currentItem?.status !== "canceled") {
-          const errorMessage =
-            error instanceof Error ? error.message : String(error);
-          updateItemStatus(item.id, "failed", { error: errorMessage });
+          updateItemStatus(item.id, "failed", { error: errorMsg });
         }
       }
-    } else if (item.fileData) {
-      try {
-        const result = await invoke<{
-          results: Array<{
-            success: boolean;
-            filename?: string;
-            error?: string;
-          }>;
-          errors: Array<{
-            source: string;
-            error: string;
-          }>;
-        }>("import_documents", {
-          request: {
-            file_data: [
-              {
-                filename: item.filename,
-                data: item.fileData,
-              },
-            ],
-          },
-        });
-
-        const currentBatch = useImportStore.getState().currentBatch;
-        const currentItem = currentBatch?.items.find((i) => i.id === item.id);
-        if (currentItem?.status === "canceled") {
-          continue;
-        }
-
-        const itemResult = result.results[0];
-        if (itemResult?.success) {
-          updateItemStatus(item.id, "success", { completedAt: new Date() });
-        } else {
-          const errorMsg = itemResult?.error || "Import failed";
-          if (errorMsg.toLowerCase().includes("already exists")) {
-            updateItemStatus(item.id, "success", { completedAt: new Date() });
-          } else {
-            updateItemStatus(item.id, "failed", { error: errorMsg });
-          }
-        }
-      } catch (error) {
-        const currentBatch = useImportStore.getState().currentBatch;
-        const currentItem = currentBatch?.items.find((i) => i.id === item.id);
-        if (currentItem?.status !== "canceled") {
-          const errorMessage =
-            error instanceof Error ? error.message : String(error);
-          updateItemStatus(item.id, "failed", { error: errorMessage });
-        }
+    } catch (error) {
+      const currentBatch = useImportStore.getState().currentBatch;
+      const currentItem = currentBatch?.items.find((i) => i.id === item.id);
+      if (currentItem?.status !== "canceled") {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        updateItemStatus(item.id, "failed", { error: errorMessage });
       }
     }
   }

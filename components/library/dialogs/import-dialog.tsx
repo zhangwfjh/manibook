@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { useImportStore, ImportBatch } from "@/stores/importStore";
 import { ImportDrawer } from "@/components/ui/import-drawer";
 import { invoke } from "@tauri-apps/api/core";
+import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 
 function showImportCompleteToast(
   batch: ImportBatch,
@@ -320,6 +321,43 @@ export function ImportDialog({
         continue;
       }
 
+      let fileData: { filename: string; data: number[] };
+      try {
+        const response = await tauriFetch(url, { method: "GET" });
+        const status = (response as unknown as { status: number }).status;
+        if (status < 200 || status >= 300) {
+          throw new Error(`HTTP ${status}`);
+        }
+
+        const allowedExtensions = ["pdf", "djvu", "epub"];
+        let extension = url.split(".").pop()?.toLowerCase() || "";
+
+        if (!allowedExtensions.includes(extension)) {
+          const contentType = response.headers.get("content-type") || "";
+          if (contentType.includes("pdf")) extension = "pdf";
+          else if (contentType.includes("epub")) extension = "epub";
+          else if (contentType.includes("djvu")) extension = "djvu";
+          else throw new Error("Unable to determine file type");
+        }
+
+        const blob = await response.blob();
+        const buffer = await blob.arrayBuffer();
+        const filename = url.split("/").pop() || `document.${extension}`;
+
+        fileData = {
+          filename,
+          data: Array.from(new Uint8Array(buffer)),
+        };
+      } catch (error) {
+        const status = useImportStore.getState().currentBatch?.items[i]?.status;
+        if (status !== "canceled") {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          updateItemStatus(itemId, "failed", { error: errorMessage });
+        }
+        continue;
+      }
+
       try {
         const result = await invoke<{
           results: Array<{
@@ -333,7 +371,7 @@ export function ImportDialog({
           }>;
         }>("import_documents", {
           request: {
-            urls: [url],
+            file_data: [fileData],
           },
         });
 
@@ -342,19 +380,24 @@ export function ImportDialog({
           continue;
         }
 
-        const urlResult = result.results[0];
-        if (urlResult?.success) {
+        const fileResult = result.results[0];
+        if (fileResult?.success) {
           updateItemStatus(itemId, "success", {
             completedAt: new Date(),
+            fileData: fileData.data,
           });
         } else {
-          const errorMsg = urlResult?.error || t("importFailed");
+          const errorMsg = fileResult?.error || t("importFailed");
           if (errorMsg.toLowerCase().includes("already exists")) {
             updateItemStatus(itemId, "success", {
               completedAt: new Date(),
+              fileData: fileData.data,
             });
           } else {
-            updateItemStatus(itemId, "failed", { error: errorMsg });
+            updateItemStatus(itemId, "failed", {
+              error: errorMsg,
+              fileData: fileData.data,
+            });
           }
         }
       } catch (error) {
@@ -362,6 +405,7 @@ export function ImportDialog({
         if (status !== "canceled") {
           updateItemStatus(itemId, "failed", {
             error: error instanceof Error ? error.message : String(error),
+            fileData: fileData.data,
           });
         }
       }

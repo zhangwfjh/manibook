@@ -12,7 +12,7 @@ use crate::services::database::{
     delete_document, get_basic_info, get_documents as db_get_documents,
     get_library_categories as db_get_library_categories, update_file_info, update_metadata,
 };
-use crate::services::import::{process_import, process_url_import};
+use crate::services::import::process_import;
 use crate::services::storage::{delete_file, file_exists, get_lib_path, move_file};
 use crate::utils::content::get_extension;
 use crate::utils::text::normalize_metadata;
@@ -89,10 +89,6 @@ pub async fn import_documents(
     let mut results = Vec::new();
     let mut errors = Vec::new();
 
-    let file_count = request.file_data.as_ref().map(|v| v.len()).unwrap_or(0);
-    let url_count = request.urls.as_ref().map(|v| v.len()).unwrap_or(0);
-    log::info!("Importing {} files and {} URLs", file_count, url_count);
-
     if let Some(file_data) = &request.file_data {
         for file_datum in file_data {
             match process_import(
@@ -113,26 +109,6 @@ pub async fn import_documents(
                     });
                     errors.push(ImportError {
                         source: file_datum.filename.clone(),
-                        error: e,
-                    });
-                }
-            }
-        }
-    }
-
-    if let Some(urls) = &request.urls {
-        for url in urls {
-            match process_url_import(&library_path, url, &llm_settings).await {
-                Ok(result) => results.push(result),
-                Err(e) => {
-                    log::warn!("Failed to import URL '{}': {}", url, e);
-                    results.push(ImportResult {
-                        success: false,
-                        metadata: None,
-                        error: Some(e.clone()),
-                    });
-                    errors.push(ImportError {
-                        source: url.clone(),
                         error: e,
                     });
                 }
