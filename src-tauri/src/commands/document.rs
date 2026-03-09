@@ -23,6 +23,109 @@ use std::path::Path;
 use std::process::Command;
 use tauri::AppHandle;
 
+#[derive(serde::Serialize)]
+pub struct DeleteFilesResponse {
+    pub success_count: usize,
+    pub failed_count: usize,
+    pub errors: Vec<DeleteFileError>,
+}
+
+#[derive(serde::Serialize)]
+pub struct DeleteFileError {
+    pub path: String,
+    pub error: String,
+}
+
+#[tauri::command]
+pub async fn delete_files(file_paths: Vec<String>) -> Result<DeleteFilesResponse, String> {
+    log::info!("Deleting {} files", file_paths.len());
+
+    let mut success_count = 0;
+    let mut failed_count = 0;
+    let mut errors = Vec::new();
+
+    for path in file_paths {
+        let file_path = Path::new(&path);
+        match delete_file(file_path) {
+            Ok(_) => {
+                log::debug!("Successfully deleted file: {}", path);
+                success_count += 1;
+            }
+            Err(e) => {
+                log::warn!("Failed to delete file {}: {}", path, e);
+                errors.push(DeleteFileError { path, error: e });
+                failed_count += 1;
+            }
+        }
+    }
+
+    log::info!(
+        "Delete files completed: {} successful, {} failed",
+        success_count,
+        failed_count
+    );
+
+    Ok(DeleteFilesResponse {
+        success_count,
+        failed_count,
+        errors,
+    })
+}
+
+#[tauri::command]
+pub async fn read_file(path: String) -> Result<Vec<u8>, String> {
+    log::debug!("Reading file: {}", path);
+
+    let file_path = Path::new(&path);
+    if !file_path.exists() {
+        return Err(format!("File not found: {}", path));
+    }
+
+    std::fs::read(file_path).map_err(|e| {
+        log::error!("Failed to read file {}: {}", path, e);
+        format!("Failed to read file {}: {}", path, e)
+    })
+}
+
+#[tauri::command]
+pub async fn read_directory(path: String) -> Result<Vec<String>, String> {
+    log::debug!("Reading directory: {}", path);
+
+    let dir_path = Path::new(&path);
+    if !dir_path.exists() {
+        return Err(format!("Directory not found: {}", path));
+    }
+
+    if !dir_path.is_dir() {
+        return Err(format!("Not a directory: {}", path));
+    }
+
+    let allowed_extensions = ["pdf", "epub", "djvu"];
+    let mut file_paths = Vec::new();
+
+    fn scan_dir(dir: &Path, extensions: &[&str], results: &mut Vec<String>) {
+        if let Ok(entries) = std::fs::read_dir(dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    scan_dir(&path, extensions, results);
+                } else if let Some(ext) = path.extension() {
+                    if extensions.contains(&ext.to_str().unwrap_or("").to_lowercase().as_str()) {
+                        if let Some(path_str) = path.to_str() {
+                            results.push(path_str.to_string());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    scan_dir(dir_path, &allowed_extensions, &mut file_paths);
+
+    log::debug!("Found {} files in directory: {}", file_paths.len(), path);
+    Ok(file_paths)
+}
+
 #[tauri::command]
 pub async fn generate_metadata(app: AppHandle, document_id: String) -> Result<Metadata, String> {
     log::info!("Starting metadata generation for document: {}", document_id);

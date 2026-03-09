@@ -15,7 +15,12 @@ export interface FileData {
 export interface ImportSource {
   fileData: FileData;
   displayName: string;
-  path?: string;
+  path: string;
+}
+
+export interface SuccessfulImport {
+  filename: string;
+  path: string;
 }
 
 export type TranslateFn = (key: string, params?: Record<string, string | number>) => string;
@@ -157,10 +162,11 @@ export async function processBatchImport(
   options: {
     itemType: "file" | "document";
     onComplete: () => void;
+    onSuccess?: (successfulImports: SuccessfulImport[]) => void;
     t: TranslateFn;
   },
 ): Promise<void> {
-  const { itemType, onComplete, t } = options;
+  const { itemType, onComplete, onSuccess, t } = options;
   const { addBatch, updateItemStatus, clearBatch } = useImportStore.getState();
 
   if (sources.length === 0) {
@@ -259,5 +265,15 @@ export async function processBatchImport(
   const batch = useImportStore.getState().currentBatch;
   if (batch) {
     showImportCompleteToast(batch, itemType, t);
+
+    if (onSuccess) {
+      const successfulImports: SuccessfulImport[] = batch.items
+        .filter((item) => item.status === "success" && item.path)
+        .map((item) => ({
+          filename: item.filename,
+          path: item.path!,
+        }));
+      onSuccess(successfulImports);
+    }
   }
 }

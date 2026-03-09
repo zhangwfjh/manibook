@@ -254,7 +254,14 @@
         "importedAndCanceled": "已导入 {successCount} {itemType}，取消 {canceledCount} 个",
         "importedFailedCanceled": "已导入 {successCount} 个，失败 {failedCount} 个，取消 {canceledCount} 个",
         "canceledAll": "已取消导入 {count} {itemType}"
-      }
+      },
+      "deleteOriginalsTitle": "删除原文件？",
+      "deleteOriginalsDescription": "{count} 个文件已成功导入。是否删除原始文件？",
+      "deleteOriginals": "删除原文件",
+      "keepFiles": "保留文件",
+      "deleteSuccess": "成功删除 {count} 个文件",
+      "deleteFailed": "删除 {count} 个文件失败",
+      "deleteError": "删除文件失败"
     },
     "detail": {
       "titleRequired": "标题为必填项",

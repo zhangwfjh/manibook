@@ -254,7 +254,14 @@
         "importedAndCanceled": "Imported {successCount} {itemType}, canceled {canceledCount}",
         "importedFailedCanceled": "Imported {successCount}, failed {failedCount}, canceled {canceledCount}",
         "canceledAll": "Canceled import of {count} {itemType}"
-      }
+      },
+      "deleteOriginalsTitle": "Delete Original Files?",
+      "deleteOriginalsDescription": "{count} file(s) have been imported successfully. Would you like to delete the original files?",
+      "deleteOriginals": "Delete Originals",
+      "keepFiles": "Keep Files",
+      "deleteSuccess": "Successfully deleted {count} file(s)",
+      "deleteFailed": "Failed to delete {count} file(s)",
+      "deleteError": "Failed to delete files"
     },
     "detail": {
       "titleRequired": "Title is required",

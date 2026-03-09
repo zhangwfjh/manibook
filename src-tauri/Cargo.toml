@@ -25,6 +25,7 @@ tauri = { version = "2.9.5", features = [] }
 tauri-plugin-dialog = "2"
 tauri-plugin-log = "2"
 tauri-plugin-http = "2"
+tauri-plugin-fs = "2"
 rusqlite = { version = "0.37", features = ["bundled"] }
 base64 = "0.22"
 chrono = { version = "0.4", features = ["serde"] }

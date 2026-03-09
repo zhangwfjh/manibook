@@ -13,6 +13,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_http::init())
+        .plugin(tauri_plugin_fs::init())
         .setup(|app| {
             let log_dir = app.path().app_local_data_dir().unwrap().join("logs");
             std::fs::create_dir_all(&log_dir).unwrap_or_else(|_| {
@@ -66,6 +67,9 @@ pub fn run() {
             commands::library::create_library,
             commands::document::get_cover,
             commands::document::delete_documents,
+            commands::document::delete_files,
+            commands::document::read_file,
+            commands::document::read_directory,
             commands::document::open_document,
             commands::document::update_document,
             commands::document::move_documents,
