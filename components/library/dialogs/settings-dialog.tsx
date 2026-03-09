@@ -46,7 +46,13 @@ import {
   formatContext,
 } from "@/lib/models-dev";
 import type { ModelsDevProvider, ModelsDevModel } from "@/lib/models-dev";
-import { useTheme, COLOR_THEMES, MODE_THEMES, type ColorTheme, type ThemeMode } from "@/lib/theme";
+import {
+  useTheme,
+  COLOR_THEMES,
+  MODE_THEMES,
+  type ColorTheme,
+  type ThemeMode,
+} from "@/lib/theme";
 
 const emptySettings: LLMSettings = {
   api_keys: {},
@@ -65,18 +71,10 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const t = useTranslations("dialogs.settings");
   const [settings, setSettings] = useState<LLMSettings>(emptySettings);
   const [providers, setProviders] = useState<ModelsDevProvider[]>([]);
-  const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("appearance");
   const [expandedProvider, setExpandedProvider] = useState<string | null>(null);
   const [showAddProvider, setShowAddProvider] = useState(false);
   const [selectedNewProvider, setSelectedNewProvider] = useState<string>("");
-
-  useEffect(() => {
-    if (open) {
-      loadSettings();
-      loadProviders();
-    }
-  }, [open]);
 
   const loadSettings = async () => {
     try {
@@ -89,16 +87,24 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   };
 
   const loadProviders = async () => {
-    setLoading(true);
     try {
       const data = await listProviders();
       setProviders(data);
     } catch (error) {
       console.error("Error loading providers:", error);
-    } finally {
-      setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const loadData = async () => {
+      if (open) {
+        await loadSettings();
+        await loadProviders();
+      }
+    };
+
+    loadData();
+  }, [open]);
 
   const handleSave = async () => {
     try {
@@ -158,17 +164,26 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     }));
   };
 
-  const configuredProviders = providers.filter((p) => settings.api_keys.hasOwnProperty(p.id));
-  const unconfiguredProviders = providers.filter((p) => !settings.api_keys.hasOwnProperty(p.id));
+  const configuredProviders = providers.filter((p) =>
+    settings.api_keys.hasOwnProperty(p.id),
+  );
+  const unconfiguredProviders = providers.filter(
+    (p) => !settings.api_keys.hasOwnProperty(p.id),
+  );
 
-  const getConfiguredModels = (): { provider: ModelsDevProvider; model: ModelsDevModel }[] => {
+  const getConfiguredModels = (): {
+    provider: ModelsDevProvider;
+    model: ModelsDevModel;
+  }[] => {
     return configuredProviders.flatMap((provider) =>
-      Object.values(provider.models).map((model) => ({ provider, model }))
+      Object.values(provider.models).map((model) => ({ provider, model })),
     );
   };
 
-  const getTextModels = () => getConfiguredModels().filter(({ model }) => supportsText(model));
-  const getVisionModels = () => getConfiguredModels().filter(({ model }) => supportsVision(model));
+  const getTextModels = () =>
+    getConfiguredModels().filter(({ model }) => supportsText(model));
+  const getVisionModels = () =>
+    getConfiguredModels().filter(({ model }) => supportsVision(model));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -213,7 +228,10 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
               {showAddProvider && (
                 <div className="flex items-center gap-2 p-3 rounded-lg border border-dashed bg-muted/30">
-                  <Select value={selectedNewProvider} onValueChange={setSelectedNewProvider}>
+                  <Select
+                    value={selectedNewProvider}
+                    onValueChange={setSelectedNewProvider}
+                  >
                     <SelectTrigger className="flex-1 h-8">
                       <SelectValue placeholder={t("addNewProvider")} />
                     </SelectTrigger>
@@ -221,14 +239,22 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                       {unconfiguredProviders.map((provider) => (
                         <SelectItem key={provider.id} value={provider.id}>
                           <span>{provider.name}</span>
-                          <Badge variant="secondary" className="ml-2 text-[10px]">
+                          <Badge
+                            variant="secondary"
+                            className="ml-2 text-[10px]"
+                          >
                             {Object.keys(provider.models).length}
                           </Badge>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  <Button size="sm" className="h-8" onClick={addNewProvider} disabled={!selectedNewProvider}>
+                  <Button
+                    size="sm"
+                    className="h-8"
+                    onClick={addNewProvider}
+                    disabled={!selectedNewProvider}
+                  >
                     {t("add")}
                   </Button>
                 </div>
@@ -245,10 +271,18 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                       <button
                         type="button"
                         className="flex items-center justify-between w-full p-3 text-left hover:bg-muted/50 transition-colors"
-                        onClick={() => setExpandedProvider(expandedProvider === provider.id ? null : provider.id)}
+                        onClick={() =>
+                          setExpandedProvider(
+                            expandedProvider === provider.id
+                              ? null
+                              : provider.id,
+                          )
+                        }
                       >
                         <div className="flex items-center gap-3">
-                          <span className="font-medium text-sm">{provider.name}</span>
+                          <span className="font-medium text-sm">
+                            {provider.name}
+                          </span>
                           {settings.api_keys[provider.id] && (
                             <Badge variant="secondary" className="text-[10px]">
                               {t("configured")}
@@ -257,9 +291,12 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-muted-foreground">
-                            {Object.keys(provider.models).length} {t("modelsLabel")}
+                            {Object.keys(provider.models).length}{" "}
+                            {t("modelsLabel")}
                           </span>
-                          <ChevronDownIcon className={`h-4 w-4 text-muted-foreground transition-transform ${expandedProvider === provider.id ? "rotate-180" : ""}`} />
+                          <ChevronDownIcon
+                            className={`h-4 w-4 text-muted-foreground transition-transform ${expandedProvider === provider.id ? "rotate-180" : ""}`}
+                          />
                         </div>
                       </button>
                       {expandedProvider === provider.id && (
@@ -267,8 +304,12 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                           <Input
                             type="password"
                             value={settings.api_keys[provider.id] || ""}
-                            onChange={(e) => setApiKey(provider.id, e.target.value)}
-                            placeholder={t("apiKeyPlaceholder", { provider: provider.name })}
+                            onChange={(e) =>
+                              setApiKey(provider.id, e.target.value)
+                            }
+                            placeholder={t("apiKeyPlaceholder", {
+                              provider: provider.name,
+                            })}
                             className="h-8 text-sm"
                           />
                           <div className="flex items-center justify-between">
@@ -314,23 +355,35 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                         <FileTextIcon className="h-4 w-4" />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-sm font-medium">{t("metadataExtraction")}</label>
+                        <label className="text-sm font-medium">
+                          {t("metadataExtraction")}
+                        </label>
                         <Select
                           value={settings.jobs.metadata_extraction}
-                          onValueChange={(value) => updateJob("metadata_extraction", value)}
+                          onValueChange={(value) =>
+                            updateJob("metadata_extraction", value)
+                          }
                         >
                           <SelectTrigger className="h-8">
                             <SelectValue placeholder={t("selectModel")} />
                           </SelectTrigger>
                           <SelectContent className="max-h-48">
                             {getTextModels().map(({ provider, model }) => (
-                              <SelectItem key={`${provider.id}/${model.id}`} value={`${provider.id}/${model.id}`}>
+                              <SelectItem
+                                key={`${provider.id}/${model.id}`}
+                                value={`${provider.id}/${model.id}`}
+                              >
                                 <div className="flex items-center gap-2">
-                                  <span className="text-muted-foreground text-xs">{provider.name}</span>
+                                  <span className="text-muted-foreground text-xs">
+                                    {provider.name}
+                                  </span>
                                   <span>/</span>
                                   <span>{model.name}</span>
                                   {model.limit && (
-                                    <Badge variant="outline" className="text-[10px] ml-auto">
+                                    <Badge
+                                      variant="outline"
+                                      className="text-[10px] ml-auto"
+                                    >
                                       {formatContext(model.limit)}
                                     </Badge>
                                   )}
@@ -347,22 +400,36 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                         <EyeIcon className="h-4 w-4" />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-sm font-medium">{t("imageTextExtraction")}</label>
+                        <label className="text-sm font-medium">
+                          {t("imageTextExtraction")}
+                        </label>
                         <Select
                           value={settings.jobs.image_text_extraction}
-                          onValueChange={(value) => updateJob("image_text_extraction", value)}
+                          onValueChange={(value) =>
+                            updateJob("image_text_extraction", value)
+                          }
                         >
                           <SelectTrigger className="h-8">
                             <SelectValue placeholder={t("selectVisionModel")} />
                           </SelectTrigger>
                           <SelectContent className="max-h-48">
                             {getVisionModels().map(({ provider, model }) => (
-                              <SelectItem key={`${provider.id}/${model.id}`} value={`${provider.id}/${model.id}`}>
+                              <SelectItem
+                                key={`${provider.id}/${model.id}`}
+                                value={`${provider.id}/${model.id}`}
+                              >
                                 <div className="flex items-center gap-2">
-                                  <span className="text-muted-foreground text-xs">{provider.name}</span>
+                                  <span className="text-muted-foreground text-xs">
+                                    {provider.name}
+                                  </span>
                                   <span>/</span>
                                   <span>{model.name}</span>
-                                  <Badge variant="outline" className="text-[10px]">{t("vision")}</Badge>
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[10px]"
+                                  >
+                                    {t("vision")}
+                                  </Badge>
                                 </div>
                               </SelectItem>
                             ))}
@@ -393,15 +460,22 @@ const LOCALES = [
   { value: "zh-CN", label: "中文" },
 ] as const;
 
-function AppearanceSettings({ t }: { t: (key: string, params?: Record<string, string | number>) => string }) {
+function AppearanceSettings({
+  t,
+}: {
+  t: (key: string, params?: Record<string, string | number>) => string;
+}) {
   const { mode, colorTheme, setFullTheme } = useTheme();
   const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
-  const [mounted, setMounted] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    // Using setTimeout to push the state update to the next microtask
+    // this avoids the "Calling setState synchronously within an effect" error
+    const timer = setTimeout(() => setHasMounted(true), 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleModeChange = (newMode: ThemeMode) => {
@@ -435,13 +509,16 @@ function AppearanceSettings({ t }: { t: (key: string, params?: Record<string, st
 
   const getModeIcon = (m: string) => {
     switch (m) {
-      case "light": return <SunIcon className="h-4 w-4" />;
-      case "dark": return <MoonIcon className="h-4 w-4" />;
-      default: return <MonitorIcon className="h-4 w-4" />;
+      case "light":
+        return <SunIcon className="h-4 w-4" />;
+      case "dark":
+        return <MoonIcon className="h-4 w-4" />;
+      default:
+        return <MonitorIcon className="h-4 w-4" />;
     }
   };
 
-  if (!mounted) {
+  if (!hasMounted) {
     return (
       <div className="space-y-8 animate-pulse">
         {[1, 2, 3].map((i) => (
@@ -469,7 +546,7 @@ function AppearanceSettings({ t }: { t: (key: string, params?: Record<string, st
                 "flex items-center gap-2 px-4 py-2 rounded-lg border transition-all",
                 (mode || "system") === theme.value
                   ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-muted/50 border-transparent hover:border-muted-foreground/30"
+                  : "bg-muted/50 border-transparent hover:border-muted-foreground/30",
               )}
             >
               {getModeIcon(theme.value)}
@@ -492,10 +569,15 @@ function AppearanceSettings({ t }: { t: (key: string, params?: Record<string, st
                 "flex items-center gap-2 px-3 py-2 rounded-lg border-2 transition-all",
                 colorTheme === theme.value
                   ? "border-primary bg-primary/5"
-                  : "border-transparent hover:border-muted-foreground/30 bg-muted/50"
+                  : "border-transparent hover:border-muted-foreground/30 bg-muted/50",
               )}
             >
-              <div className={cn("h-4 w-4 rounded-full", getColorSwatch(theme.value))} />
+              <div
+                className={cn(
+                  "h-4 w-4 rounded-full",
+                  getColorSwatch(theme.value),
+                )}
+              />
               <span className="text-sm">{theme.label}</span>
               {colorTheme === theme.value && (
                 <CheckIcon className="h-3 w-3 text-primary" />
@@ -521,7 +603,7 @@ function AppearanceSettings({ t }: { t: (key: string, params?: Record<string, st
                 "px-4 py-2 rounded-lg border transition-all",
                 locale === loc.value
                   ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-muted/50 border-transparent hover:border-muted-foreground/30"
+                  : "bg-muted/50 border-transparent hover:border-muted-foreground/30",
               )}
             >
               {loc.label}
