@@ -1,4 +1,3 @@
-use crate::extractors::{djvu::DjvuExtractor, epub::EpubExtractor, pdf::PdfExtractor, Extractor};
 use crate::models::document::ImportResult;
 use crate::models::llm::LLMSettings;
 use crate::services::connection_manager::is_library_open;
@@ -36,17 +35,6 @@ pub async fn process_import(
         return Err("File already exists in library".to_string());
     }
 
-    let images: Vec<Vec<u8>> = match extension {
-        "pdf" => PdfExtractor::extract_images(buffer, Some(1), Some(1)).await,
-        "epub" => EpubExtractor::extract_images(buffer, Some(1), Some(1)).await,
-        "djvu" => DjvuExtractor::extract_images(buffer, Some(1), Some(1)).await,
-        _ => Err(format!("Unsupported file extension: '{}'", extension)),
-    }
-    .map_err(|e| format!("Failed to extract cover image: {}", e))?;
-
-    let cover = images.first().cloned();
-    log::debug!("Extracted {} images for cover", images.len());
-
     let mut metadata = crate::utils::content::extract_document_content(
         buffer,
         extension,
@@ -77,9 +65,11 @@ pub async fn process_import(
     let id = nanoid!();
 
     insert_document(&id, &url, &metadata, &hash)?;
-    if let Some(ref cover_data) = cover {
-        cover::save_cover(library_path, &id, cover_data.as_slice())?;
-    }
+    cover::spawn_cover_extraction(
+        library_path.to_string(),
+        id.clone(),
+        final_file_path.clone(),
+    );
 
     log::info!(
         "Successfully imported document: id={}, url='{}', title='{}'",

@@ -5,7 +5,7 @@ use crate::utils::content::get_extension;
 use lazy_static::lazy_static;
 use lru::LruCache;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 lazy_static! {
@@ -93,6 +93,67 @@ pub fn save_cover(library_path: &str, document_id: &str, data: &[u8]) -> Result<
     let cover_path = covers_dir.join(format!("{}.webp", document_id));
     fs::write(&cover_path, data)
         .map_err(|e| format!("Failed to write cover {}: {}", document_id, e))?;
+
+    Ok(())
+}
+
+pub fn spawn_cover_extraction(library_path: String, document_id: String, file_path: PathBuf) {
+    tokio::spawn(async move {
+        if let Err(e) = extract_and_save_cover(&library_path, &document_id, &file_path).await {
+            log::warn!(
+                "Background cover extraction failed for {}: {}",
+                document_id,
+                e
+            );
+        }
+    });
+}
+
+async fn extract_and_save_cover(
+    library_path: &str,
+    document_id: &str,
+    file_path: &Path,
+) -> Result<(), String> {
+    let extension = file_path
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+
+    let buffer = tokio::task::spawn_blocking({
+        let path = file_path.to_path_buf();
+        move || fs::read(&path)
+    })
+    .await
+    .map_err(|e| format!("Spawn blocking error: {}", e))?
+    .map_err(|e| format!("Failed to read file {}: {}", file_path.display(), e))?;
+
+    let images: Vec<Vec<u8>> = match extension.as_str() {
+        "pdf" => PdfExtractor::extract_images(&buffer, Some(1), Some(1)).await,
+        "epub" => EpubExtractor::extract_images(&buffer, Some(1), Some(1)).await,
+        "djvu" => DjvuExtractor::extract_images(&buffer, Some(1), Some(1)).await,
+        _ => return Err(format!("Unsupported file extension: '{}'", extension)),
+    }
+    .map_err(|e| format!("Failed to extract cover image: {}", e))?;
+
+    if let Some(cover) = images.first() {
+        log::info!(
+            "Background: extracted cover for {} ({} bytes)",
+            document_id,
+            cover.len()
+        );
+        save_cover(library_path, document_id, cover)?;
+
+        let mut cache = COVER_CACHE
+            .lock()
+            .map_err(|e| format!("Cache lock error: {}", e))?;
+        cache.put(document_id.to_string(), cover.clone());
+    } else {
+        log::warn!(
+            "Background: no cover image extracted from {} file",
+            extension
+        );
+    }
 
     Ok(())
 }
