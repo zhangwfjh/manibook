@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { HeartIcon, BookOpenIcon, TrashIcon } from "lucide-react";
 import { Document } from "@/lib/library";
-import { useLibraryOperations } from "@/stores/library";
+import { useLibraryOperations } from "@/stores";
 
 interface DocumentActionsProps {
   document: Document;

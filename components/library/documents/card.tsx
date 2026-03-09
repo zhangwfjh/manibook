@@ -13,7 +13,7 @@ import { Document, formatFileSize, getFormatIcon } from "@/lib/library";
 import { DocumentMetadata } from "./metadata";
 import { DocumentActions } from "./document-actions";
 import { DocumentImage } from "./document-image";
-import { useLibraryUIStore } from "@/stores/library";
+import { useLibraryUIStore } from "@/stores";
 
 export const DocumentCard = ({ document }: { document: Document }) => {
   const { handleDocumentClick, selectionMode, selectedDocuments } =

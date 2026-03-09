@@ -14,7 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useLibraryUIStore, useLibraryOperations } from "@/stores/library";
+import { useLibraryUIStore, useLibraryOperations } from "@/stores";
 import { useImportStore } from "@/stores/importStore";
 
 export function DialogManager() {

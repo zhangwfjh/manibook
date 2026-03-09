@@ -1,2 +1,15 @@
-export * from "./library";
+export type {
+  Document,
+  Library,
+  Category,
+  PaginationInfo,
+  FilterOptions,
+  FilterState,
+} from "./types";
+
+export { useLibraryDataStore } from "./dataStore";
+export { useLibraryFilterStore } from "./filterStore";
+export { useLibraryOperations } from "./operations";
+export { useLibraryUIStore } from "./uiStore";
+
 export { useImportStore, type ImportItem, type ImportBatch } from "./importStore";

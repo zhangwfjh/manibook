@@ -21,9 +21,22 @@ export interface ImportBatch {
   items: ImportItem[];
 }
 
+export interface SuccessfulImport {
+  filename: string;
+  path: string;
+}
+
 interface ImportStoreState {
   currentBatch: ImportBatch | null;
   importDialogOpen: boolean;
+
+  importing: boolean;
+  drawerOpen: boolean;
+  deleteDialogOpen: boolean;
+  successfulImports: SuccessfulImport[];
+  activeTab: string;
+  urls: string[];
+  urlErrors: string[];
 
   setImportDialogOpen: (open: boolean) => void;
   addBatch: (items: Omit<ImportItem, "id">[]) => string;
@@ -34,6 +47,20 @@ interface ImportStoreState {
   ) => void;
   cancelItem: (itemId: string) => void;
   clearBatch: () => void;
+
+  setImporting: (importing: boolean) => void;
+  setDrawerOpen: (open: boolean) => void;
+  setDeleteDialogOpen: (open: boolean) => void;
+  setSuccessfulImports: (imports: SuccessfulImport[]) => void;
+  setActiveTab: (tab: string) => void;
+  setUrls: (urls: string[]) => void;
+  setUrlErrors: (errors: string[]) => void;
+  addUrl: () => void;
+  removeUrl: (index: number) => void;
+  updateUrl: (index: number, value: string) => void;
+  updateUrlError: (index: number, error: string) => void;
+  resetUrlState: () => void;
+  resetImportState: () => void;
 }
 
 function countItemStats(items: ImportItem[]) {
@@ -49,6 +76,14 @@ function countItemStats(items: ImportItem[]) {
 export const useImportStore = create<ImportStoreState>((set, get) => ({
   currentBatch: null,
   importDialogOpen: false,
+
+  importing: false,
+  drawerOpen: false,
+  deleteDialogOpen: false,
+  successfulImports: [],
+  activeTab: "files",
+  urls: [""],
+  urlErrors: [""],
 
   setImportDialogOpen: (open) => set({ importDialogOpen: open }),
 
@@ -116,4 +151,67 @@ export const useImportStore = create<ImportStoreState>((set, get) => ({
   },
 
   clearBatch: () => set({ currentBatch: null }),
+
+  setImporting: (importing) => set({ importing }),
+  setDrawerOpen: (open) => set({ drawerOpen: open }),
+  setDeleteDialogOpen: (open) => set({ deleteDialogOpen: open }),
+  setSuccessfulImports: (imports) => set({ successfulImports: imports }),
+  setActiveTab: (tab) => set({ activeTab: tab }),
+  setUrls: (urls) => set({ urls }),
+  setUrlErrors: (errors) => set({ urlErrors: errors }),
+
+  addUrl: () => {
+    const { urls, urlErrors } = get();
+    set({
+      urls: [...urls, ""],
+      urlErrors: [...urlErrors, ""],
+    });
+  },
+
+  removeUrl: (index) => {
+    const { urls, urlErrors } = get();
+    const newUrls = urls.filter((_, i) => i !== index);
+    const newErrors = urlErrors.filter((_, i) => i !== index);
+    set({
+      urls: newUrls.length > 0 ? newUrls : [""],
+      urlErrors: newErrors.length > 0 ? newErrors : [""],
+    });
+  },
+
+  updateUrl: (index, value) => {
+    const { urls, urlErrors } = get();
+    const newUrls = [...urls];
+    newUrls[index] = value;
+    set({ urls: newUrls });
+
+    if (urlErrors[index]) {
+      const newErrors = [...urlErrors];
+      newErrors[index] = "";
+      set({ urlErrors: newErrors });
+    }
+  },
+
+  updateUrlError: (index, error) => {
+    const { urlErrors } = get();
+    const newErrors = [...urlErrors];
+    newErrors[index] = error;
+    set({ urlErrors: newErrors });
+  },
+
+  resetUrlState: () =>
+    set({
+      urls: [""],
+      urlErrors: [""],
+    }),
+
+  resetImportState: () =>
+    set({
+      importing: false,
+      drawerOpen: false,
+      deleteDialogOpen: false,
+      successfulImports: [],
+      activeTab: "files",
+      urls: [""],
+      urlErrors: [""],
+    }),
 }));

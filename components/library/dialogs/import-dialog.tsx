@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { invoke } from "@tauri-apps/api/core";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
@@ -42,7 +42,6 @@ import {
   isAllowedExtension,
   fetchUrlAsData,
   processBatchImport,
-  SuccessfulImport,
   FileData,
 } from "@/lib/library/import-utils";
 
@@ -58,17 +57,31 @@ export function ImportDialog({
   onImportComplete,
 }: ImportDialogProps) {
   const t = useTranslations("dialogs.import");
-  const [activeTab, setActiveTab] = useState("files");
-  const [importing, setImporting] = useState(false);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [successfulImports, setSuccessfulImports] = useState<
-    SuccessfulImport[]
-  >([]);
-  const { currentBatch } = useImportStore();
 
-  const [urls, setUrls] = useState<string[]>([""]);
-  const [urlErrors, setUrlErrors] = useState<string[]>([]);
+  const {
+    currentBatch,
+    importing,
+    drawerOpen,
+    deleteDialogOpen,
+    successfulImports,
+    activeTab,
+    urls,
+    urlErrors,
+    setImporting,
+    setDrawerOpen,
+    setDeleteDialogOpen,
+    setSuccessfulImports,
+    setActiveTab,
+    updateUrl,
+    updateUrlError,
+    addUrl,
+    removeUrl,
+    resetUrlState,
+  } = useImportStore();
+
+  const processFilePathsRef = useRef<
+    ((paths: string[]) => Promise<void>) | null
+  >(null);
 
   const processFilePaths = async (paths: string[]) => {
     if (paths.length === 0) return;
@@ -181,7 +194,7 @@ export function ImportDialog({
         const webview = getCurrentWebview();
         unlisten = await webview.onDragDropEvent((event) => {
           if (event.payload.type === "drop") {
-            processFilePaths(event.payload.paths);
+            processFilePathsRef.current?.(event.payload.paths);
           }
         });
       } catch (error) {
@@ -197,6 +210,10 @@ export function ImportDialog({
       }
     };
   }, []);
+
+  useEffect(() => {
+    processFilePathsRef.current = processFilePaths;
+  });
 
   const handleDeleteOriginals = async () => {
     const paths = successfulImports.map((item) => item.path);
@@ -227,30 +244,6 @@ export function ImportDialog({
     setSuccessfulImports([]);
   };
 
-  const addUrl = () => {
-    setUrls([...urls, ""]);
-    setUrlErrors([...urlErrors, ""]);
-  };
-
-  const removeUrl = (index: number) => {
-    const newUrls = urls.filter((_, i) => i !== index);
-    const newErrors = urlErrors.filter((_, i) => i !== index);
-    setUrls(newUrls.length > 0 ? newUrls : [""]);
-    setUrlErrors(newErrors.length > 0 ? newErrors : [""]);
-  };
-
-  const updateUrl = (index: number, value: string) => {
-    const newUrls = [...urls];
-    newUrls[index] = value;
-    setUrls(newUrls);
-
-    const newErrors = [...urlErrors];
-    if (newErrors[index]) {
-      newErrors[index] = "";
-      setUrlErrors(newErrors);
-    }
-  };
-
   const validateUrl = (url: string): string => {
     if (!url.trim()) return "";
     try {
@@ -269,7 +262,7 @@ export function ImportDialog({
     }
 
     const newErrors = urls.map((url) => validateUrl(url));
-    setUrlErrors(newErrors);
+    newErrors.forEach((error, index) => updateUrlError(index, error));
 
     if (newErrors.some((error) => error)) {
       toast.error(t("fixUrlErrors"));
@@ -298,8 +291,7 @@ export function ImportDialog({
       });
     } catch {}
 
-    setUrls([""]);
-    setUrlErrors([""]);
+    resetUrlState();
     setImporting(false);
   };
 

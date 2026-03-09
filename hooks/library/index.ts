@@ -2,9 +2,9 @@
 
 import { useEffect } from "react";
 import { useDebounce } from "use-debounce";
-import { useLibraryDataStore } from "@/stores/library/dataStore";
-import { useLibraryFilterStore } from "@/stores/library/filterStore";
-import { useLibraryOperations } from "@/stores/library/operations";
+import { useLibraryDataStore } from "@/stores/dataStore";
+import { useLibraryFilterStore } from "@/stores/filterStore";
+import { useLibraryOperations } from "@/stores/operations";
 
 export function useLibraryInit() {
   const { fetchLibraries, libraryName, fetchCategories } = useLibraryDataStore();
