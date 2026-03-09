@@ -103,35 +103,36 @@ async function retryFailedItems(
     return;
   }
 
-  const failedUrls = failedItems.filter(
-    (item) => item.path && item.path.startsWith("http"),
-  );
-  const failedFiles = failedItems.filter((item) => item.fileData);
+  for (let i = 0; i < failedItems.length; i++) {
+    const item = failedItems[i];
 
-  failedItems.forEach((item) => {
     updateItemStatus(item.id, "importing");
-  });
 
-  if (failedUrls.length > 0) {
-    try {
-      const result = await invoke<{
-        results: Array<{
-          success: boolean;
-          filename?: string;
-          error?: string;
-        }>;
-        errors: Array<{
-          source: string;
-          error: string;
-        }>;
-      }>("import_documents", {
-        request: {
-          urls: failedUrls.map((item) => item.path as string),
-        },
-      });
+    if (item.path && item.path.startsWith("http")) {
+      try {
+        const result = await invoke<{
+          results: Array<{
+            success: boolean;
+            filename?: string;
+            error?: string;
+          }>;
+          errors: Array<{
+            source: string;
+            error: string;
+          }>;
+        }>("import_documents", {
+          request: {
+            urls: [item.path],
+          },
+        });
 
-      failedUrls.forEach((item, index) => {
-        const itemResult = result.results[index];
+        const currentBatch = useImportStore.getState().currentBatch;
+        const currentItem = currentBatch?.items.find((i) => i.id === item.id);
+        if (currentItem?.status === "canceled") {
+          continue;
+        }
+
+        const itemResult = result.results[0];
         if (itemResult?.success) {
           updateItemStatus(item.id, "success", { completedAt: new Date() });
         } else {
@@ -142,40 +143,45 @@ async function retryFailedItems(
             updateItemStatus(item.id, "failed", { error: errorMsg });
           }
         }
-      });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      failedUrls.forEach((item) => {
-        updateItemStatus(item.id, "failed", { error: errorMessage });
-      });
-    }
-  }
+      } catch (error) {
+        const currentBatch = useImportStore.getState().currentBatch;
+        const currentItem = currentBatch?.items.find((i) => i.id === item.id);
+        if (currentItem?.status !== "canceled") {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          updateItemStatus(item.id, "failed", { error: errorMessage });
+        }
+      }
+    } else if (item.fileData) {
+      try {
+        const result = await invoke<{
+          results: Array<{
+            success: boolean;
+            filename?: string;
+            error?: string;
+          }>;
+          errors: Array<{
+            source: string;
+            error: string;
+          }>;
+        }>("import_documents", {
+          request: {
+            file_data: [
+              {
+                filename: item.filename,
+                data: item.fileData,
+              },
+            ],
+          },
+        });
 
-  if (failedFiles.length > 0) {
-    try {
-      const fileData = failedFiles.map((item) => ({
-        filename: item.filename,
-        data: item.fileData as number[],
-      }));
+        const currentBatch = useImportStore.getState().currentBatch;
+        const currentItem = currentBatch?.items.find((i) => i.id === item.id);
+        if (currentItem?.status === "canceled") {
+          continue;
+        }
 
-      const result = await invoke<{
-        results: Array<{
-          success: boolean;
-          filename?: string;
-          error?: string;
-        }>;
-        errors: Array<{
-          source: string;
-          error: string;
-        }>;
-      }>("import_documents", {
-        request: {
-          file_data: fileData,
-        },
-      });
-
-      failedFiles.forEach((item, index) => {
-        const itemResult = result.results[index];
+        const itemResult = result.results[0];
         if (itemResult?.success) {
           updateItemStatus(item.id, "success", { completedAt: new Date() });
         } else {
@@ -186,12 +192,15 @@ async function retryFailedItems(
             updateItemStatus(item.id, "failed", { error: errorMsg });
           }
         }
-      });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      failedFiles.forEach((item) => {
-        updateItemStatus(item.id, "failed", { error: errorMessage });
-      });
+      } catch (error) {
+        const currentBatch = useImportStore.getState().currentBatch;
+        const currentItem = currentBatch?.items.find((i) => i.id === item.id);
+        if (currentItem?.status !== "canceled") {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          updateItemStatus(item.id, "failed", { error: errorMessage });
+        }
+      }
     }
   }
 }
@@ -242,7 +251,7 @@ export function ImportDrawer({ open, onOpenChange }: ImportDrawerProps) {
               disabled={
                 !currentBatch ||
                 !currentBatch.items.some(
-                  (item: ImportItem) => item.status === "failed"
+                  (item: ImportItem) => item.status === "failed",
                 )
               }
             >

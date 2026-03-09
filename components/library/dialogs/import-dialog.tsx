@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,20 +41,41 @@ function showImportCompleteToast(
   ).length;
 
   const itemTypeKey = itemType === "file" ? "file" : "document";
-  const itemLabel = successCount !== 1 || failedCount !== 1 ? t(`itemTypes.${itemTypeKey}.plural`) : t(`itemTypes.${itemTypeKey}.singular`);
+  const itemLabel =
+    successCount !== 1 || failedCount !== 1
+      ? t(`itemTypes.${itemTypeKey}.plural`)
+      : t(`itemTypes.${itemTypeKey}.singular`);
 
   if (canceledCount > 0) {
     if (successCount === 0 && failedCount === 0) {
-      toast.info(t("toast.canceledAll", { count: canceledCount, itemType: itemLabel }));
+      toast.info(
+        t("toast.canceledAll", { count: canceledCount, itemType: itemLabel }),
+      );
     } else if (failedCount === 0) {
-      toast.info(t("toast.importedAndCanceled", { successCount, canceledCount, itemType: itemLabel }));
+      toast.info(
+        t("toast.importedAndCanceled", {
+          successCount,
+          canceledCount,
+          itemType: itemLabel,
+        }),
+      );
     } else {
-      toast.warning(t("toast.importedFailedCanceled", { successCount, failedCount, canceledCount }));
+      toast.warning(
+        t("toast.importedFailedCanceled", {
+          successCount,
+          failedCount,
+          canceledCount,
+        }),
+      );
     }
   } else if (failedCount === 0) {
-    toast.success(t("toast.success", { count: successCount, itemType: itemLabel }));
+    toast.success(
+      t("toast.success", { count: successCount, itemType: itemLabel }),
+    );
   } else if (successCount === 0) {
-    toast.error(t("toast.allFailed", { count: failedCount, itemType: itemLabel }));
+    toast.error(
+      t("toast.allFailed", { count: failedCount, itemType: itemLabel }),
+    );
   } else {
     toast.warning(t("toast.partialFailure", { successCount, failedCount }));
   }
@@ -96,23 +117,6 @@ export function ImportDialog({
     }
   };
 
-  useEffect(() => {
-    if (currentBatch) {
-      const allDone = !currentBatch.items.some(
-        (item) => item.status === "importing",
-      );
-      if (allDone && importing) {
-        setImporting(false);
-      }
-    }
-  }, [currentBatch, importing]);
-
-  useEffect(() => {
-    if (open) {
-      setImporting(false);
-    }
-  }, [open]);
-
   const handleFileImport = async (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
@@ -132,55 +136,66 @@ export function ImportDialog({
 
     clearBatch();
 
-    const fileDataPromises = filteredFiles.map(async (file) => {
-      const buffer = await file.arrayBuffer();
-      return {
-        filename: file.name,
-        data: Array.from(new Uint8Array(buffer)),
-      };
-    });
-
-    let fileData: { filename: string; data: number[] }[];
-    try {
-      fileData = await Promise.all(fileDataPromises);
-    } catch (error) {
-      toast.error(t("failedToReadFiles"));
-      return;
-    }
-
-    const importItems = fileData.map((fd) => ({
-      filename: fd.filename,
+    const importItems = filteredFiles.map((file) => ({
+      filename: file.name,
       status: "importing" as const,
       abortController: new AbortController(),
-      fileData: fd.data,
     }));
 
     const batchId = addBatch(importItems);
     setDrawerOpen(true);
     setImporting(true);
 
-    try {
+    for (let i = 0; i < filteredFiles.length; i++) {
+      const file = filteredFiles[i];
+      const itemId = `${batchId}-item-${i}`;
 
-      const result = await invoke<{
-        results: Array<{
-          success: boolean;
-          filename?: string;
-          error?: string;
-        }>;
-        errors: Array<{
-          source: string;
-          error: string;
-        }>;
-      }>("import_documents", {
-        request: {
-          file_data: fileData,
-        },
-      });
+      const currentStatus =
+        useImportStore.getState().currentBatch?.items[i]?.status;
+      if (currentStatus === "canceled") {
+        continue;
+      }
 
-      filteredFiles.forEach((file, index) => {
-        const itemId = `${batchId}-item-${index}`;
-        const fileResult = result.results[index];
+      let fileData: { filename: string; data: number[] };
+      try {
+        const buffer = await file.arrayBuffer();
+        fileData = {
+          filename: file.name,
+          data: Array.from(new Uint8Array(buffer)),
+        };
+      } catch {
+        const status = useImportStore.getState().currentBatch?.items[i]?.status;
+        if (status !== "canceled") {
+          updateItemStatus(itemId, "failed", {
+            error: t("failedToReadFiles"),
+          });
+        }
+        continue;
+      }
 
+      try {
+        const result = await invoke<{
+          results: Array<{
+            success: boolean;
+            filename?: string;
+            error?: string;
+          }>;
+          errors: Array<{
+            source: string;
+            error: string;
+          }>;
+        }>("import_documents", {
+          request: {
+            file_data: [fileData],
+          },
+        });
+
+        const status = useImportStore.getState().currentBatch?.items[i]?.status;
+        if (status === "canceled") {
+          continue;
+        }
+
+        const fileResult = result.results[0];
         if (fileResult?.success) {
           updateItemStatus(itemId, "success", {
             completedAt: new Date(),
@@ -195,19 +210,17 @@ export function ImportDialog({
             updateItemStatus(itemId, "failed", { error: errorMsg });
           }
         }
-      });
-    } catch (error) {
-      console.error("Import error:", error);
-      filteredFiles.forEach((_, index) => {
-        const itemId = `${batchId}-item-${index}`;
-        updateItemStatus(itemId, "failed", {
-          error: error instanceof Error ? error.message : t("importFailed"),
-        });
-      });
-    } finally {
-      setImporting(false);
+      } catch (error) {
+        const status = useImportStore.getState().currentBatch?.items[i]?.status;
+        if (status !== "canceled") {
+          updateItemStatus(itemId, "failed", {
+            error: error instanceof Error ? error.message : t("importFailed"),
+          });
+        }
+      }
     }
 
+    setImporting(false);
     onImportComplete();
 
     if (fileInputRef.current) {
@@ -217,8 +230,9 @@ export function ImportDialog({
       folderInputRef.current.value = "";
     }
 
-    if (currentBatch) {
-      showImportCompleteToast(currentBatch, "file", t);
+    const batch = useImportStore.getState().currentBatch;
+    if (batch) {
+      showImportCompleteToast(batch, "file", t);
     }
   };
 
@@ -296,27 +310,39 @@ export function ImportDialog({
     setDrawerOpen(true);
     setImporting(true);
 
-    try {
-      const result = await invoke<{
-        results: Array<{
-          success: boolean;
-          filename?: string;
-          error?: string;
-        }>;
-        errors: Array<{
-          source: string;
-          error: string;
-        }>;
-      }>("import_documents", {
-        request: {
-          urls: validUrls,
-        },
-      });
+    for (let i = 0; i < validUrls.length; i++) {
+      const url = validUrls[i];
+      const itemId = `${batchId}-item-${i}`;
 
-      validUrls.forEach((url, index) => {
-        const itemId = `${batchId}-item-${index}`;
-        const urlResult = result.results[index];
+      const currentStatus =
+        useImportStore.getState().currentBatch?.items[i]?.status;
+      if (currentStatus === "canceled") {
+        continue;
+      }
 
+      try {
+        const result = await invoke<{
+          results: Array<{
+            success: boolean;
+            filename?: string;
+            error?: string;
+          }>;
+          errors: Array<{
+            source: string;
+            error: string;
+          }>;
+        }>("import_documents", {
+          request: {
+            urls: [url],
+          },
+        });
+
+        const status = useImportStore.getState().currentBatch?.items[i]?.status;
+        if (status === "canceled") {
+          continue;
+        }
+
+        const urlResult = result.results[0];
         if (urlResult?.success) {
           updateItemStatus(itemId, "success", {
             completedAt: new Date(),
@@ -324,7 +350,6 @@ export function ImportDialog({
         } else {
           const errorMsg = urlResult?.error || t("importFailed");
           if (errorMsg.toLowerCase().includes("already exists")) {
-            // Already imported, treat as success
             updateItemStatus(itemId, "success", {
               completedAt: new Date(),
             });
@@ -332,29 +357,26 @@ export function ImportDialog({
             updateItemStatus(itemId, "failed", { error: errorMsg });
           }
         }
-      });
-
-      setUrls([""]);
-      setUrlErrors([""]);
-      onOpenChange(false);
-      onImportComplete();
-
-      if (currentBatch) {
-        showImportCompleteToast(currentBatch, "document", t);
+      } catch (error) {
+        const status = useImportStore.getState().currentBatch?.items[i]?.status;
+        if (status !== "canceled") {
+          updateItemStatus(itemId, "failed", {
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
       }
-    } catch (error) {
-      console.error("Error importing URLs:", error);
-      toast.error(t("importFailed"));
-      // Mark all as failed
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      validUrls.forEach((url, index) => {
-        const itemId = `${batchId}-item-${index}`;
-        updateItemStatus(itemId, "failed", { error: errorMessage });
-      });
     }
 
     setImporting(false);
+    setUrls([""]);
+    setUrlErrors([""]);
+    onOpenChange(false);
+    onImportComplete();
+
+    const batch = useImportStore.getState().currentBatch;
+    if (batch) {
+      showImportCompleteToast(batch, "document", t);
+    }
   };
 
   const triggerFileImport = () => {
@@ -386,17 +408,20 @@ export function ImportDialog({
 
           <TabsContent value="files" className="space-y-4">
             <div
-              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${dragActive
-                ? "border-primary bg-primary/5"
-                : "border-muted-foreground/25 hover:border-muted-foreground/50"
-                }`}
+              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                dragActive
+                  ? "border-primary bg-primary/5"
+                  : "border-muted-foreground/25 hover:border-muted-foreground/50"
+              }`}
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
               onDragOver={handleDrag}
               onDrop={handleDrop}
             >
               <FileTextIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">{t("dropFilesHere")}</h3>
+              <h3 className="text-lg font-semibold mb-2">
+                {t("dropFilesHere")}
+              </h3>
               <p className="text-muted-foreground mb-4">
                 {t("dragDropDescription")}
               </p>
@@ -438,9 +463,7 @@ export function ImportDialog({
 
           <TabsContent value="urls" className="space-y-4">
             <div className="space-y-3">
-              <Label className="text-sm font-medium">
-                {t("pdfUrlsLabel")}
-              </Label>
+              <Label className="text-sm font-medium">{t("pdfUrlsLabel")}</Label>
 
               {urls.map((url, index) => (
                 <div key={index}>
