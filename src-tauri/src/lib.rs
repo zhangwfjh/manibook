@@ -45,6 +45,8 @@ pub fn run() {
             extractors::pdf::init_pdfium(&resource_dir)
                 .map_err(|e| format!("Failed to initialize PDFium: {}", e))?;
 
+            services::models_dev::prefetch_models();
+
             log::info!("Application started");
             Ok(())
         })

@@ -59,6 +59,19 @@ async fn fetch_models() -> Result<ModelsDevData, String> {
     Ok(data)
 }
 
+pub fn prefetch_models() {
+    tauri::async_runtime::spawn(async move {
+        log::info!("Pre-warming models.dev cache...");
+        match fetch_models().await {
+            Ok(data) => log::info!(
+                "Pre-warmed models.dev cache ({} providers)",
+                data.providers.len()
+            ),
+            Err(e) => log::warn!("Failed to pre-warm models.dev cache: {}", e),
+        }
+    });
+}
+
 pub async fn get_models() -> Result<ModelsDevData, String> {
     fetch_models().await
 }
