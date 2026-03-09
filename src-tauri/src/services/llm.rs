@@ -1,11 +1,11 @@
 use crate::models::document::Metadata;
-use crate::models::llm::{ChatMessage, ChatRequest, ChatResponse};
+use crate::models::llm::{ChatMessage, ChatRequest, StreamChunk};
 use crate::services::models_dev::get_model_from_configured_providers;
 use base64::{engine::general_purpose::STANDARD, Engine as _};
+use futures_util::StreamExt;
 use lazy_static::lazy_static;
 use regex::Regex;
 use std::collections::HashMap;
-use std::time::Duration;
 
 lazy_static! {
     static ref JSON_CODE_BLOCK: Regex = Regex::new(r"```json\n([\s\S]*?)\n```").unwrap();
@@ -97,7 +97,7 @@ pub async fn call_openai_api(
         messages,
         response_format: response_format.map(|rf| serde_json::json!({ "type": rf })),
         temperature: Some(0.0),
-        stream: Some(false),
+        stream: Some(true),
     };
 
     let mut request_builder = client
@@ -110,23 +110,17 @@ pub async fn call_openai_api(
             request_builder.header("Authorization", format!("Bearer {}", model.api_key));
     }
 
-    let response = request_builder
-        .timeout(Duration::from_secs(30))
-        .send()
-        .await
-        .map_err(|e| {
-            let err_msg = if e.is_timeout() {
-                "LLM API request timed out after 30 seconds".to_string()
-            } else if e.is_connect() {
-                format!("Failed to connect to LLM API: {}", e)
-            } else if e.is_request() {
-                format!("Failed to send request to LLM API: {}", e)
-            } else {
-                format!("LLM API request failed: {}", e)
-            };
-            log::error!("{}", err_msg);
-            err_msg
-        })?;
+    let response = request_builder.send().await.map_err(|e| {
+        let err_msg = if e.is_connect() {
+            format!("Failed to connect to LLM API: {}", e)
+        } else if e.is_request() {
+            format!("Failed to send request to LLM API: {}", e)
+        } else {
+            format!("LLM API request failed: {}", e)
+        };
+        log::error!("{}", err_msg);
+        err_msg
+    })?;
 
     if !response.status().is_success() {
         let status = response.status();
@@ -143,19 +137,48 @@ pub async fn call_openai_api(
 
     log::debug!("LLM API request successful");
 
-    let chat_response: ChatResponse = response.json().await.map_err(|e| {
-        log::error!("Failed to parse LLM response: {}", e);
-        format!("Failed to parse LLM response: {}", e)
-    })?;
+    let mut content = String::new();
+    let mut stream = response.bytes_stream();
 
-    chat_response
-        .choices
-        .first()
-        .map(|c| c.message.content.clone())
-        .ok_or_else(|| {
-            log::error!("LLM API returned empty response");
-            "LLM API returned empty response".to_string()
-        })
+    while let Some(chunk_result) = stream.next().await {
+        let chunk = chunk_result.map_err(|e| {
+            log::error!("Failed to read stream chunk: {}", e);
+            format!("Failed to read stream chunk: {}", e)
+        })?;
+
+        let chunk_str = String::from_utf8(chunk.to_vec()).map_err(|e| {
+            log::error!("Failed to decode chunk to UTF-8: {}", e);
+            format!("Failed to decode chunk to UTF-8: {}", e)
+        })?;
+
+        for line in chunk_str.lines() {
+            if line.starts_with("data: ") {
+                let data = &line[6..];
+
+                if data == "[DONE]" {
+                    break;
+                }
+
+                match serde_json::from_str::<StreamChunk>(data) {
+                    Ok(stream_chunk) => {
+                        for choice in stream_chunk.choices.iter() {
+                            if let Some(ref content_delta) = choice.delta.content {
+                                print!("{}", content_delta);
+                                content.push_str(content_delta);
+                            }
+                        }
+                    }
+                    Err(_) => {
+                        continue;
+                    }
+                }
+            }
+        }
+    }
+
+    log::debug!("LLM API streamed response: {} chars", content.len());
+
+    Ok(content)
 }
 
 pub fn parse_metadata_response(response: &str) -> Result<Metadata, String> {
@@ -369,6 +392,8 @@ pub async fn extract_metadata_from_text(text: &str, model: &Model) -> Result<Met
     ];
 
     let mut metadata: Option<Metadata> = None;
+    let mut last_error: Option<String> = None;
+
     for retry in 0..3 {
         log::info!("Metadata extraction attempt {}/3", retry + 1);
 
@@ -380,6 +405,7 @@ pub async fn extract_metadata_from_text(text: &str, model: &Model) -> Result<Met
                     break;
                 }
                 Err(e) => {
+                    last_error = Some(format!("Failed to parse LLM response: {}", e));
                     log::warn!(
                         "Failed to parse metadata response (attempt {}/3): {}",
                         retry + 1,
@@ -388,13 +414,16 @@ pub async fn extract_metadata_from_text(text: &str, model: &Model) -> Result<Met
                 }
             },
             Err(e) => {
+                last_error = Some(format!("LLM API request failed: {}", e));
                 log::warn!("LLM API call failed (attempt {}/3): {}", retry + 1, e);
             }
         }
     }
 
     metadata.ok_or_else(|| {
-        log::error!("Failed to extract metadata after 3 attempts");
-        "Failed to extract metadata after 3 attempts. Check LLM provider configuration and try again.".to_string()
+        let error_msg =
+            last_error.unwrap_or_else(|| "Failed to extract metadata after 3 attempts".to_string());
+        log::error!("{}", error_msg);
+        error_msg
     })
 }

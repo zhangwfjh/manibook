@@ -30,16 +30,16 @@ pub struct ChatRequest {
 }
 
 #[derive(Deserialize)]
-pub struct ChatChoice {
-    pub message: ChatResponseMessage,
+pub struct StreamChoice {
+    pub delta: StreamDelta,
 }
 
 #[derive(Deserialize)]
-pub struct ChatResponseMessage {
-    pub content: String,
+pub struct StreamDelta {
+    pub content: Option<String>,
 }
 
 #[derive(Deserialize)]
-pub struct ChatResponse {
-    pub choices: Vec<ChatChoice>,
+pub struct StreamChunk {
+    pub choices: Vec<StreamChoice>,
 }
