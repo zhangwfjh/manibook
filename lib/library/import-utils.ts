@@ -142,6 +142,16 @@ function showImportCompleteToast(
   }
 }
 
+function chunkSources<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size));
+  }
+  return chunks;
+}
+
+const IMPORT_BATCH_SIZE = 4;
+
 export async function processBatchImport(
   sources: ImportSource[],
   options: {
@@ -169,50 +179,77 @@ export async function processBatchImport(
 
   const batchId = addBatch(importItems);
 
-  for (let i = 0; i < sources.length; i++) {
-    const source = sources[i];
-    const itemId = `${batchId}-item-${i}`;
+  const sourceChunks = chunkSources(sources, IMPORT_BATCH_SIZE);
 
-    const currentStatus =
-      useImportStore.getState().currentBatch?.items[i]?.status;
-    if (currentStatus === "canceled") {
+  for (let chunkIdx = 0; chunkIdx < sourceChunks.length; chunkIdx++) {
+    const chunk = sourceChunks[chunkIdx];
+    const chunkStartIdx = chunkIdx * IMPORT_BATCH_SIZE;
+
+    const activeItems: { source: ImportSource; originalIndex: number }[] = [];
+
+    for (let i = 0; i < chunk.length; i++) {
+      const originalIndex = chunkStartIdx + i;
+      const currentStatus =
+        useImportStore.getState().currentBatch?.items[originalIndex]?.status;
+
+      if (currentStatus !== "canceled") {
+        activeItems.push({
+          source: chunk[i],
+          originalIndex,
+        });
+      }
+    }
+
+    if (activeItems.length === 0) {
       continue;
     }
+
+    const fileDataList = activeItems.map((item) => item.source.fileData);
 
     try {
       const result = await invoke<ImportResult>("import_documents", {
         request: {
-          file_data: [source.fileData],
+          file_data: fileDataList,
         },
       });
 
-      const status = useImportStore.getState().currentBatch?.items[i]?.status;
-      if (status === "canceled") {
-        continue;
-      }
+      for (let i = 0; i < activeItems.length; i++) {
+        const { originalIndex } = activeItems[i];
+        const itemId = `${batchId}-item-${originalIndex}`;
 
-      const fileResult = result.results[0];
-      if (fileResult?.success) {
-        updateItemStatus(itemId, "success", {
-          completedAt: new Date(),
-        });
-      } else {
-        const errorMsg = fileResult?.error || t("importFailed");
-        if (errorMsg.toLowerCase().includes("already exists")) {
+        const currentStatus =
+          useImportStore.getState().currentBatch?.items[originalIndex]?.status;
+        if (currentStatus === "canceled") {
+          continue;
+        }
+
+        const fileResult = result.results[i];
+        if (fileResult?.success) {
           updateItemStatus(itemId, "success", {
             completedAt: new Date(),
           });
         } else {
-          updateItemStatus(itemId, "failed", { error: errorMsg });
+          const errorMsg = fileResult?.error || t("importFailed");
+          if (errorMsg.toLowerCase().includes("already exists")) {
+            updateItemStatus(itemId, "success", {
+              completedAt: new Date(),
+            });
+          } else {
+            updateItemStatus(itemId, "failed", { error: errorMsg });
+          }
         }
       }
     } catch (error) {
-      const status = useImportStore.getState().currentBatch?.items[i]?.status;
-      if (status !== "canceled") {
-        updateItemStatus(itemId, "failed", {
-          error:
-            error instanceof Error ? error.message : t("importFailed"),
-        });
+      for (const { originalIndex } of activeItems) {
+        const currentStatus =
+          useImportStore.getState().currentBatch?.items[originalIndex]?.status;
+        if (currentStatus !== "canceled") {
+          const itemId = `${batchId}-item-${originalIndex}`;
+          updateItemStatus(itemId, "failed", {
+            error:
+              error instanceof Error ? error.message : t("importFailed"),
+          });
+        }
       }
     }
   }

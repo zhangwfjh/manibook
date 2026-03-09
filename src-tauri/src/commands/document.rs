@@ -17,6 +17,7 @@ use crate::services::storage::{delete_file, file_exists, get_lib_path, move_file
 use crate::utils::content::get_extension;
 use crate::utils::text::normalize_metadata;
 use base64::{engine::general_purpose::STANDARD, Engine as _};
+use futures_util::future::join_all;
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -90,25 +91,37 @@ pub async fn import_documents(
     let mut errors = Vec::new();
 
     if let Some(file_data) = &request.file_data {
-        for file_datum in file_data {
-            match process_import(
-                &library_path,
-                &file_datum.data,
-                &get_extension(&file_datum.filename),
-                &llm_settings,
-            )
-            .await
-            {
-                Ok(result) => results.push(result),
+        let futures: Vec<_> = file_data
+            .iter()
+            .map(|file_datum| {
+                let library_path = library_path.clone();
+                let llm_settings = llm_settings.clone();
+                let data = file_datum.data.clone();
+                let extension = get_extension(&file_datum.filename);
+                let filename = file_datum.filename.clone();
+
+                async move {
+                    let result =
+                        process_import(&library_path, &data, &extension, &llm_settings).await;
+                    (filename, result)
+                }
+            })
+            .collect();
+
+        let results_vec = join_all(futures).await;
+
+        for (filename, result) in results_vec {
+            match result {
+                Ok(r) => results.push(r),
                 Err(e) => {
-                    log::warn!("Failed to import file '{}': {}", file_datum.filename, e);
+                    log::warn!("Failed to import file '{}': {}", filename, e);
                     results.push(ImportResult {
                         success: false,
                         metadata: None,
                         error: Some(e.clone()),
                     });
                     errors.push(ImportError {
-                        source: file_datum.filename.clone(),
+                        source: filename,
                         error: e,
                     });
                 }
