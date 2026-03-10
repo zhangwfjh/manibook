@@ -92,7 +92,7 @@ async function retryFailedItems(
   updateItemStatus: (
     itemId: string,
     status: ImportItem["status"],
-    options?: { completedAt?: Date; error?: string; fileData?: number[] },
+    options?: { completedAt?: Date; error?: string; sourcePath?: string },
   ) => void,
 ) {
   if (!batch) return;
@@ -106,9 +106,9 @@ async function retryFailedItems(
   for (let i = 0; i < failedItems.length; i++) {
     const item = failedItems[i];
 
-    if (!item.fileData) {
+    if (!item.source) {
       updateItemStatus(item.id, "failed", {
-        error: "No file data available for retry",
+        error: "No source information available for retry",
       });
       continue;
     }
@@ -119,7 +119,8 @@ async function retryFailedItems(
       const result = await invoke<{
         results: Array<{
           success: boolean;
-          filename?: string;
+          filename: string;
+          source_path: string | null;
           error?: string;
         }>;
         errors: Array<{
@@ -128,12 +129,7 @@ async function retryFailedItems(
         }>;
       }>("import_documents", {
         request: {
-          file_data: [
-            {
-              filename: item.filename,
-              data: item.fileData,
-            },
-          ],
+          sources: [item.source],
         },
       });
 
@@ -145,11 +141,17 @@ async function retryFailedItems(
 
       const itemResult = result.results[0];
       if (itemResult?.success) {
-        updateItemStatus(item.id, "success", { completedAt: new Date() });
+        updateItemStatus(item.id, "success", {
+          completedAt: new Date(),
+          sourcePath: itemResult.source_path || undefined,
+        });
       } else {
         const errorMsg = itemResult?.error || "Import failed";
         if (errorMsg.toLowerCase().includes("already exists")) {
-          updateItemStatus(item.id, "success", { completedAt: new Date() });
+          updateItemStatus(item.id, "success", {
+            completedAt: new Date(),
+            sourcePath: itemResult.source_path || undefined,
+          });
         } else {
           updateItemStatus(item.id, "failed", { error: errorMsg });
         }

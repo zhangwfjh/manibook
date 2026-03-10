@@ -40,9 +40,8 @@ import { ImportDrawer } from "@/components/ui/import-drawer";
 import { useImportStore } from "@/stores/importStore";
 import {
   isAllowedExtension,
-  fetchUrlAsData,
   processBatchImport,
-  FileData,
+  ImportSource,
 } from "@/lib/library/import-utils";
 
 interface ImportDialogProps {
@@ -77,52 +76,78 @@ export function ImportDialog({
     addUrl,
     removeUrl,
     resetUrlState,
+    addBatch,
   } = useImportStore();
 
   const processFilePathsRef = useRef<
     ((paths: string[]) => Promise<void>) | null
   >(null);
 
+  async function scanFolderRecursive(folderPath: string): Promise<string[]> {
+    const files: string[] = [];
+
+    async function scan(dir: string) {
+      try {
+        const entries = await readDir(dir);
+        for (const entry of entries) {
+          const fullPath = `${dir}\\${entry.name}`;
+          if (entry.isFile && entry.name && isAllowedExtension(fullPath)) {
+            files.push(fullPath);
+          } else if (entry.isDirectory && entry.name) {
+            await scan(fullPath);
+          }
+        }
+      } catch (error) {
+        console.error(`Failed to scan directory ${dir}:`, error);
+      }
+    }
+
+    await scan(folderPath);
+    return files;
+  }
+
   const processFilePaths = async (paths: string[]) => {
     if (paths.length === 0) return;
 
-    try {
-      const filePaths: string[] = [];
+    setDrawerOpen(true);
 
-      for (const path of paths) {
-        if (isAllowedExtension(path)) {
-          filePaths.push(path);
-        } else {
-          try {
-            const dirFiles = await invoke<string[]>("read_directory", { path });
-            filePaths.push(...dirFiles);
-          } catch {}
+    const sources: ImportSource[] = [];
+
+    for (const path of paths) {
+      if (isAllowedExtension(path)) {
+        sources.push({ type: "file", path });
+      } else {
+        try {
+          const files = await scanFolderRecursive(path);
+          for (const file of files) {
+            sources.push({ type: "file", path: file });
+          }
+        } catch (error) {
+          console.error("Failed to scan folder:", error);
+          toast.error(t("failedToReadFiles"));
+          return;
         }
       }
+    }
 
-      if (filePaths.length === 0) {
-        toast.error(t("invalidFilesError"));
-        return;
-      }
+    if (sources.length === 0) {
+      toast.error(t("invalidFilesError"));
+      return;
+    }
 
-      const sources = await Promise.all(
-        filePaths.map(async (filePath) => {
-          const fileName = filePath.split(/[\\/]/).pop() || filePath;
-          const data = await invoke<number[]>("read_file", { path: filePath });
-          return {
-            fileData: {
-              filename: fileName,
-              data: data,
-            } as FileData,
-            displayName: fileName,
-            path: filePath,
-          };
-        }),
-      );
+    addBatch(
+      sources.map((source) => ({
+        filename: source.path?.split(/[\\/]/).pop() || "unknown",
+        status: "importing" as const,
+        path: source.path || "",
+        source,
+        abortController: new AbortController(),
+      })),
+    );
 
-      setDrawerOpen(true);
-      setImporting(true);
+    setImporting(true);
 
+    try {
       await processBatchImport(sources, {
         itemType: "file",
         onComplete: onImportComplete,
@@ -135,7 +160,7 @@ export function ImportDialog({
         t,
       });
     } catch (error) {
-      console.error("Failed to read files:", error);
+      console.error("Failed to import files:", error);
       toast.error(t("failedToReadFiles"));
     }
 
@@ -166,24 +191,7 @@ export function ImportDialog({
 
     if (!selected) return;
 
-    try {
-      const entries = await readDir(selected);
-      const filePaths: string[] = [];
-
-      for (const entry of entries) {
-        if (entry.isFile && entry.name) {
-          const fullPath = `${selected}\\${entry.name}`;
-          if (isAllowedExtension(fullPath)) {
-            filePaths.push(fullPath);
-          }
-        }
-      }
-
-      await processFilePaths(filePaths);
-    } catch (error) {
-      console.error("Failed to read folder:", error);
-      toast.error(t("failedToReadFiles"));
-    }
+    await processFilePaths([selected]);
   };
 
   useEffect(() => {
@@ -211,9 +219,7 @@ export function ImportDialog({
     };
   }, []);
 
-  useEffect(() => {
-    processFilePathsRef.current = processFilePaths;
-  });
+  processFilePathsRef.current = processFilePaths;
 
   const handleDeleteOriginals = async () => {
     const paths = successfulImports.map((item) => item.path);
@@ -269,18 +275,15 @@ export function ImportDialog({
       return;
     }
 
+    const sources: ImportSource[] = validUrls.map((url) => ({
+      type: "url" as const,
+      url,
+    }));
+
+    setDrawerOpen(true);
+    setImporting(true);
+
     try {
-      const sources = await Promise.all(
-        validUrls.map(async (url) => ({
-          fileData: await fetchUrlAsData(url),
-          displayName: url.split("/").pop() || t("unknown"),
-          path: url,
-        })),
-      );
-
-      setDrawerOpen(true);
-      setImporting(true);
-
       await processBatchImport(sources, {
         itemType: "document",
         onComplete: () => {

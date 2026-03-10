@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
+import { readDir } from "@tauri-apps/plugin-fs";
 import { toast } from "sonner";
 import { useImportStore, ImportBatch } from "@/stores/importStore";
 
@@ -7,15 +7,10 @@ export const ALLOWED_EXTENSIONS = ["pdf", "djvu", "epub"] as const;
 
 export type FileExtension = (typeof ALLOWED_EXTENSIONS)[number];
 
-export interface FileData {
-  filename: string;
-  data: number[];
-}
-
 export interface ImportSource {
-  fileData: FileData;
-  displayName: string;
-  path: string;
+  type: "file" | "url";
+  path?: string;
+  url?: string;
 }
 
 export interface SuccessfulImport {
@@ -34,55 +29,34 @@ export function getFileExtension(filename: string): string {
   return filename.split(".").pop()?.toLowerCase() || "";
 }
 
-export async function readFileAsData(file: File): Promise<FileData> {
-  const buffer = await file.arrayBuffer();
-  return {
-    filename: file.name,
-    data: Array.from(new Uint8Array(buffer)),
-  };
-}
+export async function scanFolderRecursive(folderPath: string): Promise<string[]> {
+  const files: string[] = [];
 
-export async function fetchUrlAsData(url: string): Promise<FileData> {
-  const response = await tauriFetch(url, { method: "GET" });
-  const status = (response as unknown as { status: number }).status;
-  if (status < 200 || status >= 300) {
-    throw new Error(`HTTP ${status}`);
+  async function scan(dir: string) {
+    try {
+      const entries = await readDir(dir);
+      for (const entry of entries) {
+        const fullPath = `${dir}\\${entry.name}`;
+        if (entry.isFile && entry.name && isAllowedExtension(fullPath)) {
+          files.push(fullPath);
+        } else if (entry.isDirectory) {
+          await scan(fullPath);
+        }
+      }
+    } catch (error) {
+      console.error(`Failed to scan directory ${dir}:`, error);
+    }
   }
 
-  const extension = getExtensionFromUrlOrHeaders(url, response.headers);
-
-  const blob = await response.blob();
-  const buffer = await blob.arrayBuffer();
-  const filename = url.split("/").pop() || `document.${extension}`;
-
-  return {
-    filename,
-    data: Array.from(new Uint8Array(buffer)),
-  };
-}
-
-function getExtensionFromUrlOrHeaders(
-  url: string,
-  headers: Headers,
-): string {
-  const allowedExtensions = [...ALLOWED_EXTENSIONS];
-  let extension = getFileExtension(url);
-
-  if (!allowedExtensions.includes(extension as FileExtension)) {
-    const contentType = headers.get("content-type") || "";
-    if (contentType.includes("pdf")) extension = "pdf";
-    else if (contentType.includes("epub")) extension = "epub";
-    else if (contentType.includes("djvu")) extension = "djvu";
-    else throw new Error("Unable to determine file type");
-  }
-
-  return extension;
+  await scan(folderPath);
+  return files;
 }
 
 interface ImportResult {
   results: Array<{
     success: boolean;
-    filename?: string;
+    filename: string;
+    source_path: string | null;
     error?: string;
   }>;
   errors: Array<{
@@ -177,9 +151,10 @@ export async function processBatchImport(
   clearBatch();
 
   const importItems = sources.map((source) => ({
-    filename: source.displayName,
+    filename: source.url?.split("/").pop() || source.path?.split(/[\\/]/).pop() || "unknown",
     status: "importing" as const,
-    path: source.path,
+    path: source.url || source.path || "",
+    source: source,
     abortController: new AbortController(),
   }));
 
@@ -210,12 +185,12 @@ export async function processBatchImport(
       continue;
     }
 
-    const fileDataList = activeItems.map((item) => item.source.fileData);
+    const sourceList = activeItems.map((item) => item.source);
 
     try {
       const result = await invoke<ImportResult>("import_documents", {
         request: {
-          file_data: fileDataList,
+          sources: sourceList,
         },
       });
 
@@ -233,12 +208,14 @@ export async function processBatchImport(
         if (fileResult?.success) {
           updateItemStatus(itemId, "success", {
             completedAt: new Date(),
+            sourcePath: fileResult.source_path || undefined,
           });
         } else {
           const errorMsg = fileResult?.error || t("importFailed");
           if (errorMsg.toLowerCase().includes("already exists")) {
             updateItemStatus(itemId, "success", {
               completedAt: new Date(),
+              sourcePath: fileResult.source_path || undefined,
             });
           } else {
             updateItemStatus(itemId, "failed", { error: errorMsg });

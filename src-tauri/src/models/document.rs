@@ -127,18 +127,22 @@ pub struct DocumentList {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct ImportRequest {
-    pub file_data: Option<Vec<FileData>>,
+    pub sources: Vec<ImportSource>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct FileData {
-    pub filename: String,
-    pub data: Vec<u8>,
+pub struct ImportSource {
+    #[serde(rename = "type")]
+    pub source_type: String,
+    pub path: Option<String>,
+    pub url: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct ImportResult {
     pub success: bool,
+    pub filename: String,
+    pub source_path: Option<String>,
     pub metadata: Option<Metadata>,
     pub error: Option<String>,
 }

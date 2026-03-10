@@ -68,8 +68,6 @@ pub fn run() {
             commands::document::get_cover,
             commands::document::delete_documents,
             commands::document::delete_files,
-            commands::document::read_file,
-            commands::document::read_directory,
             commands::document::open_document,
             commands::document::update_document,
             commands::document::move_documents,

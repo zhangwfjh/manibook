@@ -80,6 +80,8 @@ pub async fn process_import(
 
     Ok(ImportResult {
         success: true,
+        filename: String::new(),
+        source_path: None,
         metadata: Some(metadata),
         error: None,
     })

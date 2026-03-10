@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import { ImportSource } from "@/lib/library/import-utils";
 
 export interface ImportItem {
   id: string;
@@ -10,7 +11,8 @@ export interface ImportItem {
   completedAt?: Date;
   error?: string;
   path?: string;
-  fileData?: number[];
+  source?: ImportSource;
+  sourcePath?: string;
 }
 
 export interface ImportBatch {
@@ -43,7 +45,7 @@ interface ImportStoreState {
   updateItemStatus: (
     itemId: string,
     status: ImportItem["status"],
-    options?: { completedAt?: Date; error?: string; fileData?: number[] }
+    options?: { completedAt?: Date; error?: string; sourcePath?: string }
   ) => void;
   cancelItem: (itemId: string) => void;
   clearBatch: () => void;

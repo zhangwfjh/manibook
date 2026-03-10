@@ -73,60 +73,6 @@ pub async fn delete_files(file_paths: Vec<String>) -> Result<DeleteFilesResponse
 }
 
 #[tauri::command]
-pub async fn read_file(path: String) -> Result<Vec<u8>, String> {
-    log::debug!("Reading file: {}", path);
-
-    let file_path = Path::new(&path);
-    if !file_path.exists() {
-        return Err(format!("File not found: {}", path));
-    }
-
-    std::fs::read(file_path).map_err(|e| {
-        log::error!("Failed to read file {}: {}", path, e);
-        format!("Failed to read file {}: {}", path, e)
-    })
-}
-
-#[tauri::command]
-pub async fn read_directory(path: String) -> Result<Vec<String>, String> {
-    log::debug!("Reading directory: {}", path);
-
-    let dir_path = Path::new(&path);
-    if !dir_path.exists() {
-        return Err(format!("Directory not found: {}", path));
-    }
-
-    if !dir_path.is_dir() {
-        return Err(format!("Not a directory: {}", path));
-    }
-
-    let allowed_extensions = ["pdf", "epub", "djvu"];
-    let mut file_paths = Vec::new();
-
-    fn scan_dir(dir: &Path, extensions: &[&str], results: &mut Vec<String>) {
-        if let Ok(entries) = std::fs::read_dir(dir) {
-            for entry in entries.flatten() {
-                let path = entry.path();
-                if path.is_dir() {
-                    scan_dir(&path, extensions, results);
-                } else if let Some(ext) = path.extension() {
-                    if extensions.contains(&ext.to_str().unwrap_or("").to_lowercase().as_str()) {
-                        if let Some(path_str) = path.to_str() {
-                            results.push(path_str.to_string());
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    scan_dir(dir_path, &allowed_extensions, &mut file_paths);
-
-    log::debug!("Found {} files in directory: {}", file_paths.len(), path);
-    Ok(file_paths)
-}
-
-#[tauri::command]
 pub async fn generate_metadata(app: AppHandle, document_id: String) -> Result<Metadata, String> {
     log::info!("Starting metadata generation for document: {}", document_id);
 
@@ -185,49 +131,106 @@ pub async fn import_documents(
     app: AppHandle,
     request: ImportRequest,
 ) -> Result<ImportResponse, String> {
-    log::info!("Starting document import process");
+    log::info!(
+        "Starting document import process with {} sources",
+        request.sources.len()
+    );
 
     let library_path = get_library_path()?;
-    let llm_settings = get_llm_settings(app)?;
+    let llm_settings = crate::config::llm::get_llm_settings(app)?;
+
+    let mut all_sources: Vec<(String, String, Vec<u8>)> = Vec::new(); // (filename, source_path, data)
+
+    for source in request.sources {
+        match source.source_type.as_str() {
+            "file" => {
+                if let Some(path) = source.path {
+                    let file_path = Path::new(&path);
+                    if !file_path.exists() {
+                        log::warn!("File not found: {}", path);
+                        continue;
+                    }
+                    let filename = file_path
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or(&path)
+                        .to_string();
+                    match fs::read(file_path) {
+                        Ok(data) => {
+                            all_sources.push((filename.clone(), path, data));
+                        }
+                        Err(e) => {
+                            log::error!("Failed to read file {}: {}", path, e);
+                        }
+                    }
+                }
+            }
+            "url" => {
+                if let Some(url) = source.url {
+                    match fetch_url(&url).await {
+                        Ok((filename, data)) => {
+                            all_sources.push((filename, url, data));
+                        }
+                        Err(e) => {
+                            log::error!("Failed to fetch URL {}: {}", url, e);
+                        }
+                    }
+                }
+            }
+            _ => {
+                log::warn!("Unknown source type: {}", source.source_type);
+            }
+        }
+    }
+
+    log::info!("Collected {} files for import", all_sources.len());
 
     let mut results = Vec::new();
     let mut errors = Vec::new();
 
-    if let Some(file_data) = &request.file_data {
-        let futures: Vec<_> = file_data
-            .iter()
-            .map(|file_datum| {
-                let library_path = library_path.clone();
-                let llm_settings = llm_settings.clone();
-                let data = file_datum.data.clone();
-                let extension = get_extension(&file_datum.filename);
-                let filename = file_datum.filename.clone();
+    let futures: Vec<_> = all_sources
+        .iter()
+        .map(|(filename, source_path, data)| {
+            let library_path = library_path.clone();
+            let llm_settings = llm_settings.clone();
+            let filename = filename.clone();
+            let source_path = source_path.clone();
+            let data = data.clone();
 
-                async move {
-                    let result =
-                        process_import(&library_path, &data, &extension, &llm_settings).await;
-                    (filename, result)
-                }
-            })
-            .collect();
+            async move {
+                let extension = get_extension(&filename);
+                let result = process_import(&library_path, &data, &extension, &llm_settings).await;
+                (filename, source_path, result)
+            }
+        })
+        .collect();
 
-        let results_vec = join_all(futures).await;
+    let results_vec = join_all(futures).await;
 
-        for (filename, result) in results_vec {
-            match result {
-                Ok(r) => results.push(r),
-                Err(e) => {
-                    log::warn!("Failed to import file '{}': {}", filename, e);
-                    results.push(ImportResult {
-                        success: false,
-                        metadata: None,
-                        error: Some(e.clone()),
-                    });
-                    errors.push(ImportError {
-                        source: filename,
-                        error: e,
-                    });
-                }
+    for (filename, source_path, result) in results_vec {
+        match result {
+            Ok(r) => {
+                results.push(ImportResult {
+                    success: r.success,
+                    filename: filename.clone(),
+                    source_path: Some(source_path),
+                    metadata: r.metadata,
+                    error: r.error,
+                });
+            }
+            Err(e) => {
+                log::warn!("Failed to import file '{}': {}", filename, e);
+                results.push(ImportResult {
+                    success: false,
+                    filename: filename.clone(),
+                    source_path: Some(source_path),
+                    metadata: None,
+                    error: Some(e.clone()),
+                });
+                errors.push(ImportError {
+                    source: filename,
+                    error: e,
+                });
             }
         }
     }
@@ -250,6 +253,52 @@ pub async fn import_documents(
         success_count,
         error_count,
     })
+}
+
+async fn fetch_url(url: &str) -> Result<(String, Vec<u8>), String> {
+    let response = reqwest::get(url)
+        .await
+        .map_err(|e| format!("Failed to fetch URL: {}", e))?;
+
+    let status = response.status();
+    if !status.is_success() {
+        return Err(format!("HTTP error: {}", status));
+    }
+
+    let content_type = response
+        .headers()
+        .get("content-type")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
+
+    let extension = if content_type.contains("pdf") {
+        "pdf"
+    } else if content_type.contains("epub") {
+        "epub"
+    } else if content_type.contains("djvu") {
+        "djvu"
+    } else {
+        let ext = url.rsplit('.').next().unwrap_or("");
+        if ["pdf", "epub", "djvu"].contains(&ext) {
+            ext
+        } else {
+            "pdf"
+        }
+    };
+
+    let filename = url
+        .split('/')
+        .last()
+        .filter(|s| s.contains('.'))
+        .map(|s| format!("{}.{}", &s[..s.len() - 4], extension))
+        .unwrap_or_else(|| format!("document.{}", extension));
+
+    let data = response
+        .bytes()
+        .await
+        .map_err(|e| format!("Failed to read response: {}", e))?;
+
+    Ok((filename, data.to_vec()))
 }
 
 #[tauri::command]
