@@ -122,6 +122,15 @@ pub async fn extract_document_content(
             .await
             .map_err(|e| format!("Failed to extract text from images: {}", e))?;
 
+    let mut metadata_header = String::from("[Info]\n");
+    if let Some(obj) = metadata_json.as_object() {
+        for (key, value) in obj {
+            metadata_header.push_str(&format!("{}: {}\n", key, value));
+        }
+    }
+    metadata_header.push_str("\n[Content]\n");
+    foreword = format!("{}{}", metadata_header, foreword);
+
     truncate_foreword(&mut foreword, 5000);
 
     let mut metadata = extract_metadata(&foreword, llm_settings)
