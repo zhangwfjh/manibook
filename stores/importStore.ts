@@ -6,7 +6,7 @@ import { ImportSource } from "@/lib/library/import-utils";
 export interface ImportItem {
   id: string;
   filename: string;
-  status: "importing" | "success" | "failed" | "canceled";
+  status: "pending" | "processing" | "success" | "failed" | "canceled";
   abortController?: AbortController;
   completedAt?: Date;
   error?: string;
@@ -112,9 +112,20 @@ export const useImportStore = create<ImportStoreState>((set, get) => ({
     const { currentBatch } = get();
     if (!currentBatch) return;
 
-    const updatedItems = currentBatch.items.map((item) =>
-      item.id === itemId ? { ...item, status, ...options } : item
-    );
+    let targetItem: ImportItem | undefined;
+    const otherItems: ImportItem[] = [];
+
+    currentBatch.items.forEach((item) => {
+      if (item.id === itemId) {
+        targetItem = { ...item, status, ...options };
+      } else {
+        otherItems.push(item);
+      }
+    });
+
+    const updatedItems = targetItem
+      ? [targetItem, ...otherItems]
+      : otherItems;
 
     const { completed, failed } = countItemStats(updatedItems);
 

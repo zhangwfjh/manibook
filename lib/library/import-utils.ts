@@ -152,7 +152,7 @@ export async function processBatchImport(
 
   const importItems = sources.map((source) => ({
     filename: source.url?.split("/").pop() || source.path?.split(/[\\/]/).pop() || "unknown",
-    status: "importing" as const,
+    status: "pending" as const,
     path: source.url || source.path || "",
     source: source,
     abortController: new AbortController(),
@@ -174,6 +174,8 @@ export async function processBatchImport(
         useImportStore.getState().currentBatch?.items[originalIndex]?.status;
 
       if (currentStatus !== "canceled") {
+        const itemId = `${batchId}-item-${originalIndex}`;
+        updateItemStatus(itemId, "processing");
         activeItems.push({
           source: chunk[i],
           originalIndex,

@@ -40,7 +40,9 @@ interface ImportDrawerProps {
 
 function getStatusIcon(status: ImportItem["status"]) {
   switch (status) {
-    case "importing":
+    case "pending":
+      return <Loader2Icon className="h-4 w-4 text-gray-400" />;
+    case "processing":
       return <Loader2Icon className="h-4 w-4 animate-spin text-blue-600" />;
     case "success":
       return <CheckCircleIcon className="h-4 w-4 text-green-600" />;
@@ -87,7 +89,7 @@ function exportImportProgress(
   toast.success(`Export completed successfully, downloaded as ${a.download}.`);
 }
 
-async function retryFailedItems(
+async function retryItems(
   batch: { id: string; items: ImportItem[] } | null,
   updateItemStatus: (
     itemId: string,
@@ -97,14 +99,16 @@ async function retryFailedItems(
 ) {
   if (!batch) return;
 
-  const failedItems = batch.items.filter((item) => item.status === "failed");
+  const itemsToRetry = batch.items.filter(
+    (item) => item.status === "failed" || item.status === "canceled",
+  );
 
-  if (failedItems.length === 0) {
+  if (itemsToRetry.length === 0) {
     return;
   }
 
-  for (let i = 0; i < failedItems.length; i++) {
-    const item = failedItems[i];
+  for (let i = 0; i < itemsToRetry.length; i++) {
+    const item = itemsToRetry[i];
 
     if (!item.source) {
       updateItemStatus(item.id, "failed", {
@@ -113,7 +117,7 @@ async function retryFailedItems(
       continue;
     }
 
-    updateItemStatus(item.id, "importing");
+    updateItemStatus(item.id, "processing");
 
     try {
       const result = await invoke<{
@@ -169,7 +173,13 @@ async function retryFailedItems(
 }
 
 export function ImportDrawer({ open, onOpenChange }: ImportDrawerProps) {
-  const { currentBatch, cancelItem, updateItemStatus } = useImportStore();
+  const {
+    currentBatch,
+    cancelItem,
+    updateItemStatus,
+    setSuccessfulImports,
+    setDeleteDialogOpen,
+  } = useImportStore();
 
   if (!currentBatch) {
     return null;
@@ -191,16 +201,33 @@ export function ImportDrawer({ open, onOpenChange }: ImportDrawerProps) {
               onClick={() => {
                 if (currentBatch) {
                   currentBatch.items.forEach((item: ImportItem) => {
-                    if (item.status === "importing") {
+                    if (item.status === "processing") {
                       cancelItem(item.id);
                     }
                   });
+
+                  const successfulFileImports = currentBatch.items.filter(
+                    (item: ImportItem) =>
+                      item.status === "success" &&
+                      item.source?.type === "file" &&
+                      item.path,
+                  );
+
+                  if (successfulFileImports.length > 0) {
+                    setSuccessfulImports(
+                      successfulFileImports.map((item: ImportItem) => ({
+                        filename: item.filename,
+                        path: item.path!,
+                      })),
+                    );
+                    setDeleteDialogOpen(true);
+                  }
                 }
               }}
               disabled={
                 !currentBatch ||
                 !currentBatch.items.some(
-                  (item: ImportItem) => item.status === "importing",
+                  (item: ImportItem) => item.status === "processing",
                 )
               }
             >
@@ -210,16 +237,17 @@ export function ImportDrawer({ open, onOpenChange }: ImportDrawerProps) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => retryFailedItems(currentBatch, updateItemStatus)}
+              onClick={() => retryItems(currentBatch, updateItemStatus)}
               disabled={
                 !currentBatch ||
                 !currentBatch.items.some(
-                  (item: ImportItem) => item.status === "failed",
+                  (item: ImportItem) =>
+                    item.status === "failed" || item.status === "canceled",
                 )
               }
             >
               <RotateCcwIcon className="h-4 w-4 mr-2" />
-              Retry Failed
+              Retry
             </Button>
             <Button
               variant="ghost"
@@ -278,7 +306,7 @@ export function ImportDrawer({ open, onOpenChange }: ImportDrawerProps) {
                         </ItemDescription>
                       )}
                     </ItemContent>
-                    {item.status === "importing" && (
+                    {item.status === "processing" && (
                       <ItemActions>
                         <Button
                           variant="ghost"

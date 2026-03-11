@@ -138,7 +138,7 @@ export function ImportDialog({
     addBatch(
       sources.map((source) => ({
         filename: source.path?.split(/[\\/]/).pop() || "unknown",
-        status: "importing" as const,
+        status: "pending" as const,
         path: source.path || "",
         source,
         abortController: new AbortController(),
@@ -219,7 +219,9 @@ export function ImportDialog({
     };
   }, []);
 
-  processFilePathsRef.current = processFilePaths;
+  useEffect(() => {
+    processFilePathsRef.current = processFilePaths;
+  });
 
   const handleDeleteOriginals = async () => {
     const paths = successfulImports.map((item) => item.path);
