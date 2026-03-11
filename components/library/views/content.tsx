@@ -18,11 +18,21 @@ import {
   EmptyDescription,
   EmptyMedia,
 } from "@/components/ui/empty";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { DocumentCard } from "@/components/library/documents/card";
 import { DocumentCardSkeleton } from "@/components/library/documents/card-skeleton";
 import { Pagination } from "./pagination";
-import { BookOpenIcon, LibraryIcon, XIcon } from "lucide-react";
+import { BookOpenIcon, LibraryIcon, Trash2Icon, XIcon } from "lucide-react";
 import {
   useLibraryDataStore,
   useLibraryFilterStore,
@@ -44,8 +54,21 @@ export function Content() {
   } = useLibraryDataStore();
   const { selectedCategory, getFilterParams } = useLibraryFilterStore();
   const { setSelectedCategory } = useFilterWithReload();
-  const { loadPage, closeLibrary } = useLibraryOperations();
-  const { sortBy } = useLibraryUIStore();
+  const { loadPage, closeLibrary, removeLibrary } = useLibraryOperations();
+  const {
+    sortBy,
+    removeLibraryDialogOpen,
+    libraryToRemove,
+    setRemoveLibraryDialogOpen,
+    setLibraryToRemove,
+  } = useLibraryUIStore();
+
+  const handleRemoveLibrary = async () => {
+    if (libraryToRemove) {
+      await removeLibrary(libraryToRemove);
+      setRemoveLibraryDialogOpen(false);
+    }
+  };
 
   const currentPage = pagination?.page || 1;
   const totalPages = pagination?.totalPages || 1;
@@ -99,24 +122,32 @@ export function Content() {
               <BookOpenIcon className="h-12 w-12" />
             </EmptyMedia>
             <EmptyTitle>{tCommon("welcome")}</EmptyTitle>
-            <EmptyDescription>
-              {t("welcomeDescription")}
-            </EmptyDescription>
+            <EmptyDescription>{t("welcomeDescription")}</EmptyDescription>
           </EmptyHeader>
           <div className="w-full max-w-md space-y-1">
             {libraries.map((library) => (
-              <Button
-                key={library.name}
-                variant="ghost"
-                onClick={async () => {
-                  await invoke("open_library", { libraryName: library.name });
-                  setLibraryName(library.name);
-                }}
-                className="w-full justify-start text-left"
-              >
-                <LibraryIcon className="h-4 w-4 text-muted-foreground mr-2" />
-                <span className="font-medium">{library.name}</span>
-              </Button>
+              <div key={library.name} className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  onClick={async () => {
+                    await invoke("open_library", { libraryName: library.name });
+                    setLibraryName(library.name);
+                  }}
+                  className="flex-1 justify-start text-left"
+                >
+                  <LibraryIcon className="h-4 w-4 text-muted-foreground mr-2" />
+                  <span className="font-medium">{library.name}</span>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                  onClick={() => setLibraryToRemove(library.name)}
+                  title={t("removeLibrary")}
+                >
+                  <Trash2Icon className="h-4 w-4" />
+                </Button>
+              </div>
             ))}
           </div>
           <div className="flex justify-center">
@@ -129,6 +160,29 @@ export function Content() {
             </Button>
           </div>
         </Empty>
+        <AlertDialog
+          open={removeLibraryDialogOpen}
+          onOpenChange={setRemoveLibraryDialogOpen}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t("removeLibrary")}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {libraryToRemove &&
+                  t("removeLibraryConfirm", { name: libraryToRemove })}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={handleRemoveLibrary}
+              >
+                {t("removeLibrary")}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     );
   }
@@ -212,9 +266,7 @@ export function Content() {
               <BookOpenIcon className="h-12 w-12" />
             </EmptyMedia>
             <EmptyTitle>{t("noDocuments")}</EmptyTitle>
-            <EmptyDescription>
-              {t("noDocumentsDescription")}
-            </EmptyDescription>
+            <EmptyDescription>{t("noDocumentsDescription")}</EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (

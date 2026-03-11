@@ -1,6 +1,6 @@
 use crate::config::library::{
     create_library as config_create_library, get_libraries as config_get_libraries,
-    get_library_settings,
+    get_library_settings, remove_library as config_remove_library,
 };
 use crate::models::library::Library;
 use crate::services::connection_manager::open_library as cm_open_library;
@@ -64,5 +64,13 @@ pub fn open_library(app: AppHandle, library_name: String) -> Result<(), String> 
     );
     cm_open_library(library_name.clone(), library.path)?;
     log::info!("Successfully opened library: {}", library_name);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn remove_library(app: AppHandle, name: String) -> Result<(), String> {
+    log::info!("Removing library from list: {}", name);
+    config_remove_library(app, name.clone())?;
+    log::info!("Successfully removed library: {}", name);
     Ok(())
 }

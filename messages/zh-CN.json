@@ -1,6 +1,7 @@
 {
   "common": {
     "welcome": "欢迎使用 ManiBook",
+    "cancel": "取消",
     "docTypes": {
       "book": "书籍",
       "paper": "论文",
@@ -135,6 +136,8 @@
       "createLibrary": "创建文库",
       "location": "位置：",
       "closeLibrary": "关闭文库",
+      "removeLibrary": "从列表中移除",
+      "removeLibraryConfirm": "确定从列表中移除\"{name}\"吗？文件将保留在磁盘上。",
       "documentsFound": "找到 {count} 个文档",
       "noDocuments": "未找到文档",
       "noDocumentsDescription": "尝试调整搜索条件、分类筛选，或导入一些文档以开始使用。"

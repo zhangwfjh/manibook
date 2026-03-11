@@ -65,6 +65,7 @@ pub fn run() {
             commands::document::get_library_categories,
             commands::library::get_library,
             commands::library::create_library,
+            commands::library::remove_library,
             commands::document::get_cover,
             commands::document::delete_documents,
             commands::document::delete_files,

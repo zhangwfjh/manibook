@@ -1,6 +1,7 @@
 {
   "common": {
     "welcome": "Welcome to ManiBook",
+    "cancel": "Cancel",
     "docTypes": {
       "book": "Book",
       "paper": "Paper",
@@ -135,6 +136,8 @@
       "createLibrary": "Create Library",
       "location": "Location:",
       "closeLibrary": "Close library",
+      "removeLibrary": "Remove from list",
+      "removeLibraryConfirm": "Remove \"{name}\" from the library list? The files will remain on disk.",
       "documentsFound": "{count} document(s) found",
       "noDocuments": "No documents found",
       "noDocumentsDescription": "Try adjusting your search query, category filter, or import some documents to get started."

@@ -31,6 +31,7 @@ interface OperationsState {
   updateDocument: (updatedDoc: Document) => Promise<Document | undefined>;
   toggleFavorite: (document: Document) => Promise<Document | undefined>;
   createLibrary: (name: string, path: string) => Promise<boolean>;
+  removeLibrary: (name: string) => Promise<boolean>;
   closeLibrary: () => Promise<void>;
   bulkDelete: (documentIds: string[]) => Promise<void>;
   bulkMove: (documentIds: string[], doctype: string, category: string) => Promise<void>;
@@ -197,6 +198,28 @@ export const useLibraryOperations = create<OperationsState>((set, get) => ({
     } catch (error) {
       console.error("Error creating library:", error);
       toast.error(typeof error === "string" ? error : "Failed to create library");
+      return false;
+    }
+  },
+
+  removeLibrary: async (name) => {
+    try {
+      const { libraryName } = useLibraryDataStore.getState();
+
+      if (libraryName === name) {
+        const { closeLibrary } = get();
+        await closeLibrary();
+      }
+
+      await invoke("remove_library", { name });
+      toast.success(`Library removed: ${name}`);
+
+      const { refreshLibraries } = get();
+      await refreshLibraries();
+      return true;
+    } catch (error) {
+      console.error("Error removing library:", error);
+      toast.error(typeof error === "string" ? error : "Failed to remove library");
       return false;
     }
   },

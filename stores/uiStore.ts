@@ -39,6 +39,11 @@ interface UIState {
   settingsOpen: boolean;
   setSettingsOpen: (open: boolean) => void;
 
+  removeLibraryDialogOpen: boolean;
+  libraryToRemove: string | null;
+  setRemoveLibraryDialogOpen: (open: boolean) => void;
+  setLibraryToRemove: (name: string | null) => void;
+
   handleDocumentClick: (document: Document, inSelectionMode: boolean) => void;
   handleDocumentUpdate: (updatedDoc: Document) => Promise<Document | undefined>;
 }
@@ -112,6 +117,11 @@ export const useLibraryUIStore = create<UIState>((set, get) => ({
 
   settingsOpen: false,
   setSettingsOpen: (open) => set({ settingsOpen: open }),
+
+  removeLibraryDialogOpen: false,
+  libraryToRemove: null,
+  setRemoveLibraryDialogOpen: (open) => set({ removeLibraryDialogOpen: open }),
+  setLibraryToRemove: (name) => set({ libraryToRemove: name, removeLibraryDialogOpen: !!name }),
 
   handleDocumentClick: (document, inSelectionMode) => {
     if (inSelectionMode) {

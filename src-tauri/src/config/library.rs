@@ -36,6 +36,41 @@ pub fn get_library_settings(app: &AppHandle) -> Result<LibrarySettings, String> 
     )
 }
 
+pub fn remove_library(app: AppHandle, name: String) -> Result<(), String> {
+    let config_dir = app
+        .path()
+        .app_local_data_dir()
+        .map_err(|e| format!("Failed to get app config dir: {}", e))?
+        .join("config");
+    let settings_path = config_dir.join("library.json");
+
+    let mut settings: LibrarySettings = match fs::read_to_string(&settings_path) {
+        Ok(data) => {
+            serde_json::from_str(&data).map_err(|e| format!("Failed to parse settings: {}", e))?
+        }
+        Err(_) => {
+            return Err("No libraries configured".to_string());
+        }
+    };
+
+    let initial_len = settings.libraries.len();
+    settings.libraries.retain(|lib| lib.name != name);
+
+    if settings.libraries.len() == initial_len {
+        return Err(format!("Library '{}' not found", name));
+    }
+
+    if let Some(ref mut default) = settings.default_library {
+        if default == &name {
+            settings.default_library = None;
+        }
+    }
+
+    write_json_file(&settings_path, &settings)?;
+    log::info!("Removed library '{}' from list", name);
+    Ok(())
+}
+
 pub fn create_library(app: AppHandle, name: String, path: String) -> Result<(), String> {
     if name.trim().is_empty() || path.trim().is_empty() {
         return Err("Name and path are required".to_string());
