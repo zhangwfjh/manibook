@@ -72,7 +72,7 @@ impl Extractor for DjvuExtractor {
             Self::run_command_checked("djvutxt", &[&format!("--page={}-{}", start, end), &path])
                 .await?;
 
-        String::from_utf8(stdout).map_err(|e| format!("Failed to parse djvutxt output: {}", e))
+        Ok(String::from_utf8_lossy(&stdout).to_string())
     }
 
     async fn extract_images(
