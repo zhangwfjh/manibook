@@ -215,6 +215,16 @@
       "context": "上下文",
       "apiKeyNotSet": "未设置 {provider} 的 API 密钥"
     },
+    "importDrawer": {
+      "title": "导入进度",
+      "cancelAll": "全部取消",
+      "retry": "重试",
+      "export": "导出",
+      "importingCount": "正在导入 {processed}/{total} 个文件",
+      "completedAt": "完成于 {time}",
+      "importedFrom": "导入自：{path}",
+      "cancel": "取消"
+    },
     "import": {
       "title": "导入文档",
       "filesAndFolders": "文件和文件夹",

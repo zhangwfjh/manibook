@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -173,6 +174,8 @@ async function retryItems(
 }
 
 export function ImportDrawer({ open, onOpenChange }: ImportDrawerProps) {
+  const t = useTranslations("dialogs.importDrawer");
+
   const {
     currentBatch,
     cancelItem,
@@ -193,7 +196,7 @@ export function ImportDrawer({ open, onOpenChange }: ImportDrawerProps) {
     <Drawer open={open} onOpenChange={onOpenChange} direction="bottom">
       <DrawerContent className="max-h-[80vh]">
         <DrawerHeader className="flex flex-row items-center justify-between">
-          <DrawerTitle>Import Progress</DrawerTitle>
+          <DrawerTitle>{t("title")}</DrawerTitle>
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
@@ -232,7 +235,7 @@ export function ImportDrawer({ open, onOpenChange }: ImportDrawerProps) {
               }
             >
               <BanIcon className="h-4 w-4 mr-2" />
-              Cancel All
+              {t("cancelAll")}
             </Button>
             <Button
               variant="ghost"
@@ -247,7 +250,7 @@ export function ImportDrawer({ open, onOpenChange }: ImportDrawerProps) {
               }
             >
               <RotateCcwIcon className="h-4 w-4 mr-2" />
-              Retry
+              {t("retry")}
             </Button>
             <Button
               variant="ghost"
@@ -256,7 +259,7 @@ export function ImportDrawer({ open, onOpenChange }: ImportDrawerProps) {
               disabled={!currentBatch || currentBatch.items.length === 0}
             >
               <DownloadIcon className="h-4 w-4 mr-2" />
-              Export
+              {t("export")}
             </Button>
             <DrawerClose asChild>
               <Button variant="ghost" size="sm">
@@ -270,9 +273,7 @@ export function ImportDrawer({ open, onOpenChange }: ImportDrawerProps) {
           <div className="space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between text-sm text-muted-foreground">
-                <span>
-                  Importing {processed} of {total} files
-                </span>
+                <span>{t("importingCount", { processed, total })}</span>
                 <span>{Math.round(progressValue)}%</span>
               </div>
               <Progress value={progressValue} className="w-full" />
@@ -289,12 +290,14 @@ export function ImportDrawer({ open, onOpenChange }: ImportDrawerProps) {
                       </ItemTitle>
                       {item.status === "success" && item.completedAt && (
                         <ItemDescription>
-                          Completed at {format(item.completedAt, "HH:mm:ss")}
+                          {t("completedAt", {
+                            time: format(item.completedAt, "HH:mm:ss"),
+                          })}
                           {item.path && (
                             <>
                               <br />
                               <span className="text-muted-foreground mt-1">
-                                Imported from: {item.path}
+                                {t("importedFrom", { path: item.path })}
                               </span>
                             </>
                           )}
@@ -313,7 +316,7 @@ export function ImportDrawer({ open, onOpenChange }: ImportDrawerProps) {
                           size="sm"
                           onClick={() => cancelItem(item.id)}
                         >
-                          Cancel
+                          {t("cancel")}
                         </Button>
                       </ItemActions>
                     )}

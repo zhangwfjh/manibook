@@ -215,6 +215,16 @@
       "context": "context",
       "apiKeyNotSet": "API key not set for {provider}"
     },
+    "importDrawer": {
+      "title": "Import Progress",
+      "cancelAll": "Cancel All",
+      "retry": "Retry",
+      "export": "Export",
+      "importingCount": "Importing {processed} of {total} files",
+      "completedAt": "Completed at {time}",
+      "importedFrom": "Imported from: {path}",
+      "cancel": "Cancel"
+    },
     "import": {
       "title": "Import Documents",
       "filesAndFolders": "Files & Folders",
