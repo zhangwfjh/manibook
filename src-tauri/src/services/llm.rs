@@ -6,6 +6,8 @@ use futures_util::StreamExt;
 use lazy_static::lazy_static;
 use regex::Regex;
 use std::collections::HashMap;
+use std::time::Duration;
+use tokio::time::timeout;
 
 lazy_static! {
     static ref JSON_CODE_BLOCK: Regex = Regex::new(r"```json\n([\s\S]*?)\n```").unwrap();
@@ -89,7 +91,11 @@ pub async fn call_openai_api(
         model.model_id
     );
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(120))
+        .connect_timeout(Duration::from_secs(30))
+        .build()
+        .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
     let url = format!("{}/chat/completions", model.api_url.trim_end_matches('/'));
 
     let request_body = ChatRequest {
@@ -140,7 +146,10 @@ pub async fn call_openai_api(
     let mut content = String::new();
     let mut stream = response.bytes_stream();
 
-    while let Some(chunk_result) = stream.next().await {
+    while let Some(chunk_result) = timeout(Duration::from_secs(60), stream.next())
+        .await
+        .map_err(|_| "Stream chunk timeout (60s)".to_string())?
+    {
         let chunk = chunk_result.map_err(|e| {
             log::error!("Failed to read stream chunk: {}", e);
             format!("Failed to read stream chunk: {}", e)
