@@ -17,16 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmationDialog } from "@/components/confirmation-dialog";
 import {
   UploadIcon,
   LinkIcon,
@@ -413,27 +404,19 @@ export function ImportDialog({
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("deleteOriginalsTitle")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("deleteOriginalsDescription", {
-                count: successfulImports.length,
-              })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleKeepFiles}>
-              {t("keepFiles")}
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteOriginals}>
-              <Trash2Icon className="h-4 w-4 mr-2" />
-              {t("deleteOriginals")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmationDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title={t("deleteOriginalsTitle")}
+        description={t("deleteOriginalsDescription", {
+          count: successfulImports.length,
+        })}
+        cancelText={t("keepFiles")}
+        confirmText={t("deleteOriginals")}
+        onConfirm={handleDeleteOriginals}
+        onCancel={handleKeepFiles}
+        confirmIcon={<Trash2Icon className="h-4 w-4 mr-2" />}
+      />
     </>
   );
 }

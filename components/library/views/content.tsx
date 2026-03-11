@@ -18,16 +18,7 @@ import {
   EmptyDescription,
   EmptyMedia,
 } from "@/components/ui/empty";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmationDialog } from "@/components/confirmation-dialog";
 import { Button } from "@/components/ui/button";
 import { DocumentCard } from "@/components/library/documents/card";
 import { DocumentCardSkeleton } from "@/components/library/documents/card-skeleton";
@@ -160,29 +151,18 @@ export function Content() {
             </Button>
           </div>
         </Empty>
-        <AlertDialog
+        <ConfirmationDialog
           open={removeLibraryDialogOpen}
           onOpenChange={setRemoveLibraryDialogOpen}
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{t("removeLibrary")}</AlertDialogTitle>
-              <AlertDialogDescription>
-                {libraryToRemove &&
-                  t("removeLibraryConfirm", { name: libraryToRemove })}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
-              <AlertDialogAction
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                onClick={handleRemoveLibrary}
-              >
-                {t("removeLibrary")}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+          title={t("removeLibrary")}
+          description={
+            libraryToRemove &&
+            t("removeLibraryConfirm", { name: libraryToRemove })
+          }
+          cancelText={tCommon("cancel")}
+          confirmText={t("removeLibrary")}
+          onConfirm={handleRemoveLibrary}
+        />
       </div>
     );
   }

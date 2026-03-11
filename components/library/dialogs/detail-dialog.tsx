@@ -3,16 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmationDialog } from "@/components/confirmation-dialog";
 import { Document, Metadata } from "@/lib/library";
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
@@ -166,7 +157,8 @@ export function DocumentDetailDialog({
     } catch (error) {
       console.error("Error generating metadata:", error);
       alert(
-        `${t("error")}: ${error instanceof Error ? error.message : t("failedToGenerateMetadata")
+        `${t("error")}: ${
+          error instanceof Error ? error.message : t("failedToGenerateMetadata")
         }`,
       );
     } finally {
@@ -215,11 +207,7 @@ export function DocumentDetailDialog({
         </ScrollArea>
 
         <div className="flex justify-between items-center pt-4 border-t">
-          <Button
-            variant="destructive"
-            onClick={handleDelete}
-            disabled={isEditing}
-          >
+          <Button onClick={handleDelete} disabled={isEditing}>
             <TrashIcon className="h-4 w-4 mr-2" />
             {t("delete")}
           </Button>
@@ -262,28 +250,15 @@ export function DocumentDetailDialog({
         </div>
       </DialogContent>
 
-      <AlertDialog
+      <ConfirmationDialog
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("deleteDocument")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("deleteConfirm", { title: metadata.title })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {t("delete")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title={t("deleteDocument")}
+        description={t("deleteConfirm", { title: metadata.title })}
+        cancelText={t("cancel")}
+        confirmText={t("delete")}
+        onConfirm={confirmDelete}
+      />
     </Dialog>
   );
 }

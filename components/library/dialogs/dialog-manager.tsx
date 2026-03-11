@@ -4,16 +4,7 @@ import { DocumentDetailDialog } from "@/components/library/dialogs/detail-dialog
 import { CreateLibraryDialog } from "@/components/library/dialogs/create-library-dialog";
 import { ImportDialog } from "@/components/library/dialogs/import-dialog";
 import { SettingsDialog } from "@/components/library/dialogs/settings-dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmationDialog } from "@/components/confirmation-dialog";
 import { useLibraryUIStore, useLibraryOperations } from "@/stores";
 import { useImportStore } from "@/stores/importStore";
 
@@ -76,31 +67,14 @@ export function DialogManager() {
 
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
 
-      <AlertDialog
+      <ConfirmationDialog
         open={bulkDeleteDialogOpen}
         onOpenChange={setBulkDeleteDialogOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              Delete {selectedDocuments.size} Document(s)
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete {selectedDocuments.size}{" "}
-              document(s)? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => bulkDelete(Array.from(selectedDocuments))}
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title={`Delete ${selectedDocuments.size} Document(s)`}
+        description={`Are you sure you want to delete ${selectedDocuments.size} document(s)? This action cannot be undone.`}
+        confirmText="Delete"
+        onConfirm={() => bulkDelete(Array.from(selectedDocuments))}
+      />
     </>
   );
 }
