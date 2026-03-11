@@ -40,7 +40,7 @@ export function Controls() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { searchQuery, setSearchQuery } = useLibraryFilterStore();
   const { sortBy, setSortBy } = useLibraryUIStore();
-  const { libraries } = useLibraryDataStore();
+  const { libraries, libraryName } = useLibraryDataStore();
   const { isSearching } = useLibraryFilterStore();
   const {
     selectionMode,
@@ -59,8 +59,14 @@ export function Controls() {
     { value: "title-desc", label: t("sortOptions.titleDesc") },
     { value: "author-asc", label: t("sortOptions.authorAsc") },
     { value: "author-desc", label: t("sortOptions.authorDesc") },
-    { value: "publication_year-desc", label: t("sortOptions.publicationYearDesc") },
-    { value: "publication_year-asc", label: t("sortOptions.publicationYearAsc") },
+    {
+      value: "publication_year-desc",
+      label: t("sortOptions.publicationYearDesc"),
+    },
+    {
+      value: "publication_year-asc",
+      label: t("sortOptions.publicationYearAsc"),
+    },
     { value: "page_count-asc", label: t("sortOptions.pageCountAsc") },
     { value: "page_count-desc", label: t("sortOptions.pageCountDesc") },
     { value: "imported_at-desc", label: t("sortOptions.importedAtDesc") },
@@ -74,7 +80,10 @@ export function Controls() {
     const down = (e: KeyboardEvent) => {
       if (e.key === "/" && !e.metaKey && !e.ctrlKey && !e.altKey) {
         const activeElement = document.activeElement;
-        if (activeElement?.tagName === "INPUT" || activeElement?.tagName === "TEXTAREA") {
+        if (
+          activeElement?.tagName === "INPUT" ||
+          activeElement?.tagName === "TEXTAREA"
+        ) {
           return;
         }
         e.preventDefault();
@@ -174,7 +183,7 @@ export function Controls() {
                 variant="default"
                 size="sm"
                 onClick={() => setImportDialogOpen(true)}
-                disabled={libraries.length === 0}
+                disabled={!libraryName}
                 className="shadow-sm hover:shadow-md transition-all duration-200"
               >
                 <UploadIcon className="h-4 w-4 mr-2" />
