@@ -53,13 +53,19 @@ export default async function LocaleLayout({
             __html: `
               (function() {
                 try {
-                  var savedTheme = localStorage.getItem('full-theme');
-                  var color = 'slate';
-                  if (savedTheme) {
-                    var parts = savedTheme.split('-');
-                    if (parts[1]) color = parts[1];
-                  }
-                  document.documentElement.setAttribute('data-color', color);
+                  var savedTheme = localStorage.getItem('full-theme') || '';
+                  var parts = savedTheme.split('-');
+                  var mode = parts[0] || 'system';
+                  var color = parts[1] || 'slate';
+                  var validColors = ['slate','blue','green','purple','rose','orange'];
+                  if (validColors.indexOf(color) === -1) color = 'slate';
+                  var isDark;
+                  if (mode === 'dark') isDark = true;
+                  else if (mode === 'light') isDark = false;
+                  else isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                  var root = document.documentElement;
+                  root.setAttribute('data-color', color);
+                  root.classList.toggle('dark', isDark);
                 } catch (e) {}
               })();
             `,

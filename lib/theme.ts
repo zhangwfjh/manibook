@@ -1,7 +1,7 @@
 "use client";
 
 import { useTheme as useNextThemes } from "next-themes";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 export type ThemeMode = "light" | "dark" | "system";
 export type ColorTheme = "slate" | "blue" | "green" | "purple" | "rose" | "orange";
@@ -35,14 +35,9 @@ export function useTheme() {
     }
     return "slate";
   });
-  const mounted = useRef(false);
 
   useEffect(() => {
-    mounted.current = true;
-  }, []);
-
-  useEffect(() => {
-    if (!mounted.current) return;
+    if (!mode) return;
 
     const currentMode = mode === "system" ? "system" : (mode as ThemeMode);
     const fullTheme: FullTheme = `${currentMode}-${colorTheme}`;
@@ -50,7 +45,7 @@ export function useTheme() {
 
     const root = document.documentElement;
     root.setAttribute("data-color", colorTheme);
-  }, [colorTheme, mode, mounted]);
+  }, [colorTheme, mode]);
 
   const setFullTheme = (fullTheme: FullTheme) => {
     const [newMode, newColor] = fullTheme.split("-") as [ThemeMode, ColorTheme];
@@ -72,6 +67,5 @@ export function useTheme() {
     setColorTheme,
     setFullTheme,
     getResolvedMode,
-    mounted,
   };
 }
