@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { invoke } from "@tauri-apps/api/core";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
@@ -69,10 +69,6 @@ export function ImportDialog({
     resetUrlState,
     addBatch,
   } = useImportStore();
-
-  const processFilePathsRef = useRef<
-    ((paths: string[]) => Promise<void>) | null
-  >(null);
 
   async function scanFolderRecursive(folderPath: string): Promise<string[]> {
     const files: string[] = [];
@@ -193,7 +189,7 @@ export function ImportDialog({
         const webview = getCurrentWebview();
         unlisten = await webview.onDragDropEvent((event) => {
           if (event.payload.type === "drop") {
-            processFilePathsRef.current?.(event.payload.paths);
+            processFilePaths(event.payload.paths);
           }
         });
       } catch (error) {
@@ -208,11 +204,7 @@ export function ImportDialog({
         unlisten();
       }
     };
-  }, []);
-
-  useEffect(() => {
-    processFilePathsRef.current = processFilePaths;
-  });
+  }, [processFilePaths]);
 
   const handleDeleteOriginals = async () => {
     const paths = successfulImports.map((item) => item.path);
