@@ -38,7 +38,7 @@ export function DocumentCardSkeleton() {
           </div>
 
           <div className="shrink-0">
-            <Skeleton className="w-37.5 h-50 rounded" />
+            <Skeleton className="w-[150px] h-[200px] rounded" />
           </div>
         </CardContent>
       </div>

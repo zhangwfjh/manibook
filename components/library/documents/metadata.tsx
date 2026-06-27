@@ -1,3 +1,6 @@
+"use client";
+
+import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { CardTitle } from "@/components/ui/card";
 import { UsersIcon } from "lucide-react";
@@ -18,6 +21,7 @@ export function DocumentMetadata({
   showCategory = false,
   compact = false,
 }: MetadataProps) {
+  const t = useTranslations("features.documentCard");
   const titleClass = compact
     ? "font-medium max-w-xs truncate"
     : "text-lg leading-tight line-clamp-2";
@@ -29,18 +33,18 @@ export function DocumentMetadata({
     <>
       <div className="flex-1">
         <CardTitle className={titleClass} title={metadata.title}>
-          {metadata.title ? metadata.title : "Untitled"}
+          {metadata.title ? metadata.title : t("untitled")}
         </CardTitle>
         <div className={authorsClass}>
           {compact ? (
-            metadata.authors?.join(", ") || "-"
+            metadata.authors?.join(", ") || t("unknownAuthor")
           ) : (
             <>
               <UsersIcon className="h-4 w-4" />
               <span className="line-clamp-1">
                 {metadata.authors && metadata.authors.length > 0
                   ? metadata.authors.join(", ")
-                  : "Unknown"}
+                  : t("unknownAuthor")}
               </span>
             </>
           )}

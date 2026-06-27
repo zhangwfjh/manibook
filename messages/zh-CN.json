@@ -101,7 +101,19 @@
       "deleteConfirm": "确定要删除\"{title}\"吗？此操作无法撤销。",
       "thisDocument": "此文档",
       "cancel": "取消",
-      "delete": "删除"
+      "delete": "删除",
+      "openLabel": "打开文档",
+      "favoriteLabel": "收藏/取消收藏",
+      "deleteLabel": "删除文档"
+    },
+    "documentCard": {
+      "untitled": "无标题",
+      "unknownAuthor": "未知",
+      "noDescription": "暂无描述",
+      "missingYear": "?",
+      "allKeywords": "所有关键词：",
+      "openLabel": "打开\"{title}\"",
+      "selectLabel": "选择\"{title}\""
     }
   },
   "views": {

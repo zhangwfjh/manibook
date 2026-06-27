@@ -11,5 +11,6 @@ export { useLibraryDataStore } from "./dataStore";
 export { useLibraryFilterStore } from "./filterStore";
 export { useLibraryOperations } from "./operations";
 export { useLibraryUIStore } from "./uiStore";
+export { useCoverStore } from "./coverStore";
 
 export { useImportStore, type ImportItem, type ImportBatch } from "./importStore";

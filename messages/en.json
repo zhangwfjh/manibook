@@ -49,7 +49,19 @@
       "deleteConfirm": "Are you sure you want to delete \"{title}\"? This action cannot be undone.",
       "thisDocument": "this document",
       "cancel": "Cancel",
-      "delete": "Delete"
+      "delete": "Delete",
+      "openLabel": "Open document",
+      "favoriteLabel": "Toggle favorite",
+      "deleteLabel": "Delete document"
+    },
+    "documentCard": {
+      "untitled": "Untitled",
+      "unknownAuthor": "Unknown",
+      "noDescription": "No description",
+      "missingYear": "?",
+      "allKeywords": "All Keywords:",
+      "openLabel": "Open \"{title}\"",
+      "selectLabel": "Select \"{title}\""
     }
   },
   "detailSections": {

@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmationDialog } from "@/components/confirmation-dialog";
 import { HeartIcon, BookOpenIcon, TrashIcon } from "lucide-react";
@@ -46,6 +45,8 @@ export function DocumentActions({ document }: DocumentActionsProps) {
         variant="ghost"
         size="sm"
         onClick={handleOpenClick}
+        aria-label={t("openLabel")}
+        title={t("openLabel")}
         className="h-6 w-6 p-0"
       >
         <BookOpenIcon className="h-4 w-4" />
@@ -54,11 +55,14 @@ export function DocumentActions({ document }: DocumentActionsProps) {
         variant="ghost"
         size="sm"
         onClick={handleFavoriteClick}
-        className={`h-6 w-6 p-0 ${
+        aria-label={t("favoriteLabel")}
+        title={t("favoriteLabel")}
+        aria-pressed={metadata.favorite}
+        className={
           metadata.favorite
-            ? "text-red-500"
-            : "text-muted-foreground hover:text-red-500"
-        }`}
+            ? "h-6 w-6 p-0 text-primary"
+            : "h-6 w-6 p-0 text-muted-foreground hover:text-primary"
+        }
       >
         <HeartIcon
           className={`h-4 w-4 ${metadata.favorite ? "fill-current" : ""}`}
@@ -68,11 +72,12 @@ export function DocumentActions({ document }: DocumentActionsProps) {
         variant="ghost"
         size="sm"
         onClick={handleDeleteClick}
-        className="h-6 w-6 p-0 text-muted-foreground hover:text-red-500"
+        aria-label={t("deleteLabel")}
+        title={t("deleteLabel")}
+        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
       >
         <TrashIcon className="h-4 w-4" />
       </Button>
-      <Badge variant="secondary">{metadata.doctype}</Badge>
 
       <ConfirmationDialog
         open={deleteDialogOpen}

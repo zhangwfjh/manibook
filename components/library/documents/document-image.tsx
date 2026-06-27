@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Image from "next/image";
 import {
   HoverCard,
@@ -8,7 +8,7 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { Document } from "@/lib/library";
-import { invoke } from "@tauri-apps/api/core";
+import { useCoverStore } from "@/stores";
 
 interface DocumentImageProps {
   document: Document;
@@ -16,34 +16,19 @@ interface DocumentImageProps {
 
 export function DocumentImage({ document }: DocumentImageProps) {
   const { metadata } = document;
-  const [coverUrl, setCoverUrl] = useState<string>("");
-  const [coverLoading, setCoverLoading] = useState(true);
+  const coverUrl = useCoverStore((s) => s.covers[document.id]);
+  const loading = useCoverStore((s) => !!s.loading[document.id]);
+  const loadCover = useCoverStore((s) => s.loadCover);
 
-  // Load cover URL asynchronously
+  // Fetch + cache the cover once per document id.
   useEffect(() => {
-    const loadCoverUrl = async () => {
-      try {
-        const url = await invoke<string>("get_cover", {
-          documentId: document.id,
-        });
-        setCoverUrl(url);
-      } catch (error) {
-        console.error("Error loading cover URL:", error);
-        setCoverUrl(
-          "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDE1MCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNTAiIGhlaWdodD0iMjAwIiBmaWxsPSIjZjNmNGY2IiBzdHJva2U9IiNkMWQ1ZGIiIHN0cm9rZS13aWR0aD0iMSIvPgo8dGV4dCB4PSI3NSIgeT0iMTEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiM5Y2EzYWYiPk5vIENvdmVyPC90ZXh0Pgo8L3N2Zz4=",
-        );
-      } finally {
-        setCoverLoading(false);
-      }
-    };
+    loadCover(document.id);
+  }, [document.id, loadCover]);
 
-    loadCoverUrl();
-  }, [document]);
-
-  if (coverLoading) {
+  if (loading || !coverUrl) {
     return (
       <div className="shrink-0">
-        <div className="w-[150px] h-[200px] bg-muted/50 rounded animate-pulse" />
+        <div className="w-[150px] h-[200px] bg-muted/50 rounded-lg animate-pulse" />
       </div>
     );
   }
@@ -59,7 +44,7 @@ export function DocumentImage({ document }: DocumentImageProps) {
               alt={`${metadata.title} cover`}
               width={150}
               height={200}
-              className="object-cover rounded border shadow-sm hover:shadow-md transition-opacity duration-200"
+              className="object-cover rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200"
               loading="lazy"
               unoptimized
             />
@@ -76,7 +61,7 @@ export function DocumentImage({ document }: DocumentImageProps) {
             alt={`${metadata.title} cover`}
             width={480}
             height={640}
-            className="object-cover rounded border shadow-lg"
+            className="object-cover rounded-lg shadow-lg"
             loading="eager"
             unoptimized
           />
