@@ -33,7 +33,6 @@ export const DocumentCard = ({ document }: { document: Document }) => {
 
   const { toggleFavorite } = useLibraryOperations();
   const { metadata } = document;
-
   const titleForLabel = metadata.title || t("untitled");
 
   const handleCardClick = () => {
@@ -77,6 +76,10 @@ export const DocumentCard = ({ document }: { document: Document }) => {
       onClick={handleCardClick}
       onKeyDown={handleCardKeyDown}
     >
+      {/* Cover */}
+      <div className="relative w-[130px] shrink-0 overflow-hidden bg-card">
+        <DocumentImage document={document} />
+      </div>
       {/* Body */}
       <div className="flex-1 flex flex-col min-w-0 p-3 gap-2">
         {/* Identity row */}
@@ -165,9 +168,6 @@ export const DocumentCard = ({ document }: { document: Document }) => {
             </div>
           )}
         </div>
-      </div>
-      <div className="relative w-[130px] shrink-0 overflow-hidden bg-muted">
-        <DocumentImage document={document} />
       </div>
     </Card>
   );

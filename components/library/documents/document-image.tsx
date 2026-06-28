@@ -58,7 +58,7 @@ export function DocumentImage({ document }: DocumentImageProps) {
           alt={`${metadata.title} cover`}
           width={480}
           height={640}
-          className="object-cover rounded-lg shadow-lg"
+          className="object-cover rounded-lg shadow-2xl"
           loading="eager"
           unoptimized
         />
