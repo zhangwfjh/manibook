@@ -10,9 +10,10 @@ import { useLibraryOperations } from "@/stores";
 
 interface DocumentActionsProps {
   document: Document;
+  showFavorite?: boolean;
 }
 
-export function DocumentActions({ document }: DocumentActionsProps) {
+export function DocumentActions({ document, showFavorite = true }: DocumentActionsProps) {
   const t = useTranslations("features.documentActions");
   const { openDocument, toggleFavorite, deleteDocument } =
     useLibraryOperations();
@@ -51,23 +52,25 @@ export function DocumentActions({ document }: DocumentActionsProps) {
       >
         <BookOpenIcon className="h-4 w-4" />
       </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={handleFavoriteClick}
-        aria-label={t("favoriteLabel")}
-        title={t("favoriteLabel")}
-        aria-pressed={metadata.favorite}
-        className={
-          metadata.favorite
-            ? "h-6 w-6 p-0 text-primary"
-            : "h-6 w-6 p-0 text-muted-foreground hover:text-primary"
-        }
-      >
-        <HeartIcon
-          className={`h-4 w-4 ${metadata.favorite ? "fill-current" : ""}`}
-        />
-      </Button>
+      {showFavorite && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleFavoriteClick}
+          aria-label={t("favoriteLabel")}
+          title={t("favoriteLabel")}
+          aria-pressed={metadata.favorite}
+          className={
+            metadata.favorite
+              ? "h-6 w-6 p-0 text-primary"
+              : "h-6 w-6 p-0 text-muted-foreground hover:text-primary"
+          }
+        >
+          <HeartIcon
+            className={`h-4 w-4 ${metadata.favorite ? "fill-current" : ""}`}
+          />
+        </Button>
+      )}
       <Button
         variant="ghost"
         size="sm"
