@@ -7,7 +7,7 @@ import {
   SidebarRail,
   SidebarInset,
 } from "@/components/ui/sidebar";
-import { LibrarySidebar } from "@/components/library/navigation/sidebar";
+import { LibrarySidebar, TitleBar } from "@/components/library/navigation";
 import { Controls } from "@/components/library/views/controls";
 import { Content } from "@/components/library/views/content";
 import { DialogManager } from "@/components/library/dialogs/dialog-manager";
@@ -51,22 +51,25 @@ export function HomeContent() {
   }, [libraryName, selectedCategory]);
 
   return (
-    <SidebarProvider defaultOpen={true}>
-      <div className="min-h-screen bg-linear-to-br from-background via-background to-muted/10 flex">
-        <Sidebar collapsible="offcanvas" variant="sidebar" className="border-r">
-          <LibrarySidebar />
-          <SidebarRail />
-        </Sidebar>
-        <SidebarInset className="flex-1">
-          <div className="w-full px-6 py-8">
-            <Controls />
-            <Content />
-            <DialogManager />
-            <CommandPalette />
-          </div>
-        </SidebarInset>
-      </div>
-      <FloatingScrollButtons />
-    </SidebarProvider>
+    <div className="flex h-screen flex-col overflow-hidden">
+      <TitleBar />
+      <SidebarProvider defaultOpen={true}>
+        <div className="flex min-h-0 flex-1 bg-linear-to-br from-background via-background to-muted/10">
+          <Sidebar collapsible="offcanvas" variant="sidebar" className="border-r">
+            <LibrarySidebar />
+            <SidebarRail />
+          </Sidebar>
+          <SidebarInset className="flex-1 overflow-auto">
+            <div className="w-full px-6 py-8">
+              <Controls />
+              <Content />
+              <DialogManager />
+              <CommandPalette />
+            </div>
+          </SidebarInset>
+        </div>
+        <FloatingScrollButtons />
+      </SidebarProvider>
+    </div>
   );
 }
