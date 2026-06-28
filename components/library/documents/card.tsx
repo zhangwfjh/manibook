@@ -43,6 +43,7 @@ export const DocumentCard = ({ document }: { document: Document }) => {
   };
 
   const handleCardKeyDown = (e: React.KeyboardEvent) => {
+    if (e.target !== e.currentTarget) return;
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       handleDocumentClick(document, selectionMode);
@@ -61,14 +62,9 @@ export const DocumentCard = ({ document }: { document: Document }) => {
   // Footer meta: year is always shown (falls back to missingYear "?").
   // Publisher and category render only when present, each with a preceding "·".
   // Category is stored as "Main > Sub"; render as "Main › Sub".
-  const categoryParts = metadata.category ? metadata.category.split(" > ") : [];
-  const categoryLabel =
-    categoryParts.length > 0
-      ? categoryParts[0] +
-        (categoryParts.length > 1
-          ? " › " + categoryParts.slice(1).join(" › ")
-          : "")
-      : null;
+  const categoryLabel = metadata.category
+    ? metadata.category.split(" > ").join(" › ")
+    : null;
 
   const showPublisher = !!metadata.publisher;
   const showCategory = categoryLabel !== null;
@@ -76,7 +72,7 @@ export const DocumentCard = ({ document }: { document: Document }) => {
   return (
     <Card
       className={cn(
-        "group w-full h-full flex flex-row cursor-pointer overflow-hidden border-border/50 transition-all duration-200",
+        "group w-full h-full flex flex-row cursor-pointer overflow-hidden p-0 gap-0 border-border/50 transition-all duration-200",
         "hover:-translate-y-0.5 hover:shadow-lg hover:border-border",
         selected
           ? "ring-2 ring-primary bg-primary/5 border-primary/40"
@@ -101,7 +97,7 @@ export const DocumentCard = ({ document }: { document: Document }) => {
           <div className="min-w-0">
             <div
               className="font-semibold leading-snug line-clamp-2"
-              title={metadata.title}
+              title={metadata.title || undefined}
             >
               {metadata.title || t("untitled")}
             </div>
@@ -171,13 +167,13 @@ export const DocumentCard = ({ document }: { document: Document }) => {
             {showPublisher && (
               <>
                 <span className="opacity-50">·</span>
-                <span className="truncate">{metadata.publisher}</span>
+                <span>{metadata.publisher}</span>
               </>
             )}
             {showCategory && (
               <>
                 <span className="opacity-50">·</span>
-                <Badge variant="outline" className="text-[10.5px] truncate">
+                <Badge variant="outline" className="text-[10.5px]">
                   {categoryLabel}
                 </Badge>
               </>
