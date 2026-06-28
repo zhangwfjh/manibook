@@ -23,13 +23,24 @@ interface DocumentCardProps {
   index?: number;
 }
 
-function FormatBadge({ filetype }: { filetype: string }) {
-  const fmt = (filetype || "").toUpperCase();
+function FormatBadge({
+  doctype,
+  transparent = false,
+}: {
+  doctype: string;
+  transparent?: boolean;
+}) {
+  const fmt = (doctype || "").toUpperCase();
   if (!fmt) return null;
   return (
     <Badge
       variant="outline"
-      className="border-primary/25 bg-card/85 text-primary backdrop-blur-sm text-[10px] font-semibold tracking-wide uppercase h-5 px-1.5"
+      className={cn(
+        "backdrop-blur-sm text-[10px] font-semibold tracking-wide uppercase h-5 px-1.5",
+        transparent
+          ? "border-primary/15 bg-card/50 text-primary backdrop-blur-sm"
+          : "border-primary/25 bg-card/85 text-primary",
+      )}
     >
       {fmt}
     </Badge>
@@ -186,7 +197,7 @@ export const DocumentCard = ({
         <div className="relative w-[130px] shrink-0 overflow-hidden bg-card rr-rise" style={rise}>
           <DocumentImage document={document} />
           <div className="absolute top-2 left-2 z-10">
-            <FormatBadge filetype={metadata.filetype} />
+            <FormatBadge doctype={metadata.doctype} transparent />
           </div>
         </div>
         {/* Body */}
@@ -280,7 +291,7 @@ export const DocumentCard = ({
         <div className="relative aspect-[3/4] w-full overflow-hidden bg-muted/40 rr-rise" style={rise}>
           <DocumentImage document={document} />
           <div className="absolute top-2 left-2 z-10 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
-            <FormatBadge filetype={metadata.filetype} />
+            <FormatBadge doctype={metadata.doctype} transparent />
           </div>
           {selectionCheckbox && (
             <div className="absolute top-2 right-2 z-10" onClick={(e) => e.stopPropagation()}>
@@ -369,7 +380,12 @@ export const DocumentCard = ({
           >
             {metadata.title || t("untitled")}
           </span>
-          <FormatBadge filetype={metadata.filetype} />
+          <FormatBadge doctype={metadata.doctype} />
+          {metadata.filetype && (
+            <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/70">
+              {metadata.filetype}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground line-clamp-1 mt-0.5">
           <span className="italic truncate">
