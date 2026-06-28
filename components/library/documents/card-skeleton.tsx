@@ -24,7 +24,7 @@ export function DocumentCardSkeleton() {
         <Skeleton className="h-3 w-5/6" />
 
         {/* Footer */}
-        <div className="mt-auto pt-1 flex items-center gap-2">
+        <div className="mt-auto pt-2 flex items-center gap-2">
           <Skeleton className="h-3 w-10" />
           <Skeleton className="h-3 w-24" />
           <Skeleton className="h-4 w-32 rounded-full" />

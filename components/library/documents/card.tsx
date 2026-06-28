@@ -13,10 +13,9 @@ import {
 import { HeartIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Document } from "@/lib/library";
-import { useLibraryOperations } from "@/stores";
+import { useLibraryOperations, useLibraryUIStore } from "@/stores";
 import { DocumentActions } from "./document-actions";
 import { DocumentImage } from "./document-image";
-import { useLibraryUIStore } from "@/stores";
 
 export const DocumentCard = ({ document }: { document: Document }) => {
   const t = useTranslations("features.documentCard");
