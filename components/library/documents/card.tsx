@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useTranslations } from "next-intl";
+import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -176,9 +177,9 @@ export const DocumentCard = ({ document }: { document: Document }) => {
             {showCategory && (
               <>
                 <span className="opacity-50">·</span>
-                <span className="border border-border text-muted-foreground rounded-full px-1.5 py-px text-[10.5px] truncate">
+                <Badge variant="outline" className="text-[10.5px] truncate">
                   {categoryLabel}
-                </span>
+                </Badge>
               </>
             )}
           </div>
