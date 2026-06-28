@@ -300,6 +300,10 @@
       "cancel": "取消",
       "save": "保存",
       "edit": "编辑",
+      "tabAbstract": "摘要",
+      "tabDetails": "详情",
+      "tabMetadata": "元数据",
+      "tabFileInfo": "文件信息",
       "open": "打开",
       "deleteDocument": "删除文档",
       "deleteConfirm": "确定要删除\"{title}\"吗？此操作无法撤销。"

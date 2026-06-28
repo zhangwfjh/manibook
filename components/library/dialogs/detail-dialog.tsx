@@ -1,20 +1,22 @@
 "use client";
 
+import React, { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import Image from "next/image";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConfirmationDialog } from "@/components/confirmation-dialog";
-import { Document, Metadata } from "@/lib/library";
-import { useState } from "react";
+import { Document, Metadata, getFormatIcon } from "@/lib/library";
+import { useCoverStore } from "@/stores";
 import { invoke } from "@tauri-apps/api/core";
 import {
   MetadataForm,
-  MetadataView,
   AbstractSection,
   ExtraMetadata,
   FileInfo,
 } from "./detail-sections";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   TrashIcon,
   EditIcon,
@@ -22,6 +24,12 @@ import {
   XIcon,
   BookOpenIcon,
   RefreshCwIcon,
+  UsersIcon,
+  CalendarIcon,
+  FileTextIcon,
+  GlobeIcon,
+  BuildingIcon,
+  LoaderIcon,
 } from "lucide-react";
 
 interface DocumentDetailDialogProps {
@@ -33,6 +41,21 @@ interface DocumentDetailDialogProps {
   onUpdate?: (updatedDoc: Document) => void;
 }
 
+function FactPill({
+  icon: Icon,
+  children,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  children: React.ReactNode;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/70 px-2.5 py-1 text-xs font-medium text-muted-foreground">
+      <Icon className="h-3 w-3" />
+      {children}
+    </span>
+  );
+}
+
 export function DocumentDetailDialog({
   document,
   open,
@@ -42,6 +65,7 @@ export function DocumentDetailDialog({
   onUpdate,
 }: DocumentDetailDialogProps) {
   const t = useTranslations("dialogs.detail");
+  const tMeta = useTranslations("detailSections");
   const [isEditing, setIsEditing] = useState(false);
   const [editedMetadata, setEditedMetadata] = useState<Metadata | null>(
     document?.metadata || null,
@@ -51,6 +75,16 @@ export function DocumentDetailDialog({
   >({});
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const coverUrl = useCoverStore((s) => (document ? s.covers[document.id] : undefined));
+  const coverLoading = useCoverStore((s) =>
+    document ? !!s.loading[document.id] : false,
+  );
+  const loadCover = useCoverStore((s) => s.loadCover);
+
+  useEffect(() => {
+    if (document) loadCover(document.id);
+  }, [document, loadCover]);
 
   const handleOpenChange = (newOpen: boolean) => {
     onOpenChange(newOpen);
@@ -168,47 +202,208 @@ export function DocumentDetailDialog({
 
   if (!document) return null;
 
-  const { metadata } = document;
+  // Live-preview source: edited values while editing, persisted values otherwise.
+  const current = isEditing && editedMetadata ? editedMetadata : document.metadata;
+  const {
+    title,
+    authors,
+    publication_year,
+    publisher,
+    page_count,
+    language,
+    doctype,
+    category,
+    keywords,
+    filetype,
+  } = current;
+
+  const FormatIcon = filetype ? getFormatIcon(filetype) : FileTextIcon;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-5xl w-full min-w-3xl max-h-[90vh]">
-        <DialogTitle className="text-xl font-semibold">
-          {metadata.title}
-        </DialogTitle>
-        <ScrollArea className="max-h-[70vh] pr-4">
-          <div className="space-y-4">
-            {isEditing ? (
-              <MetadataForm
-                editedMetadata={editedMetadata}
-                onChange={setEditedMetadata}
-                validationErrors={validationErrors}
-              />
-            ) : (
-              <MetadataView metadata={metadata} />
-            )}
+      <DialogContent className="flex max-h-[90vh] min-w-3xl max-w-5xl w-full flex-col gap-0 overflow-hidden p-0">
+        {/* Hero — cover + identity, bleeds to the dialog edges */}
+        <div className="relative overflow-hidden border-b bg-gradient-to-br from-primary/5 via-transparent to-transparent px-6 pb-5 pt-6">
+          <div className="flex gap-6">
+            {/* Cover */}
+            <div className="relative aspect-[2/3] w-28 shrink-0 overflow-hidden rounded-md bg-muted ring-1 ring-border/60 shadow-lg">
+              {coverLoading || !coverUrl ? (
+                <div className="flex h-full w-full items-center justify-center">
+                  {coverLoading ? (
+                    <LoaderIcon className="h-5 w-4 animate-spin text-muted-foreground/50" />
+                  ) : (
+                    <BookOpenIcon className="h-8 w-8 text-muted-foreground/30" />
+                  )}
+                </div>
+              ) : (
+                <Image
+                  key={coverUrl}
+                  src={coverUrl}
+                  alt={`${title} cover`}
+                  fill
+                  className="object-contain"
+                  loading="lazy"
+                  unoptimized
+                />
+              )}
+            </div>
 
-            <AbstractSection
-              metadata={metadata}
-              isEditing={isEditing}
-              editedMetadata={editedMetadata}
-              onChange={setEditedMetadata}
-            />
+            {/* Identity */}
+            <div className="min-w-0 flex-1 pr-10">
+              <DialogTitle className="text-2xl font-semibold leading-tight tracking-tight">
+                {title || tMeta("metadataView.untitled")}
+              </DialogTitle>
+              <DialogDescription className="sr-only">
+                {authors && authors.length > 0
+                  ? authors.join(", ")
+                  : tMeta("metadataView.unknown")}
+              </DialogDescription>
 
-            <ExtraMetadata
-              metadata={metadata}
-              isEditing={isEditing}
-              editedMetadata={editedMetadata}
-              onChange={setEditedMetadata}
-            />
+              {/* Authors */}
+              <div className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
+                <UsersIcon className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">
+                  {authors && authors.length > 0
+                    ? authors.join(", ")
+                    : tMeta("metadataView.unknown")}
+                </span>
+              </div>
 
-            <FileInfo document={document} />
+              {/* Badges: doctype + category */}
+              {(doctype || category) && (
+                <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                  {doctype && (
+                    <Badge variant="secondary" className="gap-1">
+                      <BookOpenIcon className="h-3 w-3" />
+                      {doctype}
+                    </Badge>
+                  )}
+                  {category && (
+                    <Badge variant="outline" className="gap-1">
+                      <FileTextIcon className="h-3 w-3" />
+                      {category}
+                    </Badge>
+                  )}
+                </div>
+              )}
+
+              {/* Quick facts */}
+              <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                {publication_year ? (
+                  <FactPill icon={CalendarIcon}>{publication_year}</FactPill>
+                ) : null}
+                {publisher ? (
+                  <FactPill icon={BuildingIcon}>
+                    <span className="max-w-[12rem] truncate">{publisher}</span>
+                  </FactPill>
+                ) : null}
+                {page_count ? (
+                  <FactPill icon={FileTextIcon}>
+                    {page_count} {tMeta("metadata.pages").toLowerCase()}
+                  </FactPill>
+                ) : null}
+                {language ? <FactPill icon={GlobeIcon}>{language}</FactPill> : null}
+                {filetype ? (
+                  <FactPill icon={FormatIcon}>{filetype.toUpperCase()}</FactPill>
+                ) : null}
+              </div>
+
+              {/* Keywords */}
+              {keywords && keywords.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {keywords.map((keyword, index) => (
+                    <Badge
+                      key={index}
+                      variant="secondary"
+                      className="font-normal text-muted-foreground"
+                    >
+                      {keyword}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </ScrollArea>
+        </div>
 
-        <div className="flex justify-between items-center pt-4 border-t">
-          <Button onClick={handleDelete} disabled={isEditing}>
-            <TrashIcon className="h-4 w-4 mr-2" />
+        {/* Body */}
+        {isEditing ? (
+          <Tabs key="edit" defaultValue="details" className="min-h-0 flex-1 flex-col gap-0">
+            <TabsList className="mx-6 mt-4 w-fit">
+              <TabsTrigger value="details">{t("tabDetails")}</TabsTrigger>
+              <TabsTrigger value="abstract">{t("tabAbstract")}</TabsTrigger>
+              <TabsTrigger value="metadata">{t("tabMetadata")}</TabsTrigger>
+              <TabsTrigger value="fileInfo">{t("tabFileInfo")}</TabsTrigger>
+            </TabsList>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <TabsContent value="abstract" className="m-0 p-6 pt-4">
+                <AbstractSection
+                  metadata={current}
+                  isEditing={isEditing}
+                  editedMetadata={editedMetadata}
+                  onChange={setEditedMetadata}
+                />
+              </TabsContent>
+              <TabsContent value="details" className="m-0 p-6 pt-4">
+                <MetadataForm
+                  editedMetadata={editedMetadata}
+                  onChange={setEditedMetadata}
+                  validationErrors={validationErrors}
+                />
+              </TabsContent>
+              <TabsContent value="metadata" className="m-0 p-6 pt-4">
+                <ExtraMetadata
+                  metadata={current}
+                  isEditing={isEditing}
+                  editedMetadata={editedMetadata}
+                  onChange={setEditedMetadata}
+                />
+              </TabsContent>
+              <TabsContent value="fileInfo" className="m-0 p-6 pt-4">
+                <FileInfo document={{ ...document, metadata: current }} />
+              </TabsContent>
+            </div>
+          </Tabs>
+        ) : (
+          <Tabs key="view" defaultValue="abstract" className="min-h-0 flex-1 flex-col gap-0">
+            <TabsList className="mx-6 mt-4 w-fit">
+              <TabsTrigger value="abstract">{t("tabAbstract")}</TabsTrigger>
+              <TabsTrigger value="metadata">{t("tabMetadata")}</TabsTrigger>
+              <TabsTrigger value="fileInfo">{t("tabFileInfo")}</TabsTrigger>
+            </TabsList>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <TabsContent value="abstract" className="m-0 p-6 pt-4">
+                <AbstractSection
+                  metadata={current}
+                  isEditing={false}
+                  editedMetadata={editedMetadata}
+                  onChange={setEditedMetadata}
+                />
+              </TabsContent>
+              <TabsContent value="metadata" className="m-0 p-6 pt-4">
+                <ExtraMetadata
+                  metadata={current}
+                  isEditing={false}
+                  editedMetadata={editedMetadata}
+                  onChange={setEditedMetadata}
+                />
+              </TabsContent>
+              <TabsContent value="fileInfo" className="m-0 p-6 pt-4">
+                <FileInfo document={{ ...document, metadata: current }} />
+              </TabsContent>
+            </div>
+          </Tabs>
+        )}
+
+        {/* Footer actions */}
+        <div className="flex items-center justify-between gap-2 border-t bg-background/95 px-6 py-3.5 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <Button
+            variant="ghost"
+            onClick={handleDelete}
+            disabled={isEditing}
+            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+          >
+            <TrashIcon className="mr-2 h-4 w-4" />
             {t("delete")}
           </Button>
 
@@ -221,27 +416,27 @@ export function DocumentDetailDialog({
                   disabled={isGenerating}
                 >
                   <RefreshCwIcon
-                    className={`h-4 w-4 mr-2 ${isGenerating ? "animate-spin" : ""}`}
+                    className={`mr-2 h-4 w-4 ${isGenerating ? "animate-spin" : ""}`}
                   />
                   {t("generate")}
                 </Button>
                 <Button variant="outline" onClick={handleCancel}>
-                  <XIcon className="h-4 w-4 mr-2" />
+                  <XIcon className="mr-2 h-4 w-4" />
                   {t("cancel")}
                 </Button>
                 <Button onClick={handleSave}>
-                  <SaveIcon className="h-4 w-4 mr-2" />
+                  <SaveIcon className="mr-2 h-4 w-4" />
                   {t("save")}
                 </Button>
               </>
             ) : (
               <>
                 <Button variant="outline" onClick={handleEdit}>
-                  <EditIcon className="h-4 w-4 mr-2" />
+                  <EditIcon className="mr-2 h-4 w-4" />
                   {t("edit")}
                 </Button>
                 <Button onClick={handleOpen}>
-                  <BookOpenIcon className="h-4 w-4 mr-2" />
+                  <BookOpenIcon className="mr-2 h-4 w-4" />
                   {t("open")}
                 </Button>
               </>
@@ -254,7 +449,7 @@ export function DocumentDetailDialog({
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
         title={t("deleteDocument")}
-        description={t("deleteConfirm", { title: metadata.title })}
+        description={t("deleteConfirm", { title: title })}
         cancelText={t("cancel")}
         confirmText={t("delete")}
         onConfirm={confirmDelete}

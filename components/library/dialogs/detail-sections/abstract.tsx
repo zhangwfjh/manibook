@@ -1,8 +1,6 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Metadata } from "@/lib/library";
 
@@ -29,34 +27,31 @@ export function AbstractSection({
   };
 
   return (
-    <Card className="max-w-full">
-      <CardContent>
-        <Label
-          htmlFor="abstract"
-          className="text-sm font-medium text-muted-foreground"
-        >
-          {t("abstract.title")}
-        </Label>
-        {isEditing ? (
-          <Textarea
-            id="abstract"
-            value={editedMetadata?.abstract || ""}
-            onChange={(e) => handleChange(e.target.value)}
-            className="mt-1 min-h-25"
-            placeholder={t("abstract.placeholder")}
-          />
-        ) : (
-          <div className="mt-1">
-            {metadata.abstract ? (
-              <div className="text-sm leading-relaxed bg-muted/50 p-4 rounded-md">
-                {metadata.abstract}
-              </div>
-            ) : (
-              <span className="text-muted-foreground">{t("abstract.noAbstract")}</span>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    <section>
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        {t("abstract.title")}
+      </h3>
+      {isEditing ? (
+        <Textarea
+          id="abstract"
+          value={editedMetadata?.abstract || ""}
+          onChange={(e) => handleChange(e.target.value)}
+          className="mt-2 min-h-28"
+          placeholder={t("abstract.placeholder")}
+        />
+      ) : (
+        <div className="mt-2">
+          {metadata.abstract ? (
+            <blockquote className="border-l-2 border-primary/40 pl-4 text-[0.95rem] leading-relaxed text-foreground/85">
+              {metadata.abstract}
+            </blockquote>
+          ) : (
+            <p className="text-sm italic text-muted-foreground/70">
+              {t("abstract.noAbstract")}
+            </p>
+          )}
+        </div>
+      )}
+    </section>
   );
 }

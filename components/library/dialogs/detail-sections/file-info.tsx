@@ -2,9 +2,6 @@
 
 import React from "react";
 import { useTranslations } from "next-intl";
-import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import {
   Tooltip,
   TooltipContent,
@@ -16,89 +13,61 @@ interface DialogFileInfoProps {
   document: Document;
 }
 
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-[7rem_minmax(0,1fr)] items-start gap-3 py-2">
+      <dt className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+        {label}
+      </dt>
+      <dd className="min-w-0 break-all text-sm">{children}</dd>
+    </div>
+  );
+}
+
 export function FileInfo({ document }: DialogFileInfoProps) {
   const t = useTranslations("detailSections");
   const { metadata } = document;
+  const hasFormat = !!metadata.filetype;
 
   return (
-    <Card className="max-w-full">
-      <CardContent>
-        <Label className="text-sm font-medium text-muted-foreground">
+    <section className="rounded-lg border bg-card/50">
+      <div className="border-b px-4 py-2.5">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           {t("fileInfo.title")}
-        </Label>
-        <Table className="mt-3 max-w-full">
-          <TableBody>
-            <TableRow>
-              <TableCell className="w-1/6 min-w-24 font-medium">
-                {t("fileInfo.filename")}
-              </TableCell>
-              <TableCell className="max-w-0">
-                {document.url.split("/").pop()}
-              </TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell className="w-1/6 min-w-24 font-medium">
-                {t("fileInfo.filePath")}
-              </TableCell>
-              <TableCell className="max-w-0">{document.url}</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell className="w-1/6 min-w-24 font-medium">
-                {t("fileInfo.fileSize")}
-              </TableCell>
-              <TableCell className="max-w-0">
-                <div className="flex items-center gap-2">
-                  {metadata.filesize && metadata.filetype && (
-                    <>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          {React.createElement(
-                            getFormatIcon(metadata.filetype),
-                            {
-                              className: "h-4 w-4 text-muted-foreground",
-                            },
-                          )}
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {t("fileInfo.fileFormat", { format: metadata.filetype?.toUpperCase() })}
-                        </TooltipContent>
-                      </Tooltip>
-                      <span>{formatFileSize(metadata.filesize)}</span>
-                    </>
-                  )}
-                </div>
-              </TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell className="w-1/6 min-w-24 font-medium">
-                {t("fileInfo.format")}
-              </TableCell>
-              <TableCell className="max-w-0">
-                <div className="flex items-center gap-2">
-                  {metadata.filetype && (
-                    <>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          {React.createElement(
-                            getFormatIcon(metadata.filetype),
-                            {
-                              className: "h-4 w-4 text-muted-foreground",
-                            },
-                          )}
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {t("fileInfo.fileFormat", { format: metadata.filetype?.toUpperCase() })}
-                        </TooltipContent>
-                      </Tooltip>
-                      <span className="uppercase">{metadata.filetype}</span>
-                    </>
-                  )}
-                </div>
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+        </h3>
+      </div>
+      <dl className="divide-y divide-border/60 px-4">
+        <Row label={t("fileInfo.filename")}>
+          {document.url.split("/").pop()}
+        </Row>
+        <Row label={t("fileInfo.filePath")}>{document.url}</Row>
+        <Row label={t("fileInfo.fileSize")}>
+          <span className="inline-flex items-center gap-2">
+            {hasFormat && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  {React.createElement(getFormatIcon(metadata.filetype!), {
+                    className: "h-4 w-4 shrink-0 text-muted-foreground",
+                  })}
+                </TooltipTrigger>
+                <TooltipContent>
+                  {t("fileInfo.fileFormat", {
+                    format: metadata.filetype?.toUpperCase(),
+                  })}
+                </TooltipContent>
+              </Tooltip>
+            )}
+            {metadata.filesize ? formatFileSize(metadata.filesize) : "—"}
+          </span>
+        </Row>
+        <Row label={t("fileInfo.format")}>
+          {metadata.filetype ? (
+            <span className="font-mono uppercase">{metadata.filetype}</span>
+          ) : (
+            "—"
+          )}
+        </Row>
+      </dl>
+    </section>
   );
 }

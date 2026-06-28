@@ -301,6 +301,10 @@
       "save": "Save",
       "edit": "Edit",
       "open": "Open",
+      "tabAbstract": "Abstract",
+      "tabDetails": "Details",
+      "tabMetadata": "Metadata",
+      "tabFileInfo": "File Info",
       "deleteDocument": "Delete Document",
       "deleteConfirm": "Are you sure you want to delete \"{title}\"? This action cannot be undone."
     },
