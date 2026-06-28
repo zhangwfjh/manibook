@@ -2,24 +2,25 @@
 
 import React from "react";
 import { useTranslations } from "next-intl";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { CalendarIcon } from "lucide-react";
+import { HeartIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Document, formatFileSize, getFormatIcon } from "@/lib/library";
-import { DocumentMetadata } from "./metadata";
+import { Document } from "@/lib/library";
+import { useLibraryOperations } from "@/stores";
 import { DocumentActions } from "./document-actions";
 import { DocumentImage } from "./document-image";
 import { useLibraryUIStore } from "@/stores";
 
 export const DocumentCard = ({ document }: { document: Document }) => {
   const t = useTranslations("features.documentCard");
+  const tActions = useTranslations("features.documentActions");
+
   // Per-card selectors: this card only re-renders when ITS selection flips,
   // not when any other card is selected.
   const selectionMode = useLibraryUIStore((s) => s.selectionMode);
@@ -31,13 +32,8 @@ export const DocumentCard = ({ document }: { document: Document }) => {
     (s) => s.toggleDocumentSelection,
   );
 
+  const { toggleFavorite } = useLibraryOperations();
   const { metadata } = document;
-
-  const formattedFileSize = metadata.filesize
-    ? formatFileSize(metadata.filesize)
-    : null;
-
-  const formatIcon = metadata.filetype ? getFormatIcon(metadata.filetype) : null;
 
   const titleForLabel = metadata.title || t("untitled");
 
@@ -52,14 +48,34 @@ export const DocumentCard = ({ document }: { document: Document }) => {
     }
   };
 
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleFavorite(document);
+  };
+
   const cardLabel = selectionMode
     ? t("selectLabel", { title: titleForLabel })
     : t("openLabel", { title: titleForLabel });
 
+  // Footer meta: year is always shown (falls back to missingYear "?").
+  // Publisher and category render only when present, each with a preceding "·".
+  // Category is stored as "Main > Sub"; render as "Main › Sub".
+  const categoryParts = metadata.category ? metadata.category.split(" > ") : [];
+  const categoryLabel =
+    categoryParts.length > 0
+      ? categoryParts[0] +
+        (categoryParts.length > 1
+          ? " › " + categoryParts.slice(1).join(" › ")
+          : "")
+      : null;
+
+  const showPublisher = !!metadata.publisher;
+  const showCategory = categoryLabel !== null;
+
   return (
     <Card
       className={cn(
-        "group w-full h-full flex flex-row cursor-pointer border-border/50 transition-all duration-200",
+        "group w-full h-full flex flex-row cursor-pointer overflow-hidden border-border/50 transition-all duration-200",
         "hover:-translate-y-0.5 hover:shadow-lg hover:border-border",
         selected
           ? "ring-2 ring-primary bg-primary/5 border-primary/40"
@@ -72,125 +88,107 @@ export const DocumentCard = ({ document }: { document: Document }) => {
       onClick={handleCardClick}
       onKeyDown={handleCardKeyDown}
     >
-      <div className="flex-1 flex flex-col min-w-0">
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between gap-2">
-            <DocumentMetadata metadata={metadata} />
-            {selectionMode ? (
-              // Selection checkbox replaces inline actions; stopPropagation so
-              // clicking it doesn't also trigger the card's toggle (double fire).
-              <div
-                className="flex items-center gap-2 shrink-0 pt-1"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Checkbox
-                  checked={selected}
-                  onCheckedChange={() =>
-                    toggleDocumentSelection(document.id)
-                  }
-                  aria-label={t("selectLabel", { title: titleForLabel })}
-                />
-              </div>
-            ) : (
-              // Subtle until hover/focus, never fully hidden (touch-friendly).
-              <div className="flex items-center gap-1 shrink-0 opacity-70 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-                <DocumentActions document={document} />
-              </div>
-            )}
-          </div>
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <CalendarIcon className="h-4 w-4" />
-              <span>
-                {metadata.publication_year
-                  ? metadata.publication_year
-                  : t("missingYear")}
-              </span>
+      {/* Cover column — 108px, full height. Placeholder keeps layout stable. */}
+      <div className="relative w-[108px] shrink-0 overflow-hidden">
+        <DocumentImage document={document} />
+      </div>
+
+      {/* Body */}
+      <div className="flex-1 flex flex-col min-w-0 p-3 gap-2">
+        {/* Identity row */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div
+              className="font-semibold leading-snug line-clamp-2"
+              title={metadata.title}
+            >
+              {metadata.title || t("untitled")}
             </div>
-
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              {formatIcon &&
-                React.createElement(formatIcon, { className: "h-4 w-4" })}
-              {formattedFileSize && <span>{formattedFileSize}</span>}
+            <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+              {metadata.authors && metadata.authors.length > 0
+                ? metadata.authors.join(", ")
+                : t("unknownAuthor")}
             </div>
-
-            {metadata.doctype && (
-              <Badge variant="outline" className="text-xs">
-                {metadata.doctype}
-              </Badge>
-            )}
-
-            {metadata.category && (
-              <Badge variant="outline" className="text-xs">
-                {metadata.category}
-              </Badge>
-            )}
           </div>
-        </CardHeader>
 
-        <CardContent className="flex flex-row gap-4 justify-between">
-          <div className="flex flex-col justify-between space-y-4 min-w-0">
-            {metadata.abstract ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <p className="text-sm text-muted-foreground line-clamp-3 cursor-help">
-                    {metadata.abstract}
-                  </p>
-                </TooltipTrigger>
-                <TooltipContent className="max-w-sm">
-                  <div className="text-sm whitespace-pre-wrap">
-                    {metadata.abstract}
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            ) : (
-              <p className="text-sm text-muted-foreground line-clamp-3">
-                {t("noDescription")}
+          {/* Slot control: heart in normal mode, checkbox in selection mode */}
+          {selectionMode ? (
+            <div
+              className="shrink-0 pt-0.5"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Checkbox
+                checked={selected}
+                onCheckedChange={() => toggleDocumentSelection(document.id)}
+                aria-label={t("selectLabel", { title: titleForLabel })}
+              />
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleFavoriteClick}
+              aria-label={tActions("favoriteLabel")}
+              aria-pressed={metadata.favorite}
+              className={cn(
+                "shrink-0 transition-colors",
+                metadata.favorite
+                  ? "text-primary"
+                  : "text-muted-foreground/50 hover:text-primary",
+              )}
+            >
+              <HeartIcon
+                className={cn("w-[18px] h-[18px]", metadata.favorite && "fill-current")}
+              />
+            </button>
+          )}
+        </div>
+
+        {/* Abstract — 2-line clamp + tooltip with full text */}
+        {metadata.abstract ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 cursor-help">
+                {metadata.abstract}
               </p>
-            )}
+            </TooltipTrigger>
+            <TooltipContent className="max-w-sm">
+              <div className="text-sm whitespace-pre-wrap">
+                {metadata.abstract}
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        ) : (
+          <p className="text-xs text-muted-foreground/80 leading-relaxed line-clamp-2">
+            {t("noDescription")}
+          </p>
+        )}
 
-            {metadata.keywords && metadata.keywords.length > 0 && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="flex flex-wrap gap-1">
-                    {metadata.keywords.slice(0, 4).map((keyword, index) => (
-                      <Badge
-                        key={index}
-                        variant="secondary"
-                        className="text-xs"
-                      >
-                        {keyword}
-                      </Badge>
-                    ))}
-                    {metadata.keywords.length > 4 && (
-                      <Badge variant="secondary" className="text-xs">
-                        +{metadata.keywords.length - 4}
-                      </Badge>
-                    )}
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent className="max-w-sm">
-                  <div className="text-sm">
-                    <div className="font-medium mb-2">{t("allKeywords")}</div>
-                    <div className="flex flex-wrap gap-1">
-                      {metadata.keywords.map((keyword: string, index: number) => (
-                        <Badge
-                          key={index}
-                          variant="secondary"
-                          className="text-xs"
-                        >
-                          {keyword}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                </TooltipContent>
-              </Tooltip>
+        {/* Footer — meta on the left, actions on the right (hidden in selection mode) */}
+        <div className="mt-auto pt-2 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground flex-wrap min-w-0">
+            <span>{metadata.publication_year || t("missingYear")}</span>
+            {showPublisher && (
+              <>
+                <span className="opacity-50">·</span>
+                <span className="truncate">{metadata.publisher}</span>
+              </>
+            )}
+            {showCategory && (
+              <>
+                <span className="opacity-50">·</span>
+                <span className="border border-border text-muted-foreground rounded-full px-1.5 py-px text-[10.5px] truncate">
+                  {categoryLabel}
+                </span>
+              </>
             )}
           </div>
 
-          <DocumentImage document={document} />
-        </CardContent>
+          {!selectionMode && (
+            <div className="flex items-center gap-0.5 shrink-0 opacity-70 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+              <DocumentActions document={document} showFavorite={false} />
+            </div>
+          )}
+        </div>
       </div>
     </Card>
   );
