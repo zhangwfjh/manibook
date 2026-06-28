@@ -25,8 +25,7 @@ export function DocumentImage({ document }: DocumentImageProps) {
     loadCover(document.id);
   }, [document.id, loadCover]);
 
-  // Placeholder: the parent column already reserves the 108px width and full
-  // height, so rendering nothing here keeps the column stable while loading.
+  // Full-size animated placeholder: fills the column so layout stays stable while the cover loads.
   if (loading || !coverUrl) {
     return (
       <div className="w-full h-full bg-muted/60 animate-pulse" aria-hidden />
@@ -36,7 +35,7 @@ export function DocumentImage({ document }: DocumentImageProps) {
   return (
     <HoverCard>
       <HoverCardTrigger asChild>
-        <div className="w-full h-full cursor-pointer">
+        <div className="relative w-full h-full cursor-pointer">
           <Image
             key={coverUrl}
             src={coverUrl}
