@@ -25,48 +25,45 @@ export function DocumentImage({ document }: DocumentImageProps) {
     loadCover(document.id);
   }, [document.id, loadCover]);
 
+  // Placeholder: the parent column already reserves the 108px width and full
+  // height, so rendering nothing here keeps the column stable while loading.
   if (loading || !coverUrl) {
     return (
-      <div className="shrink-0">
-        <div className="w-[150px] h-[200px] bg-muted/50 rounded-lg animate-pulse" />
-      </div>
+      <div className="w-full h-full bg-muted/60 animate-pulse" aria-hidden />
     );
   }
 
   return (
-    <div className="shrink-0">
-      <HoverCard>
-        <HoverCardTrigger asChild>
-          <div className="cursor-pointer">
-            <Image
-              key={coverUrl}
-              src={coverUrl}
-              alt={`${metadata.title} cover`}
-              width={150}
-              height={200}
-              className="object-cover rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200"
-              loading="lazy"
-              unoptimized
-            />
-          </div>
-        </HoverCardTrigger>
-        <HoverCardContent
-          className="w-auto p-0 border-0 shadow-2xl"
-          side="right"
-          align="start"
-        >
+    <HoverCard>
+      <HoverCardTrigger asChild>
+        <div className="w-full h-full cursor-pointer">
           <Image
             key={coverUrl}
             src={coverUrl}
             alt={`${metadata.title} cover`}
-            width={480}
-            height={640}
-            className="object-cover rounded-lg shadow-lg"
-            loading="eager"
+            fill
+            className="object-cover"
+            loading="lazy"
             unoptimized
           />
-        </HoverCardContent>
-      </HoverCard>
-    </div>
+        </div>
+      </HoverCardTrigger>
+      <HoverCardContent
+        className="w-auto p-0 border-0 shadow-2xl"
+        side="right"
+        align="start"
+      >
+        <Image
+          key={coverUrl}
+          src={coverUrl}
+          alt={`${metadata.title} cover`}
+          width={480}
+          height={640}
+          className="object-cover rounded-lg shadow-lg"
+          loading="eager"
+          unoptimized
+        />
+      </HoverCardContent>
+    </HoverCard>
   );
 }
