@@ -1,13 +1,16 @@
 "use client";
 
 import { create } from "zustand";
-import type { Document } from "@/lib/library";
+import type { Document, ViewMode } from "@/lib/library";
 import { useLibraryOperations } from "./operations";
 import { useLibraryDataStore } from "./dataStore";
 
 interface UIState {
   sortBy: string;
   setSortBy: (sort: string) => Promise<void>;
+
+  viewMode: ViewMode;
+  setViewMode: (mode: ViewMode) => void;
 
   selectionMode: boolean;
   selectedDocuments: Set<string>;
@@ -47,16 +50,17 @@ interface UIState {
   handleDocumentClick: (document: Document, inSelectionMode: boolean) => void;
   handleDocumentUpdate: (updatedDoc: Document) => Promise<Document | undefined>;
 }
-
 export const useLibraryUIStore = create<UIState>((set, get) => ({
   sortBy: "imported_at-desc",
+  viewMode: "grid",
+  setViewMode: (mode) => set({ viewMode: mode }),
+
+  selectionMode: false,
   setSortBy: async (sort) => {
     set({ sortBy: sort });
     const { loadFilteredData } = useLibraryOperations.getState();
     await loadFilteredData();
   },
-
-  selectionMode: false,
   selectedDocuments: new Set(),
   setSelectionMode: (mode) => set({ selectionMode: mode }),
   setSelectedDocuments: (documents) => set({ selectedDocuments: documents }),

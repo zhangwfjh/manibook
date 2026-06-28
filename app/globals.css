@@ -6,8 +6,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-schibsted), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -45,6 +45,75 @@
 
 :root {
   --radius: 0.625rem;
+}
+
+/* Reading Room — warm paper, ink, oxblood accent (signature theme) */
+[data-color="paper"] {
+  --background: oklch(0.965 0.012 80);
+  --foreground: oklch(0.22 0.02 50);
+  --card: oklch(0.985 0.008 85);
+  --card-foreground: oklch(0.22 0.02 50);
+  --popover: oklch(0.985 0.008 85);
+  --popover-foreground: oklch(0.22 0.02 50);
+  --primary: oklch(0.42 0.13 28);
+  --primary-foreground: oklch(0.97 0.01 85);
+  --secondary: oklch(0.93 0.015 75);
+  --secondary-foreground: oklch(0.28 0.02 50);
+  --muted: oklch(0.92 0.013 78);
+  --muted-foreground: oklch(0.48 0.025 55);
+  --accent: oklch(0.9 0.02 70);
+  --accent-foreground: oklch(0.28 0.02 50);
+  --destructive: oklch(0.5 0.18 25);
+  --border: oklch(0.88 0.014 70);
+  --input: oklch(0.88 0.014 70);
+  --ring: oklch(0.42 0.13 28);
+  --chart-1: oklch(0.42 0.13 28);
+  --chart-2: oklch(0.5 0.09 160);
+  --chart-3: oklch(0.55 0.1 70);
+  --chart-4: oklch(0.4 0.08 250);
+  --chart-5: oklch(0.45 0.12 350);
+  --sidebar: oklch(0.95 0.013 82);
+  --sidebar-foreground: oklch(0.22 0.02 50);
+  --sidebar-primary: oklch(0.42 0.13 28);
+  --sidebar-primary-foreground: oklch(0.97 0.01 85);
+  --sidebar-accent: oklch(0.9 0.02 70);
+  --sidebar-accent-foreground: oklch(0.28 0.02 50);
+  --sidebar-border: oklch(0.87 0.014 70);
+  --sidebar-ring: oklch(0.42 0.13 28);
+}
+
+.dark[data-color="paper"] {
+  --background: oklch(0.19 0.012 55);
+  --foreground: oklch(0.93 0.012 82);
+  --card: oklch(0.235 0.014 55);
+  --card-foreground: oklch(0.93 0.012 82);
+  --popover: oklch(0.235 0.014 55);
+  --popover-foreground: oklch(0.93 0.012 82);
+  --primary: oklch(0.72 0.13 35);
+  --primary-foreground: oklch(0.19 0.012 55);
+  --secondary: oklch(0.29 0.016 55);
+  --secondary-foreground: oklch(0.93 0.012 82);
+  --muted: oklch(0.27 0.014 55);
+  --muted-foreground: oklch(0.66 0.018 70);
+  --accent: oklch(0.31 0.02 50);
+  --accent-foreground: oklch(0.93 0.012 82);
+  --destructive: oklch(0.65 0.17 22);
+  --border: oklch(0.9 0.01 80 / 12%);
+  --input: oklch(0.9 0.01 80 / 16%);
+  --ring: oklch(0.72 0.13 35);
+  --chart-1: oklch(0.72 0.13 35);
+  --chart-2: oklch(0.6 0.1 160);
+  --chart-3: oklch(0.7 0.12 70);
+  --chart-4: oklch(0.62 0.1 250);
+  --chart-5: oklch(0.6 0.13 350);
+  --sidebar: oklch(0.22 0.014 55);
+  --sidebar-foreground: oklch(0.93 0.012 82);
+  --sidebar-primary: oklch(0.72 0.13 35);
+  --sidebar-primary-foreground: oklch(0.19 0.012 55);
+  --sidebar-accent: oklch(0.31 0.02 50);
+  --sidebar-accent-foreground: oklch(0.93 0.012 82);
+  --sidebar-border: oklch(0.9 0.01 80 / 12%);
+  --sidebar-ring: oklch(0.72 0.13 35);
 }
 
 [data-color="slate"] {
@@ -455,10 +524,15 @@
   --sidebar-ring: oklch(0.65 0.25 30);
 }
 
-* {
-  transition-property: background-color, border-color, color, fill, stroke, opacity;
-  transition-duration: 300ms;
-  transition-timing-function: ease-in-out;
+/* Scoped, fast theme-switch transitions only — no global transform/opacity lag. */
+@media (prefers-reduced-motion: no-preference) {
+  *,
+  ::before,
+  ::after {
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-duration: 180ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
 }
 
 @layer base {
@@ -493,4 +567,51 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background-color: color-mix(in srgb, var(--foreground) 40%, transparent);
+}
+
+/* Paper grain — subtle material texture for the Reading Room.
+   Sits at z-index:0 behind the app shell (which is lifted via relative z-10
+   in home.tsx). We do NOT force position on every body>* child because that
+   overrides Radix Dialog's position:fixed (unlayered CSS beats @layer utilities). */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.04;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.dark body::before {
+  opacity: 0.05;
+  mix-blend-mode: soft-light;
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+  }
+  /* Book-on-desk shadow for covers and cards. */
+  .shadow-book {
+    box-shadow:
+      0 1px 2px oklch(0.2 0.02 50 / 0.12),
+      0 6px 16px -6px oklch(0.2 0.02 50 / 0.22),
+      0 14px 32px -12px oklch(0.2 0.02 50 / 0.18);
+  }
+  .dark .shadow-book {
+    box-shadow:
+      0 1px 2px oklch(0 0 0 / 0.4),
+      0 6px 16px -6px oklch(0 0 0 / 0.5),
+      0 14px 32px -12px oklch(0 0 0 / 0.45);
+  }
+  /* Staggered grid reveal. */
+  @keyframes rr-rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .rr-rise {
+    animation: rr-rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
 }

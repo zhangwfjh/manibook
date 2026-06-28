@@ -36,11 +36,14 @@ export function LibrarySidebar() {
   return (
     <>
       <SidebarHeader className="p-4">
-        <div className="space-y-2">
-          <h1 className="text-xl font-bold tracking-tight bg-linear-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-            ManiBook
+        <div className="space-y-1.5">
+          <h1 className="font-display text-2xl font-semibold tracking-tight leading-none flex items-baseline gap-1.5">
+            <span className="text-primary text-base leading-none" aria-hidden>❦</span>
+            <span>ManiBook</span>
           </h1>
-          <p className="text-muted-foreground text-xs">{t("tagline")}</p>
+          <p className="text-muted-foreground text-[11px] italic leading-snug border-l-2 border-primary/30 pl-2">
+            {t("tagline")}
+          </p>
         </div>
       </SidebarHeader>
 

@@ -36,7 +36,7 @@ export function TitleBar() {
         data-tauri-drag-region
         className="flex items-center gap-2 px-3 text-xs font-medium text-muted-foreground"
       >
-        <span data-tauri-drag-region className="tracking-tight">
+        <span data-tauri-drag-region className="font-display tracking-tight font-semibold">
           ManiBook
         </span>
       </div>

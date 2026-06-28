@@ -59,6 +59,7 @@
       "unknownAuthor": "Unknown",
       "noDescription": "No description",
       "missingYear": "?",
+      "pages": "{count} pages",
       "openLabel": "Open \"{title}\"",
       "selectLabel": "Select \"{title}\""
     }
@@ -140,6 +141,12 @@
         "importedAtAsc": "Least Recently Imported",
         "filesizeAsc": "File Size Smallest",
         "filesizeDesc": "File Size Largest"
+      },
+      "viewMode": {
+        "label": "View",
+        "grid": "Grid",
+        "cover": "Cover wall",
+        "list": "List"
       }
     },
     "content": {

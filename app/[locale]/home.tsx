@@ -51,7 +51,7 @@ export function HomeContent() {
   }, [libraryName, selectedCategory]);
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden">
+    <div className="relative z-10 flex h-screen flex-col overflow-hidden">
       <TitleBar />
       <SidebarProvider defaultOpen={true}>
         <div className="flex min-h-0 flex-1 bg-linear-to-br from-background via-background to-muted/10">

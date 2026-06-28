@@ -48,6 +48,7 @@ export function Content() {
   const { loadPage, closeLibrary, removeLibrary } = useLibraryOperations();
   const {
     sortBy,
+    viewMode,
     removeLibraryDialogOpen,
     libraryToRemove,
     setRemoveLibraryDialogOpen,
@@ -109,11 +110,11 @@ export function Content() {
       <div className="flex-1 min-w-0">
         <Empty>
           <EmptyHeader>
-            <EmptyMedia variant="icon">
+            <EmptyMedia variant="icon" className="text-primary">
               <BookOpenIcon className="h-12 w-12" />
             </EmptyMedia>
-            <EmptyTitle>{tCommon("welcome")}</EmptyTitle>
-            <EmptyDescription>{t("welcomeDescription")}</EmptyDescription>
+            <EmptyTitle className="font-display text-3xl">{tCommon("welcome")}</EmptyTitle>
+            <EmptyDescription className="italic">{t("welcomeDescription")}</EmptyDescription>
           </EmptyHeader>
           <div className="w-full max-w-md space-y-1">
             {libraries.map((library) => (
@@ -234,9 +235,17 @@ export function Content() {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6">
-          {Array.from({ length: 8 }).map((_, index) => (
-            <DocumentCardSkeleton key={index} />
+        <div
+          className={
+            viewMode === "cover"
+              ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-5"
+              : viewMode === "list"
+                ? "grid grid-cols-1 gap-2"
+                : "grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6"
+          }
+        >
+          {Array.from({ length: viewMode === "cover" ? 10 : viewMode === "list" ? 6 : 8 }).map((_, index) => (
+            <DocumentCardSkeleton key={index} variant={viewMode} />
           ))}
         </div>
       ) : documents.length === 0 ? (
@@ -245,18 +254,25 @@ export function Content() {
             <EmptyMedia variant="icon">
               <BookOpenIcon className="h-12 w-12" />
             </EmptyMedia>
-            <EmptyTitle>{t("noDocuments")}</EmptyTitle>
+            <EmptyTitle className="font-display">{t("noDocuments")}</EmptyTitle>
             <EmptyDescription>{t("noDocumentsDescription")}</EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6">
-            {paginatedItems.map((document) => (
-              <DocumentCard key={document.id} document={document} />
+          <div
+            className={
+              viewMode === "cover"
+                ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-5"
+                : viewMode === "list"
+                  ? "grid grid-cols-1 gap-2"
+                  : "grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6"
+            }
+          >
+            {paginatedItems.map((document, index) => (
+              <DocumentCard key={document.id} document={document} variant={viewMode} index={index} />
             ))}
           </div>
-
           {paginationComponent}
         </>
       )}

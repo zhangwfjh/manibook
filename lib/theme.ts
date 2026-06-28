@@ -4,11 +4,12 @@ import { useTheme as useNextThemes } from "next-themes";
 import { useEffect, useState } from "react";
 
 export type ThemeMode = "light" | "dark" | "system";
-export type ColorTheme = "slate" | "blue" | "green" | "purple" | "rose" | "orange";
+export type ColorTheme = "paper" | "slate" | "blue" | "green" | "purple" | "rose" | "orange";
 
 export type FullTheme = `${ThemeMode}-${ColorTheme}`;
 
 export const COLOR_THEMES: { value: ColorTheme; label: string; description: string }[] = [
+  { value: "paper", label: "Paper", description: "Warm reading room — cream, ink, oxblood" },
   { value: "slate", label: "Slate", description: "Neutral and professional" },
   { value: "blue", label: "Blue", description: "Calm and trustworthy" },
   { value: "green", label: "Green", description: "Fresh and natural" },
@@ -33,7 +34,7 @@ export function useTheme() {
         return savedColor as ColorTheme;
       }
     }
-    return "slate";
+    return "paper";
   });
 
   useEffect(() => {

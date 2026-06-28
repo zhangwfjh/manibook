@@ -24,7 +24,11 @@ import {
   TrashIcon,
   XIcon,
   SettingsIcon,
+  LayoutGridIcon,
+  GalleryVerticalEndIcon,
+  ListIcon,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { BulkMoveDropdown } from "@/components/library/features/move-dropdown";
 import { SortOption } from "@/components/library/types";
 import {
@@ -39,7 +43,7 @@ export function Controls() {
   const t = useTranslations("views.controls");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { searchQuery, setSearchQuery } = useLibraryFilterStore();
-  const { sortBy, setSortBy } = useLibraryUIStore();
+  const { sortBy, setSortBy, viewMode, setViewMode } = useLibraryUIStore();
   const { libraries, libraryName } = useLibraryDataStore();
   const { isSearching } = useLibraryFilterStore();
   const {
@@ -178,6 +182,37 @@ export function Controls() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div
+                className="flex items-center gap-0.5 p-0.5 rounded-md border border-border/50 bg-muted/30"
+                role="group"
+                aria-label={t("viewMode.label")}
+                data-disabled={!libraryName || undefined}
+              >
+                {([
+                  { value: "grid", icon: LayoutGridIcon, label: t("viewMode.grid") },
+                  { value: "cover", icon: GalleryVerticalEndIcon, label: t("viewMode.cover") },
+                  { value: "list", icon: ListIcon, label: t("viewMode.list") },
+                ] as const).map(({ value, icon: Icon, label }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    title={label}
+                    aria-label={label}
+                    aria-pressed={viewMode === value}
+                    disabled={!libraryName}
+                    onClick={() => setViewMode(value)}
+                    className={cn(
+                      "inline-flex h-7 w-7 items-center justify-center rounded transition-colors",
+                      "disabled:opacity-40 disabled:cursor-not-allowed",
+                      viewMode === value
+                        ? "bg-card text-primary shadow-sm"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/60",
+                    )}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                  </button>
+                ))}
               </div>
               <Button
                 variant="default"

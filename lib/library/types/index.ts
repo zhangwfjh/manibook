@@ -29,6 +29,8 @@ export interface Category {
   documents: Document[];
 }
 
+export type ViewMode = "grid" | "cover" | "list";
+
 export interface Library {
   name: string;
   path: string;

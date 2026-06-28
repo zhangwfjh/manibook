@@ -111,6 +111,7 @@
       "unknownAuthor": "未知",
       "noDescription": "暂无描述",
       "missingYear": "?",
+      "pages": "{count} 页",
       "openLabel": "打开\"{title}\"",
       "selectLabel": "选择\"{title}\""
     }
@@ -140,6 +141,12 @@
         "importedAtAsc": "最早导入",
         "filesizeAsc": "文件大小 最小",
         "filesizeDesc": "文件大小 最大"
+      },
+      "viewMode": {
+        "label": "视图",
+        "grid": "网格",
+        "cover": "封面墙",
+        "list": "列表"
       }
     },
     "content": {
