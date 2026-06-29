@@ -54,7 +54,7 @@ export function HomeContent() {
     <div className="relative z-10 flex h-screen flex-col overflow-hidden">
       <TitleBar />
       <SidebarProvider defaultOpen={true}>
-        <div className="flex min-h-0 flex-1 bg-linear-to-br from-background via-background to-muted/10">
+        <div className="flex min-h-0 flex-1 reading-room">
           <Sidebar collapsible="offcanvas" variant="sidebar" className="border-r">
             <LibrarySidebar />
             <SidebarRail />

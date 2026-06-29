@@ -4,18 +4,16 @@ import { useTheme as useNextThemes } from "next-themes";
 import { useEffect, useState } from "react";
 
 export type ThemeMode = "light" | "dark" | "system";
-export type ColorTheme = "paper" | "slate" | "blue" | "green" | "purple" | "rose" | "orange";
+export type ColorTheme = "atelier" | "graphite" | "verdant" | "carbon" | "linen";
 
 export type FullTheme = `${ThemeMode}-${ColorTheme}`;
 
 export const COLOR_THEMES: { value: ColorTheme; label: string; description: string }[] = [
-  { value: "paper", label: "Paper", description: "Warm reading room — cream, ink, oxblood" },
-  { value: "slate", label: "Slate", description: "Neutral and professional" },
-  { value: "blue", label: "Blue", description: "Calm and trustworthy" },
-  { value: "green", label: "Green", description: "Fresh and natural" },
-  { value: "purple", label: "Purple", description: "Creative and modern" },
-  { value: "rose", label: "Rose", description: "Warm and inviting" },
-  { value: "orange", label: "Orange", description: "Energetic and bold" },
+  { value: "atelier", label: "Atelier", description: "Warm archival studio — cream, ink, oxblood" },
+  { value: "graphite", label: "Graphite", description: "Cool technical — steel-blue, hairline precision" },
+  { value: "verdant", label: "Verdant", description: "Calm scholarship — green-tinted cream, emerald" },
+  { value: "carbon", label: "Carbon", description: "Dark-first deep work — carbon black, amber" },
+  { value: "linen", label: "Linen", description: "Airy daylight — linen white, muted indigo" },
 ];
 
 export const MODE_THEMES: { value: ThemeMode; label: string; description: string }[] = [
@@ -34,7 +32,7 @@ export function useTheme() {
         return savedColor as ColorTheme;
       }
     }
-    return "paper";
+    return "atelier";
   });
 
   useEffect(() => {

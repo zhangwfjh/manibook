@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter, usePathname } from "@/i18n/navigation";
 import { invoke } from "@tauri-apps/api/core";
@@ -495,19 +495,7 @@ function AppearanceSettings({
     router.replace(pathname, { locale: newLocale });
   };
 
-  const getColorSwatch = (color: string) => {
-    const colors: Record<string, string> = {
-      slate: "bg-slate-500",
-      blue: "bg-blue-500",
-      green: "bg-green-500",
-      purple: "bg-purple-500",
-      rose: "bg-rose-500",
-      orange: "bg-orange-500",
-    };
-    return colors[color] || "bg-slate-500";
-  };
-
-  const getModeIcon = (m: string) => {
+  const getModeIcon = (m: string): ReactNode => {
     switch (m) {
       case "light":
         return <SunIcon className="h-4 w-4" />;
@@ -523,7 +511,7 @@ function AppearanceSettings({
       <div className="space-y-8 animate-pulse">
         {[1, 2, 3].map((i) => (
           <div key={i} className="space-y-3">
-            <div className="h-4 w-20 bg-muted rounded" />
+            <div className="h-4 w-24 bg-muted rounded" />
             <div className="h-10 bg-muted rounded" />
           </div>
         ))}
@@ -534,81 +522,171 @@ function AppearanceSettings({
   return (
     <div className="space-y-8">
       {/* Theme Mode */}
-      <div className="space-y-3">
-        <label className="text-sm font-medium">{t("themeMode")}</label>
-        <div className="flex gap-2">
-          {MODE_THEMES.map((theme) => (
-            <button
-              key={theme.value}
-              type="button"
-              onClick={() => handleModeChange(theme.value)}
-              className={cn(
-                "flex items-center gap-2 px-4 py-2 rounded-lg border transition-all",
-                (mode || "system") === theme.value
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-muted/50 border-transparent hover:border-muted-foreground/30",
-              )}
-            >
-              {getModeIcon(theme.value)}
-              <span>{theme.label}</span>
-            </button>
-          ))}
+      <section>
+        <SectionHeader icon={<SunIcon className="h-3.5 w-3.5" />} label={t("themeMode")} />
+        <div className="grid grid-cols-3 gap-2">
+          {MODE_THEMES.map((theme) => {
+            const selected = (mode || "system") === theme.value;
+            return (
+              <button
+                key={theme.value}
+                type="button"
+                onClick={() => handleModeChange(theme.value)}
+                aria-pressed={selected}
+                className={cn(
+                  "group relative flex flex-col items-center gap-2 rounded-xl border p-3 outline-none transition-colors",
+                  selected
+                    ? "border-primary bg-primary/5"
+                    : "border-border bg-muted/30 hover:border-muted-foreground/40 hover:bg-muted/60",
+                  "focus-visible:ring-2 focus-visible:ring-ring",
+                )}
+              >
+                <span
+                  className={cn(
+                    "flex h-9 w-9 items-center justify-center rounded-full transition-colors",
+                    selected
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-background text-muted-foreground group-hover:text-foreground",
+                  )}
+                >
+                  {getModeIcon(theme.value)}
+                </span>
+                <span className="text-xs font-medium">{theme.label}</span>
+                {selected && (
+                  <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                    <CheckIcon className="h-2.5 w-2.5" strokeWidth={3} />
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
-      </div>
+      </section>
 
       {/* Color Theme */}
-      <div className="space-y-3">
-        <label className="text-sm font-medium">{t("colorTheme")}</label>
-        <div className="flex flex-wrap gap-2">
-          {COLOR_THEMES.map((theme) => (
-            <button
-              key={theme.value}
-              type="button"
-              onClick={() => handleColorChange(theme.value)}
-              className={cn(
-                "flex items-center gap-2 px-3 py-2 rounded-lg border-2 transition-all",
-                colorTheme === theme.value
-                  ? "border-primary bg-primary/5"
-                  : "border-transparent hover:border-muted-foreground/30 bg-muted/50",
-              )}
-            >
-              <div
+      <section>
+        <SectionHeader icon={<PaletteIcon className="h-3.5 w-3.5" />} label={t("colorTheme")} />
+        <div className="grid grid-cols-2 gap-2.5">
+          {COLOR_THEMES.map((theme) => {
+            const selected = colorTheme === theme.value;
+            return (
+              <button
+                key={theme.value}
+                type="button"
+                onClick={() => handleColorChange(theme.value)}
+                aria-pressed={selected}
                 className={cn(
-                  "h-4 w-4 rounded-full",
-                  getColorSwatch(theme.value),
+                  "group relative flex flex-col gap-2 rounded-xl border p-2.5 text-left outline-none transition-colors",
+                  selected
+                    ? "border-primary bg-primary/5 ring-1 ring-primary"
+                    : "border-border bg-muted/30 hover:border-muted-foreground/40 hover:bg-muted/60",
+                  "focus-visible:ring-2 focus-visible:ring-ring",
                 )}
-              />
-              <span className="text-sm">{theme.label}</span>
-              {colorTheme === theme.value && (
-                <CheckIcon className="h-3 w-3 text-primary" />
-              )}
-            </button>
-          ))}
+              >
+                <ThemePreview value={theme.value} />
+                <div className="px-0.5">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-sm font-medium leading-tight">{theme.label}</span>
+                    {selected && (
+                      <CheckIcon className="h-3.5 w-3.5 shrink-0 text-primary" strokeWidth={3} />
+                    )}
+                  </div>
+                  <p className="mt-0.5 line-clamp-1 text-[11px] leading-tight text-muted-foreground">
+                    {theme.description}
+                  </p>
+                </div>
+              </button>
+            );
+          })}
         </div>
-      </div>
+      </section>
 
       {/* Language */}
-      <div className="space-y-3">
-        <label className="text-sm font-medium flex items-center gap-2">
-          <GlobeIcon className="h-4 w-4" />
-          {t("language")}
-        </label>
-        <div className="flex gap-2">
-          {LOCALES.map((loc) => (
-            <button
-              key={loc.value}
-              type="button"
-              onClick={() => handleLocaleChange(loc.value)}
-              className={cn(
-                "px-4 py-2 rounded-lg border transition-all",
-                locale === loc.value
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-muted/50 border-transparent hover:border-muted-foreground/30",
-              )}
-            >
-              {loc.label}
-            </button>
-          ))}
+      <section>
+        <SectionHeader icon={<GlobeIcon className="h-3.5 w-3.5" />} label={t("language")} />
+        <div className="grid grid-cols-2 gap-2">
+          {LOCALES.map((loc) => {
+            const selected = locale === loc.value;
+            return (
+              <button
+                key={loc.value}
+                type="button"
+                onClick={() => handleLocaleChange(loc.value)}
+                aria-pressed={selected}
+                className={cn(
+                  "flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium outline-none transition-colors",
+                  selected
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-muted/30 hover:border-muted-foreground/40 hover:bg-muted/60",
+                  "focus-visible:ring-2 focus-visible:ring-ring",
+                )}
+              >
+                {loc.label}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/* Editorial section divider — icon chip, label, trailing rule. */
+function SectionHeader({ icon, label }: { icon: ReactNode; label: string }) {
+  return (
+    <div className="mb-3.5 flex items-center gap-2.5">
+      <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary">
+        {icon}
+      </span>
+      <span className="text-sm font-semibold tracking-tight">{label}</span>
+      <span className="h-px flex-1 bg-border" />
+    </div>
+  );
+}
+
+/*
+ * Live theme preview — a miniature app shell (sidebar + main + chart row)
+ * rendered in BOTH light and dark, each half scoped with the theme's own
+ * CSS variables via [data-color] + .dark. The preview is always faithful to
+ * globals.css because it inherits the exact tokens the real UI uses.
+ */
+function ThemePreview({ value }: { value: ColorTheme }) {
+  return (
+    <div className="grid h-12 w-full grid-cols-2 overflow-hidden rounded-md ring-1 ring-inset ring-border/70">
+      <ThemeShell value={value} dark={false} />
+      <ThemeShell value={value} dark={true} />
+    </div>
+  );
+}
+
+/* One half of the split preview — scoped to a single theme + mode. */
+function ThemeShell({ value, dark }: { value: ColorTheme; dark: boolean }) {
+  return (
+    <div
+      data-color={value}
+      className={cn(
+        "flex h-full w-full overflow-hidden",
+        dark && "dark",
+      )}
+    >
+      {/* sidebar */}
+      <div className="flex w-[28%] flex-col gap-1 bg-sidebar p-1.5">
+        <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+        <div className="mt-0.5 h-1 w-full rounded-full bg-sidebar-accent" />
+        <div className="h-1 w-3/4 rounded-full bg-muted-foreground/40" />
+        <div className="h-1 w-1/2 rounded-full bg-muted-foreground/25" />
+      </div>
+      {/* main */}
+      <div className="flex flex-1 flex-col gap-1 bg-background p-1.5">
+        <div className="h-2 w-full rounded-sm bg-primary" />
+        <div className="flex gap-1">
+          <div className="h-3 flex-1 rounded-sm border border-border bg-card" />
+          <div className="h-3 flex-1 rounded-sm border border-border bg-card" />
+        </div>
+        <div className="mt-auto flex gap-0.5">
+          <div className="h-1 flex-1 rounded-full bg-chart-1" />
+          <div className="h-1 flex-1 rounded-full bg-chart-2" />
+          <div className="h-1 flex-1 rounded-full bg-chart-3" />
         </div>
       </div>
     </div>

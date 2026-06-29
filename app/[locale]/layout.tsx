@@ -63,9 +63,9 @@ export default async function LocaleLayout({
                   var savedTheme = localStorage.getItem('full-theme') || '';
                   var parts = savedTheme.split('-');
                   var mode = parts[0] || 'system';
-                  var color = parts[1] || 'paper';
-                  var validColors = ['paper','slate','blue','green','purple','rose','orange'];
-                  if (validColors.indexOf(color) === -1) color = 'paper';
+                  var color = parts[1] || 'atelier';
+                  var validColors = ['atelier','graphite','verdant','carbon','linen'];
+                  if (validColors.indexOf(color) === -1) color = 'atelier';
                   var isDark;
                   if (mode === 'dark') isDark = true;
                   else if (mode === 'light') isDark = false;
