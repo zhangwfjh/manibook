@@ -14,3 +14,7 @@ export { useLibraryUIStore } from "./uiStore";
 export { useCoverStore } from "./coverStore";
 
 export { useImportStore, type ImportItem, type ImportBatch } from "./importStore";
+
+export { useLibraryOpsStore, type LibraryStats } from "./libraryOpsStore";
+
+export { useGeneralSettingsStore, type GeneralSettings } from "./generalSettingsStore";

@@ -68,8 +68,8 @@ export function HomeContent() {
             </div>
           </SidebarInset>
         </div>
-        <FloatingScrollButtons />
       </SidebarProvider>
+      <FloatingScrollButtons />
     </div>
   );
 }

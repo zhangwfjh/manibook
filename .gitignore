@@ -44,3 +44,8 @@ next-env.d.ts
 /src-tauri/pdfium.dll
 /src-tauri/libpdfium.dylib
 /src-tauri/libpdfium.so
+
+# Generated artifacts / non-shippable
+/.mockups/
+/docs/superpowers/
+tsconfig.tsbuildinfo

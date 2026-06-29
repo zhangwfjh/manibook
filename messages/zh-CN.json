@@ -190,7 +190,10 @@
       "searchDocuments": "搜索文档",
       "importDocuments": "导入文档",
       "settings": "设置",
-      "exportLogs": "导出日志"
+      "exportLogs": "导出日志",
+      "statistics": "图书馆统计",
+      "findDuplicates": "查找重复项",
+      "exportLibrary": "导出图书馆"
     },
     "toast": {
       "libraryClosed": "文库已关闭",
@@ -205,6 +208,7 @@
       "title": "设置",
       "appearance": "外观",
       "model": "模型",
+      "data": "数据",
       "themeMode": "主题模式",
       "colorTheme": "配色方案",
       "language": "语言",
@@ -331,5 +335,113 @@
       "cancel": "取消",
       "create": "创建"
     }
+  },
+  "stats": {
+    "title": "图书馆统计",
+    "totalDocuments": "文档总数",
+    "totalPages": "总页数",
+    "totalSize": "总大小",
+    "favorites": "收藏",
+    "rated": "已评分",
+    "aiCoverage": "AI 覆盖率",
+    "byDoctype": "按文档类型",
+    "byLanguage": "按语言",
+    "byFormat": "按格式",
+    "byYear": "按年份",
+    "loading": "正在加载统计...",
+    "noData": "无可用数据"
+  },
+  "ratings": {
+    "yourRating": "你的评分",
+    "notes": "笔记",
+    "notesPlaceholder": "添加笔记...",
+    "saved": "已保存",
+    "saving": "保存中..."
+  },
+  "duplicates": {
+    "title": "查找重复项",
+    "scanning": "正在扫描重复项...",
+    "noDuplicates": "未找到重复项",
+    "groupCount": "{count} 个重复项",
+    "delete": "删除",
+    "close": "关闭",
+    "deleteConfirm": "删除此重复项？",
+    "selectAll": "全选",
+    "invert": "反选",
+    "autoSelect": "智能选择",
+    "clearSelection": "清除",
+    "open": "打开",
+    "deleteSelected": "删除所选",
+    "bulkDeleteConfirm": "删除 {count} 个选中文档？此操作无法撤销。"
+  },
+  "batchEdit": {
+    "title": "批量编辑",
+    "editing": "正在编辑 {count} 个文档",
+    "doctype": "文档类型",
+    "category": "分类",
+    "language": "语言",
+    "keywords": "关键词",
+    "keywordsHint": "逗号分隔",
+    "rating": "评分",
+    "apply": "应用更改",
+    "cancel": "取消",
+    "selectHint": "留空跳过",
+    "success": "已更新 {count} 个文档"
+  },
+  "collections": {
+    "title": "收藏集",
+    "create": "创建收藏集",
+    "name": "收藏集名称",
+    "empty": "暂无收藏集",
+    "documents": "{count} 个文档",
+    "rename": "重命名",
+    "delete": "删除",
+    "addDocuments": "添加到收藏集",
+    "removeDocument": "从收藏集移除",
+    "deleteConfirm": "删除此收藏集？",
+    "namePlaceholder": "我的阅读清单",
+    "createButton": "创建",
+    "cancelButton": "取消",
+    "emptyCollection": "此收藏集为空"
+  },
+  "reader": {
+    "title": "阅读器",
+    "loading": "正在加载页面...",
+    "page": "页",
+    "of": "共",
+    "previous": "上一页",
+    "next": "下一页",
+    "noContent": "无可用内容"
+  },
+  "export": {
+    "title": "导出图书馆",
+    "format": "格式",
+    "bibtex": "BibTeX (.bib)",
+    "ris": "RIS (.ris)",
+    "csv": "CSV (.csv)",
+    "export": "导出",
+    "exporting": "正在导出...",
+    "success": "导出成功",
+    "error": "导出失败",
+    "scope": "正在导出 {count} 个文档",
+    "allDocuments": "所有文档"
+  },
+  "backup": {
+    "title": "备份与恢复",
+    "backup": "备份",
+    "restore": "恢复",
+    "backupSuccess": "备份创建成功",
+    "backupError": "备份失败",
+    "estimatedSize": "预计备份大小",
+    "cancel": "取消备份",
+    "cancelled": "备份已取消",
+    "restoreError": "恢复失败",
+    "restoreConfirm": "恢复将替换当前图书馆数据。继续吗？",
+    "restoreConfirmTitle": "确认恢复",
+    "estimatedSize": "预计备份大小"
+  },
+  "dragDrop": {
+    "dropHere": "拖放文件以导入",
+    "supportedFormats": "PDF, EPUB, DJVU"
   }
 }

@@ -22,6 +22,8 @@ import {
   FileDownIcon,
   FolderOpenIcon,
   SettingsIcon,
+  BarChart3Icon,
+  CopyIcon,
 } from "lucide-react";
 import {
   useLibraryDataStore,
@@ -195,6 +197,28 @@ export function CommandPalette() {
             <FileDownIcon className="mr-2 h-4 w-4" />
             <span>{t("commands.exportLogs")}</span>
           </CommandItem>
+          {libraryName && (
+            <>
+              <CommandItem
+                onSelect={() => {
+                  setOpen(false);
+                  useLibraryUIStore.getState().setStatsOpen(true);
+                }}
+              >
+                <BarChart3Icon className="mr-2 h-4 w-4" />
+                <span>{t("commands.statistics")}</span>
+              </CommandItem>
+              <CommandItem
+                onSelect={() => {
+                  setOpen(false);
+                  useLibraryUIStore.getState().setDuplicatesOpen(true);
+                }}
+              >
+                <CopyIcon className="mr-2 h-4 w-4" />
+                <span>{t("commands.findDuplicates")}</span>
+              </CommandItem>
+            </>
+          )}
         </CommandGroup>
       </CommandList>
     </CommandDialog>

@@ -37,7 +37,9 @@ import {
   MonitorIcon,
   CheckIcon,
   ChevronDownIcon,
+  DatabaseIcon,
 } from "lucide-react";
+import { BackupRestorePanel } from "@/components/library/export";
 import type { LLMSettings, Jobs } from "@/lib/llm-types";
 import {
   listProviders,
@@ -193,7 +195,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 h-10">
+          <TabsList className="grid w-full grid-cols-3 h-10">
             <TabsTrigger value="appearance" className="gap-2">
               <PaletteIcon className="h-4 w-4" />
               {t("appearance")}
@@ -201,6 +203,10 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
             <TabsTrigger value="model" className="gap-2">
               <SparklesIcon className="h-4 w-4" />
               {t("model")}
+            </TabsTrigger>
+            <TabsTrigger value="data" className="gap-2">
+              <DatabaseIcon className="h-4 w-4" />
+              {t("data")}
             </TabsTrigger>
           </TabsList>
 
@@ -441,6 +447,10 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                 </div>
               </>
             )}
+          </TabsContent>
+
+          <TabsContent value="data" className="mt-6 space-y-6">
+            <BackupRestorePanel />
           </TabsContent>
         </Tabs>
 

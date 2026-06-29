@@ -190,7 +190,10 @@
       "searchDocuments": "Search Documents",
       "importDocuments": "Import Documents",
       "settings": "Settings",
-      "exportLogs": "Export Logs"
+      "exportLogs": "Export Logs",
+      "statistics": "Library Statistics",
+      "findDuplicates": "Find Duplicates",
+      "exportLibrary": "Export Library"
     },
     "toast": {
       "libraryClosed": "Library closed",
@@ -205,6 +208,7 @@
       "title": "Settings",
       "appearance": "Appearance",
       "model": "Model",
+      "data": "Data",
       "themeMode": "Theme Mode",
       "colorTheme": "Color Theme",
       "language": "Language",
@@ -331,5 +335,113 @@
       "cancel": "Cancel",
       "create": "Create"
     }
+  },
+  "stats": {
+    "title": "Library Statistics",
+    "totalDocuments": "Total Documents",
+    "totalPages": "Total Pages",
+    "totalSize": "Total Size",
+    "favorites": "Favorites",
+    "rated": "Rated",
+    "aiCoverage": "AI Coverage",
+    "byDoctype": "By Document Type",
+    "byLanguage": "By Language",
+    "byFormat": "By Format",
+    "byYear": "By Year",
+    "loading": "Loading statistics...",
+    "noData": "No data available"
+  },
+  "ratings": {
+    "yourRating": "Your Rating",
+    "notes": "Notes",
+    "notesPlaceholder": "Add your notes...",
+    "saved": "Saved",
+    "saving": "Saving..."
+  },
+  "duplicates": {
+    "title": "Find Duplicates",
+    "scanning": "Scanning for duplicates...",
+    "noDuplicates": "No duplicates found",
+    "groupCount": "{count} duplicates",
+    "delete": "Delete",
+    "close": "Close",
+    "deleteConfirm": "Delete this duplicate?",
+    "selectAll": "Select All",
+    "invert": "Invert",
+    "autoSelect": "Auto Select",
+    "clearSelection": "Clear",
+    "open": "Open",
+    "deleteSelected": "Delete Selected",
+    "bulkDeleteConfirm": "Delete {count} selected document(s)? This cannot be undone."
+  },
+  "batchEdit": {
+    "title": "Batch Edit",
+    "editing": "Editing {count} documents",
+    "doctype": "Document Type",
+    "category": "Category",
+    "language": "Language",
+    "keywords": "Keywords",
+    "keywordsHint": "Comma-separated",
+    "rating": "Rating",
+    "apply": "Apply Changes",
+    "cancel": "Cancel",
+    "selectHint": "Leave blank to skip",
+    "success": "Updated {count} documents"
+  },
+  "collections": {
+    "title": "Collections",
+    "create": "Create Collection",
+    "name": "Collection Name",
+    "empty": "No collections yet",
+    "documents": "{count} documents",
+    "rename": "Rename",
+    "delete": "Delete",
+    "addDocuments": "Add to Collection",
+    "removeDocument": "Remove from collection",
+    "deleteConfirm": "Delete this collection?",
+    "namePlaceholder": "My Reading List",
+    "createButton": "Create",
+    "cancelButton": "Cancel",
+    "emptyCollection": "This collection is empty"
+  },
+  "reader": {
+    "title": "Reader",
+    "loading": "Loading page...",
+    "page": "Page",
+    "of": "of",
+    "previous": "Previous page",
+    "next": "Next page",
+    "noContent": "No content available"
+  },
+  "export": {
+    "title": "Export Library",
+    "format": "Format",
+    "bibtex": "BibTeX (.bib)",
+    "ris": "RIS (.ris)",
+    "csv": "CSV (.csv)",
+    "export": "Export",
+    "exporting": "Exporting...",
+    "success": "Exported successfully",
+    "error": "Export failed",
+    "scope": "Exporting {count} documents",
+    "allDocuments": "All documents"
+  },
+  "backup": {
+    "title": "Backup & Restore",
+    "backup": "Backup",
+    "restore": "Restore",
+    "backupSuccess": "Backup created successfully",
+    "backupError": "Backup failed",
+    "estimatedSize": "Estimated backup size",
+    "cancel": "Cancel backup",
+    "cancelled": "Backup cancelled",
+    "restoreError": "Restore failed",
+    "restoreConfirm": "Restoring will replace your current library data. Continue?",
+    "restoreConfirmTitle": "Confirm Restore",
+    "estimatedSize": "Estimated backup size"
+  },
+  "dragDrop": {
+    "dropHere": "Drop files to import",
+    "supportedFormats": "PDF, EPUB, DJVU"
   }
 }

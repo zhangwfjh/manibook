@@ -5,6 +5,8 @@ import { CreateLibraryDialog } from "@/components/library/dialogs/create-library
 import { ImportDialog } from "@/components/library/dialogs/import-dialog";
 import { SettingsDialog } from "@/components/library/dialogs/settings-dialog";
 import { ConfirmationDialog } from "@/components/confirmation-dialog";
+import { StatsDashboard } from "@/components/library/stats";
+import { DuplicatesDialog } from "@/components/library/duplicates";
 import { useLibraryUIStore, useLibraryOperations } from "@/stores";
 import { useImportStore } from "@/stores/importStore";
 
@@ -26,6 +28,10 @@ export function DialogManager() {
     handleDocumentUpdate,
     settingsOpen,
     setSettingsOpen,
+    statsOpen,
+    setStatsOpen,
+    duplicatesOpen,
+    setDuplicatesOpen,
   } = useLibraryUIStore();
   const {
     createLibrary,
@@ -66,6 +72,10 @@ export function DialogManager() {
       />
 
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+
+      <StatsDashboard open={statsOpen} onOpenChange={setStatsOpen} />
+
+      <DuplicatesDialog open={duplicatesOpen} onOpenChange={setDuplicatesOpen} />
 
       <ConfirmationDialog
         open={bulkDeleteDialogOpen}

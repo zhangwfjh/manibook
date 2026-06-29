@@ -20,6 +20,9 @@ pub fn run() {
                 eprintln!("Failed to create log directory at {:?}", log_dir);
             });
 
+            // Clean up old log files at startup (keep only the 5 most recent)
+            cleanup_old_logs(&log_dir);
+
             let log_level = if cfg!(debug_assertions) {
                 log::LevelFilter::Debug
             } else {
@@ -35,8 +38,8 @@ pub fn run() {
                         }),
                     ])
                     .level(log_level)
-                    .rotation_strategy(RotationStrategy::KeepAll)
-                    .max_file_size(10 * 1024 * 1024) // 10MB
+                    .rotation_strategy(RotationStrategy::KeepOne)
+                    .max_file_size(10 * 1024 * 1024) // 10MB per file
                     .build(),
             )?;
 
@@ -75,7 +78,45 @@ pub fn run() {
             commands::document::get_documents,
             commands::logs::get_logs_info,
             commands::logs::export_logs,
+            // Statistics
+            commands::library_ops::get_library_stats,
+            // Duplicate detection
+            commands::library_ops::find_duplicates,
+            // Backup / restore
+            commands::library_ops::backup_library,
+            commands::library_ops::estimate_backup_size,
+            commands::library_ops::cancel_backup,
+            commands::library_ops::restore_library,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+/// Remove old rotated log files, keeping only the 5 most recent.
+fn cleanup_old_logs(log_dir: &std::path::Path) {
+    let Ok(entries) = std::fs::read_dir(log_dir) else {
+        return;
+    };
+    let mut logs: Vec<_> = entries
+        .filter_map(|e| e.ok())
+        .filter(|e| {
+            e.path()
+                .extension()
+                .is_some_and(|ext| ext == "log" || e.path().to_string_lossy().contains("manibook"))
+        })
+        .filter_map(|e| {
+            e.metadata()
+                .ok()
+                .and_then(|m| m.modified().ok())
+                .map(|modified| (e.path(), modified))
+        })
+        .collect();
+
+    // Sort by modified time, newest first
+    logs.sort_by(|a, b| b.1.cmp(&a.1));
+
+    // Delete everything beyond the 5 most recent
+    for (path, _) in logs.iter().skip(5) {
+        let _ = std::fs::remove_file(path);
+    }
 }

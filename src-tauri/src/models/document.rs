@@ -53,7 +53,6 @@ impl DbDocument {
         }
     }
 }
-
 #[derive(Serialize, Deserialize, Clone)]
 #[allow(non_snake_case)]
 pub struct Metadata {

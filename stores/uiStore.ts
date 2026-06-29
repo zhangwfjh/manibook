@@ -49,6 +49,13 @@ interface UIState {
 
   handleDocumentClick: (document: Document, inSelectionMode: boolean) => void;
   handleDocumentUpdate: (updatedDoc: Document) => Promise<Document | undefined>;
+
+
+  statsOpen: boolean;
+  setStatsOpen: (open: boolean) => void;
+
+  duplicatesOpen: boolean;
+  setDuplicatesOpen: (open: boolean) => void;
 }
 export const useLibraryUIStore = create<UIState>((set, get) => ({
   sortBy: "imported_at-desc",
@@ -143,4 +150,12 @@ export const useLibraryUIStore = create<UIState>((set, get) => ({
     }
     return resultDoc;
   },
+
+
+  // Stats & duplicates
+  statsOpen: false,
+  setStatsOpen: (open) => set({ statsOpen: open }),
+
+  duplicatesOpen: false,
+  setDuplicatesOpen: (open) => set({ duplicatesOpen: open }),
 }));

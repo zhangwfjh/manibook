@@ -7,7 +7,7 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use std::collections::HashMap;
 use std::time::Duration;
-use tokio::time::timeout;
+use tokio::time::{sleep, timeout};
 
 lazy_static! {
     static ref JSON_CODE_BLOCK: Regex = Regex::new(r"```json\n([\s\S]*?)\n```").unwrap();
@@ -369,19 +369,27 @@ pub async fn extract_text_from_images(images: &[Vec<u8>], model: &Model) -> Resu
         },
     ];
 
-    match call_openai_api(messages, model, None).await {
-        Ok(result) => {
-            log::debug!(
-                "Successfully extracted text from images ({} chars)",
-                result.len()
-            );
-            Ok(result)
-        }
-        Err(e) => {
-            log::error!("Failed to extract text from images: {}", e);
-            Err(e)
+    let mut last_error: Option<String> = None;
+    for retry in 0..2 {
+        match call_openai_api(messages.clone(), model, None).await {
+            Ok(result) => {
+                log::debug!(
+                    "Successfully extracted text from images ({} chars) on attempt {}",
+                    result.len(),
+                    retry + 1
+                );
+                return Ok(result);
+            }
+            Err(e) => {
+                log::warn!("OCR attempt {}/2 failed: {}", retry + 1, e);
+                last_error = Some(e);
+                if retry < 1 {
+                    sleep(Duration::from_secs(1)).await;
+                }
+            }
         }
     }
+    Err(last_error.unwrap_or_else(|| "OCR failed after retries".to_string()))
 }
 
 pub async fn extract_metadata_from_text(text: &str, model: &Model) -> Result<Metadata, String> {
@@ -426,6 +434,13 @@ pub async fn extract_metadata_from_text(text: &str, model: &Model) -> Result<Met
                 last_error = Some(format!("LLM API request failed: {}", e));
                 log::warn!("LLM API call failed (attempt {}/3): {}", retry + 1, e);
             }
+        }
+
+        // Exponential backoff between retries (skip after last attempt)
+        if metadata.is_none() && retry < 2 {
+            let backoff = Duration::from_millis(500 * 2u64.pow(retry as u32));
+            log::debug!("Backing off for {:?} before retry", backoff);
+            sleep(backoff).await;
         }
     }
 

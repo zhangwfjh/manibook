@@ -13,9 +13,15 @@
     "core:window:allow-close",
     "core:window:allow-is-maximized",
     "dialog:default",
+    "dialog:allow-save",
+    "dialog:allow-open",
     "fs:default",
     {
       "identifier": "fs:allow-read-dir",
+      "allow": [{ "path": "**" }]
+    },
+    {
+      "identifier": "fs:allow-write-text-file",
       "allow": [{ "path": "**" }]
     }
   ]

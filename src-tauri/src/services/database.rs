@@ -24,10 +24,23 @@ pub(crate) fn open_database(library_path: &str) -> Result<rusqlite::Connection, 
         | OpenFlags::SQLITE_OPEN_CREATE
         | OpenFlags::SQLITE_OPEN_FULL_MUTEX;
 
-    rusqlite::Connection::open_with_flags(&db_path, flags).map_err(|e| {
+    let conn = rusqlite::Connection::open_with_flags(&db_path, flags).map_err(|e| {
         log::error!("Failed to open database at {}: {}", db_path.display(), e);
         format!("Failed to open database at {}: {}", db_path.display(), e)
-    })
+    })?;
+
+    // Enable WAL mode for concurrent read/write (import while browsing)
+    conn.pragma_update(None, "journal_mode", "WAL")
+        .map_err(|e| format!("Failed to set WAL mode: {}", e))?;
+    conn.pragma_update(None, "synchronous", "NORMAL")
+        .map_err(|e| format!("Failed to set synchronous mode: {}", e))?;
+    conn.pragma_update(None, "foreign_keys", "ON")
+        .map_err(|e| format!("Failed to enable foreign keys: {}", e))?;
+
+    // Run schema migrations for new and existing libraries
+    crate::services::migrations::run_migrations(&conn)?;
+
+    Ok(conn)
 }
 
 pub fn get_basic_info(document_id: &str) -> Result<(String, i32, i64, String, i32), String> {
@@ -267,16 +280,50 @@ pub fn get_documents(query: DocumentQuery) -> Result<DocumentList, String> {
         }
 
         if let Some(search) = &query.search_query {
-            let search_conditions = [
-                "title LIKE ?",
-                "authors LIKE ?",
-                "keywords LIKE ?",
-                "publisher LIKE ?",
-                "summary LIKE ?",
-            ];
-            where_clauses.push(format!("({})", search_conditions.join(" OR ")));
-            for _ in 0..5 {
-                params.push(format!("%{}%", search));
+            let trimmed = search.trim();
+            if !trimmed.is_empty() {
+                // Build an FTS5-safe query: keep alphanumeric tokens, prefix-match each.
+                let fts_query: String = trimmed
+                    .chars()
+                    .map(|c| {
+                        if c.is_alphanumeric() || c.is_whitespace() {
+                            c
+                        } else {
+                            ' '
+                        }
+                    })
+                    .collect();
+                let tokens: Vec<&str> = fts_query
+                    .split_whitespace()
+                    .filter(|t| !t.is_empty())
+                    .collect();
+
+                if tokens.is_empty() {
+                    // Pure CJK / non-alphanumeric — unicode61 tokenizer can't help.
+                    // Fall back to LIKE so partial CJK matches still work.
+                    let search_conditions = [
+                        "title LIKE ?",
+                        "authors LIKE ?",
+                        "keywords LIKE ?",
+                        "publisher LIKE ?",
+                        "summary LIKE ?",
+                    ];
+                    where_clauses.push(format!("({})", search_conditions.join(" OR ")));
+                    for _ in 0..5 {
+                        params.push(format!("%{}%", trimmed));
+                    }
+                } else {
+                    // FTS5 MATCH for tokenized languages (English, etc.)
+                    let fts_expr = tokens
+                        .iter()
+                        .map(|t| format!("{}*", t))
+                        .collect::<Vec<_>>()
+                        .join(" OR ");
+                    where_clauses.push(format!(
+                        "documents.rowid IN (SELECT rowid FROM documents_fts WHERE documents_fts MATCH ?)"
+                    ));
+                    params.push(fts_expr);
+                }
             }
         }
 
@@ -303,13 +350,18 @@ pub fn get_documents(query: DocumentQuery) -> Result<DocumentList, String> {
             "filesize" => "file_size",
             _ => "created_at",
         };
+        // Validate sort direction — never interpolate user input raw into SQL
+        let direction = match sort_order.to_lowercase().as_str() {
+            "asc" => "ASC",
+            _ => "DESC",
+        };
 
         let limit = query.limit.min(200);
         let offset = (query.page.saturating_sub(1)) * limit;
 
         let sql = format!(
         "SELECT id, url, doctype, title, authors, publication_year, publisher, category, language, keywords, summary, favorite, page_count, file_size, file_type, metadata FROM documents {} ORDER BY {} {} LIMIT ? OFFSET ?",
-        where_clause, order_by, sort_order
+        where_clause, order_by, direction
     );
         let mut params_with_pagination = params.clone();
         params_with_pagination.push(limit.to_string());
@@ -562,4 +614,153 @@ pub fn get_library_categories() -> Result<Vec<Category>, String> {
 
         Ok(categories)
     })
+}
+
+/// Find likely duplicates by normalized title+author similarity.
+/// Returns groups of document IDs that share a fuzzy-normalized title key.
+pub fn find_duplicates() -> Result<Vec<Vec<Document>>, String> {
+    use std::collections::HashMap;
+
+    with_connection(|conn| {
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, url, doctype, title, authors, publication_year, publisher,
+                        category, language, keywords, summary, favorite, page_count,
+                        file_size, file_type, metadata
+                 FROM documents ORDER BY title",
+            )
+            .map_err(|e| format!("Failed to prepare duplicates query: {}", e))?;
+
+        let docs: Vec<Document> = stmt
+            .query_map([], |row| {
+                DbDocument::from_row(row)
+                    .map(|db_doc| db_doc.into_document())
+                    .map_err(|e| rusqlite::Error::InvalidParameterName(e))
+            })
+            .map_err(|e| format!("Failed to query documents: {}", e))?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| format!("Failed to collect documents: {}", e))?;
+
+        // Group by normalized title (lowercase, alphanumeric only, trimmed)
+        let mut groups: HashMap<String, Vec<Document>> = HashMap::new();
+        for doc in docs {
+            let key = normalize_title(&doc.metadata.title);
+            if key.len() >= 3 {
+                groups.entry(key).or_default().push(doc);
+            }
+        }
+
+        // Only return groups with >1 member
+        let duplicates: Vec<Vec<Document>> = groups.into_values().filter(|g| g.len() > 1).collect();
+
+        Ok(duplicates)
+    })
+}
+
+/// Normalize a title for fuzzy comparison.
+fn normalize_title(title: &str) -> String {
+    title
+        .to_lowercase()
+        .chars()
+        .filter(|c| c.is_alphanumeric() || c.is_whitespace())
+        .collect::<String>()
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+/// Library statistics for the dashboard.
+#[derive(serde::Serialize)]
+pub struct LibraryStats {
+    pub total_documents: usize,
+    pub total_pages: i64,
+    pub total_size_bytes: i64,
+    pub by_doctype: std::collections::HashMap<String, usize>,
+    pub by_language: std::collections::HashMap<String, usize>,
+    pub by_format: std::collections::HashMap<String, usize>,
+    pub by_year: std::collections::HashMap<i32, usize>,
+}
+
+/// Compute aggregate library statistics.
+pub fn get_library_stats() -> Result<LibraryStats, String> {
+    with_connection(|conn| {
+        let total_documents: usize = conn
+            .query_row("SELECT COUNT(*) FROM documents", [], |row| row.get(0))
+            .map_err(|e| format!("Failed to count documents: {}", e))?;
+
+        let total_pages: i64 = conn
+            .query_row(
+                "SELECT COALESCE(SUM(page_count), 0) FROM documents",
+                [],
+                |row| row.get(0),
+            )
+            .map_err(|e| format!("Failed to sum pages: {}", e))?;
+
+        let total_size_bytes: i64 = conn
+            .query_row(
+                "SELECT COALESCE(SUM(file_size), 0) FROM documents",
+                [],
+                |row| row.get(0),
+            )
+            .map_err(|e| format!("Failed to sum file size: {}", e))?;
+
+        let by_doctype = group_count(conn, "doctype")?;
+        let by_language = group_count(conn, "language")?;
+        let by_format = group_count(conn, "file_type")?;
+        let by_year = group_count_year(conn)?;
+
+        Ok(LibraryStats {
+            total_documents,
+            total_pages,
+            total_size_bytes,
+            by_doctype,
+            by_language,
+            by_format,
+            by_year,
+        })
+    })
+}
+
+fn group_count(
+    conn: &rusqlite::Connection,
+    column: &str,
+) -> Result<std::collections::HashMap<String, usize>, String> {
+    let sql = format!(
+        "SELECT {} AS k, COUNT(*) AS c FROM documents GROUP BY {} ORDER BY c DESC",
+        column, column
+    );
+    let mut stmt = conn
+        .prepare(&sql)
+        .map_err(|e| format!("Failed to prepare group query: {}", e))?;
+    let map: std::collections::HashMap<String, usize> = stmt
+        .query_map([], |row| {
+            let k: String = row.get::<_, Option<String>>(0)?.unwrap_or_default();
+            let c: usize = row.get(1)?;
+            Ok((k, c))
+        })
+        .map_err(|e| format!("Failed to query groups: {}", e))?
+        .filter_map(|r| r.ok())
+        .collect();
+    Ok(map)
+}
+
+fn group_count_year(
+    conn: &rusqlite::Connection,
+) -> Result<std::collections::HashMap<i32, usize>, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT publication_year AS k, COUNT(*) AS c FROM documents
+             WHERE publication_year IS NOT NULL GROUP BY publication_year ORDER BY k DESC",
+        )
+        .map_err(|e| format!("Failed to prepare year query: {}", e))?;
+    let map: std::collections::HashMap<i32, usize> = stmt
+        .query_map([], |row| {
+            let k: i32 = row.get::<_, Option<i32>>(0)?.unwrap_or(0);
+            let c: usize = row.get(1)?;
+            Ok((k, c))
+        })
+        .map_err(|e| format!("Failed to query years: {}", e))?
+        .filter_map(|r| r.ok())
+        .collect();
+    Ok(map)
 }
