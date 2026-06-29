@@ -4,34 +4,52 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowUpIcon, ArrowDownIcon } from "lucide-react";
 
+// The page layout (home.tsx) is h-screen + overflow-hidden on the root, so the
+// window itself never scrolls — the SidebarInset (<main data-slot="sidebar-inset">)
+// is the real scroll container. Target it instead of `window`.
+const SCROLL_CONTAINER_SELECTOR = '[data-slot="sidebar-inset"]';
+
 export function FloatingScrollButtons() {
   const [showButtons, setShowButtons] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => {
-      const scrollTop = window.scrollY;
-      const scrollHeight = document.documentElement.scrollHeight;
-      const clientHeight = document.documentElement.clientHeight;
-      const isScrollable = scrollHeight > clientHeight;
+    const container = document.querySelector<HTMLElement>(
+      SCROLL_CONTAINER_SELECTOR,
+    );
+    if (!container) return;
 
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const isScrollable = scrollHeight > clientHeight;
       setShowButtons(isScrollable && scrollTop > 100);
     };
 
-    window.addEventListener("scroll", handleScroll);
+    container.addEventListener("scroll", handleScroll, { passive: true });
+    // Re-check on resize / content changes so buttons appear once content overflows.
+    const resizeObserver = new ResizeObserver(handleScroll);
+    resizeObserver.observe(container);
+    resizeObserver.observe(document.body);
     handleScroll();
 
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => {
+      container.removeEventListener("scroll", handleScroll);
+      resizeObserver.disconnect();
+    };
   }, []);
 
   const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    const container = document.querySelector<HTMLElement>(
+      SCROLL_CONTAINER_SELECTOR,
+    );
+    container?.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const scrollToBottom = () => {
-    window.scrollTo({
-      top: document.documentElement.scrollHeight,
-      behavior: "smooth",
-    });
+    const container = document.querySelector<HTMLElement>(
+      SCROLL_CONTAINER_SELECTOR,
+    );
+    if (!container) return;
+    container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
   };
 
   if (!showButtons) return null;
