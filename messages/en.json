@@ -12,7 +12,6 @@
   },
   "navigation": {
     "tagline": "Your friendly AI documents manager",
-    "filters": "Filters",
     "showOnlyFavorites": "Show only favorites",
     "formats": "Formats",
     "keywords": "Keywords",
@@ -20,8 +19,14 @@
     "publishers": "Publishers",
     "languages": "Languages",
     "shelves": "Shelves",
+    "allDocuments": "All documents",
     "noShelvesYet": "No shelves yet",
     "importDocumentsHint": "Import documents to organize them into categories",
+    "quickFilters": "Quick filters",
+    "filters": "Filters",
+    "activeFiltersOne": "{count} active",
+    "activeFiltersOther": "{count} active",
+    "clearAll": "Clear all",
     "filter": {
       "clearAll": "Clear All",
       "activeFilters": "Active filters:",

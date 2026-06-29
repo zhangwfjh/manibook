@@ -12,7 +12,6 @@
   },
   "navigation": {
     "tagline": "您的智能文档管理助手",
-    "filters": "筛选",
     "showOnlyFavorites": "仅显示收藏",
     "formats": "格式",
     "keywords": "关键词",
@@ -20,8 +19,14 @@
     "publishers": "出版社",
     "languages": "语言",
     "shelves": "书架",
+    "allDocuments": "全部文档",
     "noShelvesYet": "暂无书架",
     "importDocumentsHint": "导入文档以将它们整理分类",
+    "quickFilters": "快速筛选",
+    "filters": "筛选",
+    "activeFiltersOne": "已选 {count} 项",
+    "activeFiltersOther": "已选 {count} 项",
+    "clearAll": "清除全部",
     "filter": {
       "clearAll": "清除全部",
       "activeFilters": "当前筛选：",

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import {
   Collapsible,
@@ -28,6 +27,7 @@ interface CategoryNodeProps {
   onCategorySelect: (categoryPath: string) => void;
   expandedNodes: Set<string>;
   onToggleExpanded: (path: string) => void;
+  delayIndex?: number;
 }
 
 function CategoryNode({
@@ -37,6 +37,7 @@ function CategoryNode({
   onCategorySelect,
   expandedNodes,
   onToggleExpanded,
+  delayIndex,
 }: CategoryNodeProps) {
   const pathKey = category.path.join(" > ");
   const isExpanded = expandedNodes.has(pathKey);
@@ -53,6 +54,12 @@ function CategoryNode({
       onOpenChange={() => {
         onToggleExpanded(pathKey);
       }}
+      className={cn(level === 0 && delayIndex != null && "rr-rise")}
+      style={
+        level === 0 && delayIndex != null
+          ? { animationDelay: `${delayIndex * 60}ms` }
+          : undefined
+      }
     >
       <div className="relative group">
         <CollapsibleTrigger asChild>
@@ -186,62 +193,39 @@ export function Shelf() {
     });
   };
 
-  const countDocs = (cat: Category): number => {
-    let count = cat.documents.length;
-    cat.children.forEach((child) => {
-      count += countDocs(child);
-    });
-    return count;
-  };
-  const totalDocuments = categories.reduce(
-    (total, cat) => total + countDocs(cat),
-    0,
-  );
-
-  return (
-    <div className="space-y-4">
-      <div className="space-y-1">
-        <div className="flex items-center justify-between px-2">
-          <h3 className="text-sm font-semibold text-foreground">{t("shelves")}</h3>
-          {totalDocuments > 0 && (
-            <Badge
-              variant="secondary"
-              className="text-xs font-normal h-5 px-1.5"
-            >
-              {totalDocuments}
-            </Badge>
-          )}
-        </div>
-      </div>
-
-      {categories.length > 0 ? (
-        <ScrollArea className="h-96 whitespace-nowrap">
-          <div className="space-y-0.5 min-w-0 px-1">
-            {categories.map((category, index) => (
-              <CategoryNode
-                key={index}
-                category={category}
-                level={0}
-                selectedCategory={selectedCategory}
-                onCategorySelect={setSelectedCategory}
-                expandedNodes={expandedNodes}
-                onToggleExpanded={handleToggleExpanded}
-              />
-            ))}
-          </div>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
-      ) : (
-        <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
-          <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mb-3">
+  if (categories.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+        <div className="relative mb-3">
+          <div className="absolute inset-0 -m-2 rr-glow rounded-full opacity-60" />
+          <div className="relative w-12 h-12 rounded-full bg-muted/60 flex items-center justify-center ring-1 ring-border/60">
             <FolderIcon className="h-5 w-5 text-muted-foreground" />
           </div>
-          <p className="text-sm text-muted-foreground mb-1">{t("noShelvesYet")}</p>
-          <p className="text-xs text-muted-foreground/70">
-            {t("importDocumentsHint")}
-          </p>
         </div>
-      )}
+        <p className="text-sm font-medium text-foreground/80 mb-1">
+          {t("noShelvesYet")}
+        </p>
+        <p className="text-xs text-muted-foreground/70 leading-relaxed max-w-[16rem]">
+          {t("importDocumentsHint")}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-0.5 min-w-0">
+      {categories.map((category, index) => (
+        <CategoryNode
+          key={index}
+          category={category}
+          level={0}
+          delayIndex={index}
+          selectedCategory={selectedCategory}
+          onCategorySelect={setSelectedCategory}
+          expandedNodes={expandedNodes}
+          onToggleExpanded={handleToggleExpanded}
+        />
+      ))}
     </div>
   );
 }
