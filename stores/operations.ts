@@ -176,8 +176,26 @@ export const useLibraryOperations = create<OperationsState>((set, get) => ({
         favorite: !document.metadata.favorite,
       },
     };
-    const { updateDocument } = get();
-    return await updateDocument(updatedDoc);
+    // Optimistic local update — patch just this document in the store so only
+    // its card re-renders. Do NOT refetch the whole list (updateDocument does).
+    const { documents, setDocuments } = useLibraryDataStore.getState();
+    setDocuments(
+      documents.map((d) => (d.id === updatedDoc.id ? updatedDoc : d)),
+    );
+    try {
+      return await invoke<Document>("update_document", {
+        documentId: updatedDoc.id,
+        metadata: updatedDoc.metadata,
+      });
+    } catch (error) {
+      // Revert on failure.
+      setDocuments(
+        documents.map((d) => (d.id === document.id ? document : d)),
+      );
+      console.error("Error toggling favorite:", error);
+      toast.error("Failed to toggle favorite");
+      return document;
+    }
   },
 
   createLibrary: async (name, path) => {

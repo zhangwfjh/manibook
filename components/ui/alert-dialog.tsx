@@ -50,7 +50,7 @@ function AlertDialogContent({
 }: React.ComponentProps<typeof AlertDialogPrimitive.Content>) {
   return (
     <AlertDialogPortal>
-      <AlertDialogOverlay />
+      <AlertDialogOverlay onClick={(e) => e.stopPropagation()} />
       <AlertDialogPrimitive.Content
         data-slot="alert-dialog-content"
         className={cn(

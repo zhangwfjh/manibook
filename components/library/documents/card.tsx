@@ -2,7 +2,6 @@
 
 import React from "react";
 import { useTranslations } from "next-intl";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -59,19 +58,13 @@ export const DocumentCard = ({ document }: { document: Document }) => {
     : t("openLabel", { title: titleForLabel });
 
   // Footer meta: year is always shown (falls back to missingYear "?").
-  // Publisher and category render only when present, each with a preceding "·".
-  // Category is stored as "Main > Sub"; render as "Main › Sub".
-  const categoryLabel = metadata.category
-    ? metadata.category.split(" > ").join(" › ")
-    : null;
-
+  // Publisher renders only when present, with a preceding "·".
   const showPublisher = !!metadata.publisher;
-  const showCategory = categoryLabel !== null;
 
   return (
     <Card
       className={cn(
-        "group w-full h-full flex flex-row cursor-pointer overflow-hidden p-0 gap-0 border-border/50 transition-all duration-200",
+        "group w-full h-full min-h-[150px] flex flex-row cursor-pointer overflow-hidden p-0 gap-0 border-border/50 transition-all duration-200",
         "hover:-translate-y-0.5 hover:shadow-lg hover:border-border",
         selected
           ? "ring-2 ring-primary bg-primary/5 border-primary/40"
@@ -84,11 +77,6 @@ export const DocumentCard = ({ document }: { document: Document }) => {
       onClick={handleCardClick}
       onKeyDown={handleCardKeyDown}
     >
-      {/* Cover column — 108px, full height. Placeholder keeps layout stable. */}
-      <div className="relative w-[108px] shrink-0 overflow-hidden">
-        <DocumentImage document={document} />
-      </div>
-
       {/* Body */}
       <div className="flex-1 flex flex-col min-w-0 p-3 gap-2">
         {/* Identity row */}
@@ -143,7 +131,7 @@ export const DocumentCard = ({ document }: { document: Document }) => {
         {metadata.abstract ? (
           <Tooltip>
             <TooltipTrigger asChild>
-              <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 cursor-help">
+              <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3 cursor-help">
                 {metadata.abstract}
               </p>
             </TooltipTrigger>
@@ -154,37 +142,32 @@ export const DocumentCard = ({ document }: { document: Document }) => {
             </TooltipContent>
           </Tooltip>
         ) : (
-          <p className="text-xs text-muted-foreground/80 leading-relaxed line-clamp-2">
+          <p className="text-xs text-muted-foreground/80 leading-relaxed line-clamp-3">
             {t("noDescription")}
           </p>
         )}
 
         {/* Footer — meta on the left, actions on the right (hidden in selection mode) */}
         <div className="mt-auto pt-2 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground flex-wrap min-w-0">
-            <span>{metadata.publication_year || t("missingYear")}</span>
+          <div className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground min-w-0 overflow-hidden">
+            <span className="shrink-0">{metadata.publication_year || t("missingYear")}</span>
             {showPublisher && (
               <>
-                <span className="opacity-50">·</span>
-                <span>{metadata.publisher}</span>
-              </>
-            )}
-            {showCategory && (
-              <>
-                <span className="opacity-50">·</span>
-                <Badge variant="outline" className="text-[10.5px]">
-                  {categoryLabel}
-                </Badge>
+                <span className="opacity-50 shrink-0">·</span>
+                <span className="truncate">{metadata.publisher}</span>
               </>
             )}
           </div>
 
           {!selectionMode && (
             <div className="flex items-center gap-0.5 shrink-0 opacity-70 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-              <DocumentActions document={document} showFavorite={false} />
+              <DocumentActions document={document} showFavorite={false} showDelete={false} />
             </div>
           )}
         </div>
+      </div>
+      <div className="relative w-[130px] shrink-0 overflow-hidden bg-muted">
+        <DocumentImage document={document} />
       </div>
     </Card>
   );

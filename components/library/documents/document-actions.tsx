@@ -11,9 +11,14 @@ import { useLibraryOperations } from "@/stores";
 interface DocumentActionsProps {
   document: Document;
   showFavorite?: boolean;
+  showDelete?: boolean;
 }
 
-export function DocumentActions({ document, showFavorite = true }: DocumentActionsProps) {
+export function DocumentActions({
+  document,
+  showFavorite = true,
+  showDelete = true,
+}: DocumentActionsProps) {
   const t = useTranslations("features.documentActions");
   const { openDocument, toggleFavorite, deleteDocument } =
     useLibraryOperations();
@@ -71,16 +76,18 @@ export function DocumentActions({ document, showFavorite = true }: DocumentActio
           />
         </Button>
       )}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={handleDeleteClick}
-        aria-label={t("deleteLabel")}
-        title={t("deleteLabel")}
-        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-      >
-        <TrashIcon className="h-4 w-4" />
-      </Button>
+      {showDelete && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleDeleteClick}
+          aria-label={t("deleteLabel")}
+          title={t("deleteLabel")}
+          className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+        >
+          <TrashIcon className="h-4 w-4" />
+        </Button>
+      )}
 
       <ConfirmationDialog
         open={deleteDialogOpen}

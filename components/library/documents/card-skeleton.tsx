@@ -3,11 +3,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 export function DocumentCardSkeleton() {
   return (
     <div className="w-full h-full flex flex-row rounded-lg border border-border/60 overflow-hidden">
-      {/* Cover column */}
-      <div className="w-[108px] shrink-0">
-        <Skeleton className="w-full h-full" />
-      </div>
-
       {/* Body */}
       <div className="flex-1 flex flex-col min-w-0 p-3 gap-2">
         {/* Identity row */}
@@ -29,6 +24,10 @@ export function DocumentCardSkeleton() {
           <Skeleton className="h-3 w-24" />
           <Skeleton className="h-4 w-32 rounded-full" />
         </div>
+      </div>
+      {/* Cover column */}
+      <div className="w-[130px] shrink-0">
+        <Skeleton className="w-full h-full" />
       </div>
     </div>
   );

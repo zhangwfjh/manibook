@@ -41,7 +41,7 @@ export function DocumentImage({ document }: DocumentImageProps) {
             src={coverUrl}
             alt={`${metadata.title} cover`}
             fill
-            className="object-cover"
+            className="object-contain"
             loading="lazy"
             unoptimized
           />
